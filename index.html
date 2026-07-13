@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML Preview Website & Editor</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            /* Light Theme */
+            --bg-gradient: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            --text-main: #1e293b;
+            --text-muted: #475569;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --panel-bg: rgba(255, 255, 255, 0.85);
+            --editor-bg: #1e1e1e;
+            --editor-text: #d4d4d4;
+            --gutter-bg: #2d2d2d;
+            --gutter-text: #858585;
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] {
+            /* Dark Theme */
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(15, 23, 42, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --primary-hover: #818cf8;
+            --panel-bg: rgba(30, 41, 59, 0.85);
+            --editor-bg: #121212;
+            --editor-text: #e0e0e0;
+            --gutter-bg: #1a1a1a;
+            --gutter-text: #6b6b6b;
+        }
+
+        * {
+            box-sizing: border-box; margin: 0; padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            transition: var(--transition);
+        }
+
+        /* Utility */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+        }
+
+        /* Header */
+        header {
+            position: sticky;
+            top: 0; z-index: 100;
+            padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom-left-radius: var(--border-radius);
+            border-bottom-right-radius: var(--border-radius);
+            margin-bottom: 1rem;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        .header-title {
+            font-size: 1.25rem; font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center; flex-grow: 1;
+        }
+
+        .theme-toggle {
+            background: none; border: none; cursor: pointer;
+            color: var(--text-main); font-size: 1.5rem; width: 40px; height: 40px;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            transition: var(--transition);
+        }
+
+        .theme-toggle:hover { background: rgba(128, 128, 128, 0.2); }
+
+        /* Layout Container */
+        .container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 1.5rem; padding: 0 1.5rem 1.5rem 1.5rem;
+            flex-grow: 1; max-width: 1920px; margin: 0 auto; width: 100%;
+            height: calc(100vh - 100px);
+        }
+
+        /* Sidebar Component */
+        .sidebar {
+            display: flex; flex-direction: column; gap: 1.2rem;
+            animation: slideRight 0.6s ease-out; height: 100%; overflow-y: auto;
+        }
+
+        .panel {
+            padding: 1.2rem; border-radius: var(--border-radius);
+            background: var(--panel-bg);
+            border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
+        }
+
+        .panel-title {
+            font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 0.5rem;
+            border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;
+        }
+
+        /* Buttons & Forms */
+        .input-group label { display: block; font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-bottom: 0.3rem;}
+        .input-group input { 
+            width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.5); color: var(--text-main); outline: none; transition: 0.3s;
+        }
+        .input-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,0.2); }
+
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
+        .btn-full { grid-column: span 2; }
+        .btn {
+            padding: 0.7rem; border: none; border-radius: 8px; font-weight: 500; cursor: pointer;
+            display: flex; justify-content: center; align-items: center; gap: 0.5rem; transition: var(--transition);
+            color: #fff; overflow: hidden; position: relative; font-family: inherit; font-size: 0.9rem;
+        }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(79,70,229,0.3);}
+        .btn-danger { background: var(--danger); }
+        .btn-success { background: var(--success); }
+        .btn-secondary { background: rgba(128, 128, 128, 0.2); color: var(--text-main); }
+        .btn-secondary:hover:not(:disabled) { background: rgba(128, 128, 128, 0.3); }
+
+        /* Localhost Info UI */
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); margin-right: 0.5rem; box-shadow: 0 0 5px var(--danger); display: inline-block; transition: 0.3s;}
+        .status-dot.active { background: var(--success); box-shadow: 0 0 8px var(--success); }
+        .info-box { font-size: 0.8rem; margin-top: 1rem; color: var(--text-muted); background: rgba(245,158,11,0.1); border-left: 3px solid var(--warning); padding: 0.75rem; border-radius: 4px; display: none;}
+        .url-box { margin-top: 1rem; padding: 0.8rem; border: 1px dashed var(--glass-border); border-radius: 8px; font-size: 0.85rem; display: none; background: rgba(0,0,0,0.05); }
+
+        /* Main Workspace */
+        .workspace {
+            display: flex; flex-direction: column; gap: 1.5rem; height: 100%;
+            animation: slideLeft 0.6s ease-out; overflow: hidden;
+        }
+
+        .panel-flex {
+            display: flex; flex-direction: column; flex: 1; min-height: 0;
+            background: var(--panel-bg); border-radius: var(--border-radius);
+            box-shadow: var(--glass-shadow); border: 1px solid var(--glass-border); overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 0.8rem 1rem; background: rgba(128, 128, 128, 0.1); border-bottom: 1px solid var(--glass-border);
+            display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; font-weight: 600;
+        }
+
+        /* Code Editor Style */
+        .editor-wrapper {
+            display: flex; flex: 1; background: var(--editor-bg); position: relative; overflow: hidden;
+            font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.6;
+        }
+
+        .editor-gutters {
+            padding: 1rem 0.5rem; background: var(--gutter-bg); color: var(--gutter-text);
+            text-align: right; width: 50px; user-select: none; border-right: 1px solid #333; overflow: hidden;
+        }
+
+        .editor-gutters span { display: block; }
+
+        .editor-textarea {
+            flex: 1; padding: 1rem; border: none; background: transparent; color: var(--editor-text);
+            font-family: inherit; font-size: inherit; line-height: inherit; outline: none;
+            resize: none; white-space: pre; overflow: auto;
+        }
+        
+        .editor-textarea::selection { background: #3a3d41; }
+
+        /* Preview Panel */
+        .iframe-wrapper {
+            flex: 1; position: relative; overflow: hidden; background: #ffffff;
+            transition: transform 0.3s ease; transform-origin: top left; width: 100%; height: 100%;
+        }
+
+        iframe { width: 100%; height: 100%; border: none; }
+
+        select.zoom-control {
+            background: rgba(255,255,255,0.7); border: 1px solid #ccc; padding: 0.3rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; color: #333;
+        }
+
+        /* Overlay */
+        .overlay {
+            position: absolute; inset: 0; background: var(--glass-bg); backdrop-filter: blur(4px);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 10;
+        }
+        .overlay.active { opacity: 1; pointer-events: all; }
+        .spinner { width: 40px; height: 40px; border: 4px solid var(--glass-border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+
+        /* Responsive Layouts */
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 240px 1fr; }
+            .workspace { flex-direction: column; }
+        }
+        @media (max-width: 768px) {
+            .container { grid-template-columns: 1fr; height: auto; display: block; }
+            .sidebar { margin-bottom: 1.5rem; }
+            .workspace { height: 80vh; margin-bottom: 2rem;}
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes slideDown { from { transform: translateY(-100%); opacity:0; } to { transform: translateY(0); opacity:1;} }
+        @keyframes slideLeft { from { transform: translateX(50px); opacity:0; } to { transform: translateX(0); opacity:1;} }
+        @keyframes slideRight { from { transform: translateX(-50px); opacity:0; } to { transform: translateX(0); opacity:1;} }
+
+        /* Ripple effect */
+        .ripple { position: absolute; border-radius: 50%; transform: scale(0); animation: ripple-anim 0.5s linear; background: rgba(255,255,255,0.3); pointer-events: none;}
+        @keyframes ripple-anim { to { transform: scale(4); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <header class="glass">
+        <div style="width: 40px;"></div>
+        <div class="header-title">This website is made by Naitik Jain</div>
+        <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
+    </header>
+
+    <div class="container">
+        <!-- Sidebar Controls -->
+        <aside class="sidebar">
+            
+            <!-- Code Operations Panel -->
+            <div class="panel glass">
+                <div class="panel-title"><i class="fas fa-code"></i> Workspace Tools</div>
+                
+                <input type="file" id="htmlUpload" accept=".html,.htm" style="display:none;">
+                
+                <div class="btn-group">
+                    <button class="btn btn-secondary btn-full" id="btnUpload" title="Upload HTML">
+                        <i class="fas fa-file-upload"></i> Upload HTML File
+                    </button>
+                    <button class="btn btn-primary" id="btnCopy" title="Copy to clipboard">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <button class="btn btn-primary" id="btnDownload" title="Download Code">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                    <button class="btn btn-success btn-full" id="btnRun" title="Render Preview">
+                        <i class="fas fa-play"></i> Run Code (Update)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Localhost Controller -->
+            <div class="panel glass">
+                <div class="panel-title"><i class="fas fa-server"></i> Local Server</div>
+                <div>
+                    <span class="status-dot" id="dotHost"></span>
+                    <span id="txtHost" style="font-weight:500;font-size:0.9rem;">Status: Stopped</span>
+                </div>
+
+                <div class="input-group" style="margin-top:1rem;">
+                    <label>Localhost Port</label>
+                    <input type="number" id="portInput" value="8080" placeholder="e.g., 3000, 8080">
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-secondary" id="btnOn" style="background:var(--success); color:white;"><i class="fas fa-power-off"></i> Enable</button>
+                    <button class="btn btn-danger" id="btnOff" disabled><i class="fas fa-stop"></i> Stop</button>
+                </div>
+
+                <div class="info-box" id="infoBox">
+                    <i class="fas fa-info-circle"></i> Browser Security Notice: The browser cannot magically create a server. Start external Live Server/Node first on the selected port!
+                </div>
+                
+                <div class="url-box" id="urlBox">
+                    <strong style="color:var(--primary); display:block; margin-bottom:5px;">Preview Server:</strong>
+                    <a href="#" target="_blank" id="localLink" style="color:var(--text-main); word-break: break-all;">http://localhost:8080</a>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Main IDE Split -->
+        <main class="workspace">
+            
+            <!-- Code Editor Panel -->
+            <div class="panel-flex">
+                <div class="panel-header">
+                    <span><i class="fas fa-laptop-code"></i> index.html</span>
+                    <span id="lineCounterDisplay" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">0 Lines</span>
+                </div>
+                <div class="editor-wrapper">
+                    <div class="editor-gutters" id="gutters"><span>1</span></div>
+                    <textarea class="editor-textarea" id="editorCode" spellcheck="false" placeholder="Write or upload your HTML code here..."></textarea>
+                </div>
+            </div>
+
+            <!-- Live Preview Panel -->
+            <div class="panel-flex">
+                <div class="panel-header">
+                    <span><i class="fas fa-eye"></i> Live Preview</span>
+                    <div style="display:flex; gap:0.5rem;">
+                        <select class="zoom-control" id="zoomLevel">
+                            <option value="0.5">Zoom: 50%</option>
+                            <option value="0.75">Zoom: 75%</option>
+                            <option value="1" selected>Zoom: 100%</option>
+                            <option value="1.25">Zoom: 125%</option>
+                            <option value="1.5">Zoom: 150%</option>
+                        </select>
+                        <button class="btn btn-secondary" id="btnExpand" style="padding:0.2rem 0.5rem;" title="Fullscreen"><i class="fas fa-expand"></i></button>
+                        <button class="btn btn-secondary" id="btnNewTab" style="padding:0.2rem 0.5rem;" title="Open in New Tab"><i class="fas fa-external-link-alt"></i></button>
+                    </div>
+                </div>
+                <div style="flex:1; position:relative; overflow:hidden;">
+                    <!-- Wrapper scales for zoom feature -->
+                    <div class="iframe-wrapper" id="frameWrap">
+                        <iframe id="previewIframe" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe>
+                    </div>
+                    
+                    <div class="overlay" id="loaderOverlay">
+                        <div class="spinner"></div><p style="margin-top:10px; font-weight:600;">Processing Code...</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Main Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Basic DOM Nodes
+            const btnTheme = document.getElementById('themeToggle');
+            const editorCode = document.getElementById('editorCode');
+            const gutters = document.getElementById('gutters');
+            const linesDisplay = document.getElementById('lineCounterDisplay');
+            const previewIframe = document.getElementById('previewIframe');
+            const frameWrap = document.getElementById('frameWrap');
+            const loaderOverlay = document.getElementById('loaderOverlay');
+
+            let currentObjectUrl = null;
+
+            // Boilerplate
+            const boilerplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello Naitik Jain</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0;
+            background: #f0f4f8; 
+            color: #333;
+        }
+        h1 { color: #4f46e5; }
+    </style>
+</head>
+<body>
+    <div>
+        <h1>Welcome!</h1>
+        <p>Edit this HTML to see live updates below.</p>
+    </div>
+</body>
+</html>`;
+            editorCode.value = boilerplate;
+
+            /* ==============================================================
+             * THEME MANAGEMENT 
+             * ============================================================== */
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+
+            btnTheme.addEventListener('click', () => {
+                let cur = document.documentElement.getAttribute('data-theme');
+                let target = cur === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', target);
+                localStorage.setItem('theme', target);
+                updateThemeIcon(target);
+            });
+
+            function updateThemeIcon(mode) {
+                btnTheme.innerHTML = mode === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+            }
+
+            /* ==============================================================
+             * CODE EDITOR LOGIC & LINE COUNTING 
+             * ============================================================== */
+            function updateLineNumbers() {
+                const lines = editorCode.value.split('\n').length;
+                linesDisplay.innerText = `${lines} Line${lines !== 1 ? 's' : ''}`;
+                
+                // Building HTML array for massive string concat is faster
+                let gutterHtml = '';
+                for (let i = 1; i <= lines; i++) {
+                    gutterHtml += `<span>${i}</span>`;
+                }
+                gutters.innerHTML = gutterHtml;
+            }
+
+            // Sync scrolling of lines & text area
+            editorCode.addEventListener('scroll', () => {
+                gutters.scrollTop = editorCode.scrollTop;
+            });
+
+            // Update on type
+            editorCode.addEventListener('input', updateLineNumbers);
+
+            // Handle Tab Key for indents
+            editorCode.addEventListener('keydown', function(e) {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    let start = this.selectionStart;
+                    let end = this.selectionEnd;
+
+                    // Set textarea value to: text before caret + tab + text after caret
+                    this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
+                    
+                    // Put caret at right position
+                    this.selectionStart = this.selectionEnd = start + 4;
+                }
+            });
+
+            // Init numbers
+            updateLineNumbers();
+
+            /* ==============================================================
+             * WORKSPACE TOOLBAR OPERATIONS 
+             * ============================================================== */
+            
+            // Render to Iframe (Run)
+            function executeCode() {
+                loaderOverlay.classList.add('active');
+                
+                if (currentObjectUrl) {
+                    URL.revokeObjectURL(currentObjectUrl);
+                }
+
+                const content = editorCode.value;
+                const blob = new Blob([content], { type: 'text/html' });
+                currentObjectUrl = URL.createObjectURL(blob);
+                
+                previewIframe.src = currentObjectUrl;
+
+                previewIframe.onload = () => { loaderOverlay.classList.remove('active'); };
+            }
+
+            document.getElementById('btnRun').addEventListener('click', executeCode);
+
+            // Copy Action
+            document.getElementById('btnCopy').addEventListener('click', function() {
+                navigator.clipboard.writeText(editorCode.value).then(() => {
+                    const ogHtml = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-check"></i> Copied';
+                    setTimeout(() => { this.innerHTML = ogHtml; }, 2000);
+                });
+            });
+
+            // Download Action
+            document.getElementById('btnDownload').addEventListener('click', function() {
+                const content = editorCode.value;
+                if(!content) return alert("Nothing to download.");
+                
+                const element = document.createElement('a');
+                const file = new Blob([content], {type: 'text/html'});
+                element.href = URL.createObjectURL(file);
+                element.download = "index.html";
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+            });
+
+            // Upload File Action
+            const fileUpload = document.getElementById('htmlUpload');
+            document.getElementById('btnUpload').addEventListener('click', () => fileUpload.click());
+            
+            fileUpload.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    editorCode.value = evt.target.result;
+                    updateLineNumbers();
+                    executeCode(); // Auto Run immediately after loading
+                };
+                reader.readAsText(file);
+                this.value = ""; // reset
+            });
+
+
+            /* ==============================================================
+             * PREVIEW UTILITIES (Zoom, Expand, New Tab) 
+             * ============================================================== */
+             const zoomEl = document.getElementById('zoomLevel');
+             zoomEl.addEventListener('change', () => {
+                 let val = parseFloat(zoomEl.value);
+                 frameWrap.style.transform = `scale(${val})`;
+                 frameWrap.style.width = `${100/val}%`;
+                 frameWrap.style.height = `${100/val}%`;
+             });
+
+             document.getElementById('btnExpand').addEventListener('click', () => {
+                 const container = previewIframe.parentElement.parentElement; // gets panel-flex bounds
+                 if(container.requestFullscreen) {
+                     container.requestFullscreen();
+                 } else if (container.webkitRequestFullscreen) {
+                     container.webkitRequestFullscreen();
+                 }
+             });
+
+             document.getElementById('btnNewTab').addEventListener('click', () => {
+                if(currentObjectUrl) window.open(currentObjectUrl, '_blank');
+             });
+
+             
+            /* ==============================================================
+             * LOCALHOST CONTROLS 
+             * ============================================================== */
+            const btnOn = document.getElementById('btnOn');
+            const btnOff = document.getElementById('btnOff');
+            const portInput = document.getElementById('portInput');
+            const dotHost = document.getElementById('dotHost');
+            const txtHost = document.getElementById('txtHost');
+            const infoBox = document.getElementById('infoBox');
+            const urlBox = document.getElementById('urlBox');
+            const localLink = document.getElementById('localLink');
+            
+            let hostActive = false;
+
+            function syncLocalhost() {
+                const port = portInput.value || 8080;
+                if(hostActive) {
+                    btnOn.disabled = true; btnOff.disabled = false;
+                    portInput.disabled = true;
+                    dotHost.classList.add('active');
+                    txtHost.textContent = "Status: Running";
+                    
+                    localLink.href = `http://localhost:${port}`;
+                    localLink.textContent = `http://localhost:${port}`;
+                    urlBox.style.display = 'block';
+
+                    const onLocalEnv = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                    infoBox.style.display = onLocalEnv ? 'none' : 'block';
+                } else {
+                    btnOn.disabled = false; btnOff.disabled = true;
+                    portInput.disabled = false;
+                    dotHost.classList.remove('active');
+                    txtHost.textContent = "Status: Stopped";
+                    infoBox.style.display = 'none';
+                    urlBox.style.display = 'none';
+                }
+            }
+
+            btnOn.addEventListener('click', () => { hostActive = true; syncLocalhost(); });
+            btnOff.addEventListener('click', () => { hostActive = false; syncLocalhost(); });
+
+            if(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                portInput.value = window.location.port || '80';
+                hostActive = true;
+                syncLocalhost();
+            }
+
+            /* ==============================================================
+             * BUTTON RIPPLE EFFECT 
+             * ============================================================== */
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    let rect = this.getBoundingClientRect();
+                    let x = e.clientX - rect.left;
+                    let y = e.clientY - rect.top;
+                    let ripple = document.createElement('span');
+                    ripple.className = 'ripple';
+                    ripple.style.left = x + 'px';
+                    ripple.style.top = y + 'px';
+                    this.appendChild(ripple);
+                    setTimeout(() => { ripple.remove(); }, 500);
+                });
+            });
+
+            // Initial Run Code Render
+            setTimeout(executeCode, 200);
+        });
+    </script>
+</body>
+</html>
