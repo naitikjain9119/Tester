@@ -9,13 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- External Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
     <style>
         :root {
-            /* Dark Theme Variables (Default) */
             --bg: #0f172a;
             --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
             --glass-bg: rgba(30, 41, 59, 0.6);
@@ -61,7 +56,7 @@
             border: 1px solid var(--glass-border);
         }
 
-        /* --- Header --- */
+        /* Header */
         header {
             display: flex;
             justify-content: space-between;
@@ -70,25 +65,13 @@
             z-index: 10;
         }
         
-        .header-title {
-            display: flex;
-            flex-direction: column;
-        }
+        .header-title { display: flex; flex-direction: column; }
         .header-title h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.5px; }
         .header-title p { font-size: 0.75rem; color: var(--text-muted); }
 
-        .header-controls {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
+        .header-controls { display: flex; align-items: center; gap: 16px; }
 
-        .port-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.85rem;
-        }
+        .port-group { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
         .port-group input {
             background: rgba(0,0,0,0.2);
             border: 1px solid var(--glass-border);
@@ -109,15 +92,13 @@
             font-size: 1.2rem;
             cursor: pointer;
             transition: transform 0.2s, color 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             width: 36px; height: 36px;
             border-radius: 50%;
         }
         .icon-btn:hover { background: var(--glass-border); transform: scale(1.05); }
 
-        /* --- Main Layout --- */
+        /* Workspace Layout */
         .workspace {
             display: flex;
             flex: 1;
@@ -133,9 +114,10 @@
             border-radius: 12px;
             overflow: hidden;
             position: relative;
+            min-height: 0; 
         }
 
-        /* --- Toolbars --- */
+        /* Toolbars */
         .toolbar {
             display: flex;
             align-items: center;
@@ -165,16 +147,20 @@
         .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
         .btn-primary:hover { background: var(--accent-hover); }
 
-        /* --- Editor & Iframe Area --- */
+        /* Containers */
         .editor-container {
             flex: 1;
             width: 100%;
             position: relative;
+            min-height: 0;
+            overflow: hidden;
         }
         .iframe-container {
             flex: 1;
-            background: #ffffff; /* Preview always white background for realism */
+            background: #ffffff;
             position: relative;
+            overflow: hidden;
+            min-height: 0;
         }
         iframe {
             width: 100%;
@@ -185,7 +171,7 @@
             transform-origin: top left;
         }
 
-        /* --- Status Bar --- */
+        /* Status Bar */
         .status-bar {
             display: flex;
             justify-content: space-between;
@@ -197,7 +183,7 @@
         }
         .status-group { display: flex; gap: 16px; }
 
-        /* --- Error Console --- */
+        /* Error Console */
         .error-console {
             height: 120px;
             border-top: 1px solid var(--glass-border);
@@ -212,7 +198,7 @@
         .error-item { color: var(--error); padding: 4px; border-bottom: 1px solid var(--glass-border); }
         .error-item span { color: var(--text-muted); margin-right: 8px; }
 
-        /* --- Loading Screen --- */
+        /* Loader */
         #loader {
             position: fixed; inset: 0;
             background: var(--bg);
@@ -233,7 +219,7 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .loader-text { margin-top: 16px; font-weight: 600; letter-spacing: 2px; }
 
-        /* --- Toast Notifications --- */
+        /* Toasts */
         #toast-container {
             position: fixed;
             bottom: 24px; right: 24px;
@@ -247,14 +233,14 @@
             display: flex; align-items: center; gap: 10px;
             animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            background: rgba(30, 41, 59, 0.95);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
         }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         .toast.fade-out { opacity: 0; transform: translateX(100%); transition: all 0.3s ease; }
 
-        /* File Input hidden */
         #file-input { display: none; }
-
-        /* Fullscreen Preview overrides */
         .preview-fullscreen {
             position: fixed !important;
             inset: 0 !important;
@@ -262,10 +248,10 @@
             border-radius: 0 !important;
         }
 
-        /* --- Responsive --- */
+        /* Responsiveness */
         @media (max-width: 992px) {
-            .workspace { flex-direction: column; height: auto; overflow-y: auto; }
-            .panel { min-height: 50vh; }
+            .workspace { flex-direction: column; height: auto; overflow-y: auto; display: block;}
+            .panel { min-height: 500px; margin-bottom:16px;}
         }
         @media (max-width: 768px) {
             .header-title p { display: none; }
@@ -276,16 +262,16 @@
 </head>
 <body>
 
-    <!-- Loading Animation -->
+    <!-- Loading Screen -->
     <div id="loader">
         <div class="spinner"></div>
-        <div class="loader-text">INITIALIZING...</div>
+        <div class="loader-text">LOADING EDITOR...</div>
     </div>
 
-    <!-- Hidden File Input -->
+    <!-- Hidden Input for File Upload -->
     <input type="file" id="file-input" accept=".html,.css,.js,.txt,.zip">
 
-    <!-- Header -->
+    <!-- Top Header -->
     <header class="glass">
         <div class="header-title">
             <h1>HTML Runner</h1>
@@ -305,10 +291,10 @@
         </div>
     </header>
 
-    <!-- Workspace -->
+    <!-- Editor and Preview Workspace -->
     <div class="workspace">
         
-        <!-- Editor Panel -->
+        <!-- Editor Left Panel -->
         <div class="panel glass" id="editor-panel">
             <div class="toolbar">
                 <button class="btn" id="btn-upload" title="Upload File (Ctrl+O)"><i class="fas fa-file-upload"></i> <span>Upload</span></button>
@@ -316,9 +302,11 @@
                 <button class="btn" id="btn-copy" title="Copy All (Ctrl+C)"><i class="fas fa-copy"></i> <span>Copy</span></button>
                 <button class="btn btn-primary" id="btn-run" title="Update Live Preview (Ctrl+Enter)"><i class="fas fa-play"></i> <span>Run</span></button>
                 <button class="btn" id="btn-refresh" title="Clear Editor (Ctrl+R)"><i class="fas fa-sync-alt"></i> <span>Refresh</span></button>
-                <button class="btn btn-primary" id="btn-localhost" title="Host on Localhost"><i class="fas fa-server"></i> <span>Run Localhost</span></button>
+                <button class="btn btn-primary" id="btn-localhost" title="Host on Localhost Server"><i class="fas fa-server"></i> <span>Run Localhost</span></button>
             </div>
+            <!-- Container for Monaco Editor -->
             <div class="editor-container" id="monaco-container"></div>
+            
             <div class="status-bar">
                 <div class="status-group">
                     <span id="stat-lang">HTML</span>
@@ -331,7 +319,7 @@
             </div>
         </div>
 
-        <!-- Preview Panel -->
+        <!-- Preview Right Panel -->
         <div class="panel glass" id="preview-panel">
             <div class="toolbar">
                 <button class="btn" id="btn-reload-prev" title="Reload Preview"><i class="fas fa-redo"></i></button>
@@ -341,18 +329,24 @@
                 <button class="btn" id="btn-zoom-out" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
                 <button class="btn" id="btn-zoom-in" title="Zoom In"><i class="fas fa-search-plus"></i></button>
             </div>
+            
             <div class="iframe-container">
                 <iframe id="preview-frame" sandbox="allow-scripts allow-modals allow-popups allow-forms allow-same-origin"></iframe>
             </div>
+            
             <div class="error-console" id="error-console"></div>
         </div>
     </div>
 
-    <!-- Toast Notifications -->
+    <!-- Toast Notification Container -->
     <div id="toast-container"></div>
 
+    <!-- Script sequence MUST remain strictly this way to prevent AMD RequireJS and JSZip conflicts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+
     <script>
-        // Default Boilerplate
+        // Default Template code 
         const defaultCode = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -386,46 +380,93 @@
 </head>
 <body>
     <div class="card">
-        <h1>Hello World!</h1>
-        <p>Edit HTML, CSS, and JS to see live changes.</p>
+        <h1>HTML Runner</h1>
+        <p>Edit HTML, CSS, and JS on the left to see live changes.</p>
     </div>
     <script>
-        console.log("Successfully loaded.");
+        console.log("Welcome to HTML Runner!");
     <\/script>
 </body>
 </html>`;
 
-        // Error catching script injected into iframe to pass errors to parent
-        const errorTrackingScript = `
-            <script>
-                window.onerror = function(msg, url, lineNo, columnNo, error) {
-                    window.parent.postMessage({ type: 'iframe-error', msg: msg, line: lineNo }, '*');
-                    return false;
-                };
-                const originalConsoleError = console.error;
-                console.error = function(...args) {
-                    window.parent.postMessage({ type: 'iframe-error', msg: args.join(' '), line: 'Runtime' }, '*');
-                    originalConsoleError.apply(console, args);
-                };
-            <\/script>
-        `;
+        // Tracker script appended dynamically to intercept user errors and report to Error panel
+        const errorTrackingScript = `<script>
+            window.onerror = function(msg, url, lineNo, columnNo, error) {
+                window.parent.postMessage({ type: 'iframe-error', msg: msg, line: lineNo }, '*');
+                return false;
+            };
+            const originalConsoleError = console.error;
+            console.error = function(...args) {
+                window.parent.postMessage({ type: 'iframe-error', msg: args.join(' '), line: 'Runtime' }, '*');
+                originalConsoleError.apply(console, args);
+            };
+        <\/script>`;
 
-        // Variables
+        // Editor Application state logic
         let editor;
         let zoomLevel = 1;
         let isLightMode = false;
         
-        // Elements
         const iframe = document.getElementById('preview-frame');
         const errorConsole = document.getElementById('error-console');
         const toastContainer = document.getElementById('toast-container');
         const fileInput = document.getElementById('file-input');
+        const statChars = document.getElementById('stat-chars');
+        const statSize = document.getElementById('stat-size');
+        const statCursor = document.getElementById('stat-cursor');
 
-        // Setup Monaco Editor
+        // Toast functionality (no double escapes, fully safe literal mapping)
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            const iconHTML = type === 'success' 
+                ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' 
+                : (type === 'error' ? '<i class="fas fa-exclamation-circle" style="color:var(--error)"></i>' : '<i class="fas fa-info-circle" style="color:var(--accent)"></i>');
+            
+            toast.innerHTML = iconHTML + ' <span>' + message + '</span>';
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Preview Render core function
+        function updatePreview() {
+            if (!editor) return;
+            
+            errorConsole.innerHTML = '';
+            errorConsole.classList.remove('active');
+            let rawCode = editor.getValue();
+            let finalCode;
+            
+            // Embed iframe script dynamically securely
+            if (rawCode.indexOf('<head>') !== -1) {
+                finalCode = rawCode.replace('<head>', '<head>' + errorTrackingScript);
+            } else {
+                finalCode = errorTrackingScript + rawCode;
+            }
+            
+            iframe.srcdoc = finalCode;
+        }
+
+        // Cross-window Error Event Listener
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'iframe-error') {
+                errorConsole.classList.add('active');
+                const errDiv = document.createElement('div');
+                errDiv.className = 'error-item';
+                errDiv.innerHTML = '<span>[Line ' + e.data.line + ']</span> ' + e.data.msg;
+                errorConsole.appendChild(errDiv);
+            }
+        });
+
+        // Initialize Monaco correctly over RequireJS
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
         require(['vs/editor/editor.main'], function () {
             
-            // Restore from Auto-Save or use Default
             const savedCode = localStorage.getItem('html_runner_code') || defaultCode;
 
             editor = monaco.editor.create(document.getElementById('monaco-container'), {
@@ -447,102 +488,56 @@
                 cursorBlinking: 'smooth'
             });
 
-            // Remove Loader smoothly
+            // Delay closing the loading animation completely for smoothness
             setTimeout(() => {
                 const loader = document.getElementById('loader');
-                loader.style.opacity = '0';
-                setTimeout(() => loader.remove(), 500);
-            }, 500);
+                if (loader) {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.remove(), 500);
+                }
+            }, 600);
 
-            // Initial Preview Render
-            updatePreview();
+            updatePreview(); // initial iframe loading
 
-            // Status Bar Updates
+            // Events triggers when User Clicks/Moves cursor 
             editor.onDidChangeCursorPosition((e) => {
-                document.getElementById('stat-cursor').innerText = \`Ln \${e.position.lineNumber}, Col \${e.position.column}\`;
+                statCursor.innerText = 'Ln ' + e.position.lineNumber + ', Col ' + e.position.column;
             });
 
-            // Auto Save & Status Update on content change
+            // Handle Text Live update and Autosave 
             let debounceTimer;
             editor.getModel().onDidChangeContent(() => {
                 const val = editor.getValue();
                 
-                // Update size and chars
-                document.getElementById('stat-chars').innerText = \`\${val.length} Chars\`;
-                document.getElementById('stat-size').innerText = \`\${(new Blob([val]).size / 1024).toFixed(2)} KB\`;
+                statChars.innerText = val.length + ' Chars';
+                statSize.innerText = (new Blob([val]).size / 1024).toFixed(2) + ' KB';
                 
-                // Auto-save
+                // Store changes live mapped properly locally
                 localStorage.setItem('html_runner_code', val);
 
-                // Auto Live preview delay
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(() => {
                     updatePreview();
                 }, 800);
             });
             
-            // Trigger initial status
+            // Kickoff first trigger statistics update manually via fake change ping
             editor.getModel().applyEdits([{range: new monaco.Range(1,1,1,1), text: ''}]);
         });
 
-        // Toast Notification System
-        function showToast(message, type = 'success') {
-            const toast = document.createElement('div');
-            toast.className = \`toast glass\`;
-            
-            const icon = type === 'success' ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : 
-                         type === 'error' ? '<i class="fas fa-exclamation-circle" style="color:var(--error)"></i>' : 
-                         '<i class="fas fa-info-circle" style="color:var(--accent)"></i>';
-            
-            toast.innerHTML = \`\${icon} <span>\${message}</span>\`;
-            toastContainer.appendChild(toast);
+        /* --- Click Event Bindings --- */
 
-            setTimeout(() => {
-                toast.classList.add('fade-out');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        // Preview Logic
-        function updatePreview() {
-            if (!editor) return;
-            errorConsole.innerHTML = '';
-            errorConsole.classList.remove('active');
-            let rawCode = editor.getValue();
-            
-            // Inject Error Tracker safely
-            let finalCode = rawCode;
-            if (rawCode.includes('<head>')) {
-                finalCode = rawCode.replace('<head>', '<head>' + errorTrackingScript);
-            } else {
-                finalCode = errorTrackingScript + rawCode;
-            }
-            
-            iframe.srcdoc = finalCode;
-        }
-
-        // Listen for iframe errors
-        window.addEventListener('message', (e) => {
-            if (e.data && e.data.type === 'iframe-error') {
-                errorConsole.classList.add('active');
-                const errDiv = document.createElement('div');
-                errDiv.className = 'error-item';
-                errDiv.innerHTML = \`<span>[Line \${e.data.line}]</span> \${e.data.msg}\`;
-                errorConsole.appendChild(errDiv);
-            }
-        });
-
-        // --- Toolbar Actions ---
-
-        // Copy Code
+        // 1. Copy Complete Text Function
         document.getElementById('btn-copy').addEventListener('click', () => {
+            if (!editor) return;
             navigator.clipboard.writeText(editor.getValue()).then(() => {
-                showToast('Copied Successfully');
-            });
+                showToast('Copied Successfully', 'success');
+            }).catch(e => showToast('Failed to copy', 'error'));
         });
 
-        // Download Code
+        // 2. Download File Trigger Map 
         document.getElementById('btn-download').addEventListener('click', () => {
+            if (!editor) return;
             const blob = new Blob([editor.getValue()], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -550,152 +545,181 @@
             a.download = 'index.html';
             a.click();
             URL.revokeObjectURL(url);
-            showToast('Downloaded Successfully');
+            showToast('Downloaded Successfully', 'success');
         });
 
-        // Upload Code
-        document.getElementById('btn-upload').addEventListener('click', () => fileInput.click());
+        // 3. System Upload Reader Flow Handle Function 
+        document.getElementById('btn-upload').addEventListener('click', () => { fileInput.click(); });
+        
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            // Sanitize file name check (prevent basic traversal though browser restricts this)
+            // Security sanitization - block potential script hack uploads disguised traversing map 
             if (file.name.includes('..')) {
-                showToast('Invalid filename.', 'error');
+                showToast('Invalid path upload aborted.', 'error');
                 return;
             }
 
             if (file.name.endsWith('.zip')) {
-                showToast('Extracting ZIP...', 'info');
-                const zip = new JSZip();
+                showToast('Extracting ZIP Archive...', 'info');
+                
+                // Extract directly reading memory data from ZIP context Object without dependencies
                 try {
+                    const zip = new JSZip();
                     const contents = await zip.loadAsync(file);
-                    // Find first html file
-                    const htmlFile = Object.values(contents.files).find(f => f.name.endsWith('.html') && !f.dir);
-                    if (htmlFile) {
-                        const content = await htmlFile.async("string");
+                    
+                    let htmlFileName = null;
+                    // Scrutinize zip recursively matching the primary mapped html
+                    for (const name in contents.files) {
+                        if (name.endsWith('.html') && !contents.files[name].dir) {
+                            htmlFileName = name;
+                            break;
+                        }
+                    }
+
+                    if (htmlFileName) {
+                        const content = await contents.file(htmlFileName).async("string");
                         editor.setValue(content);
-                        showToast('ZIP Extracted & Uploaded Successfully');
+                        showToast('ZIP Extracted & Uploaded successfully!', 'success');
                     } else {
-                        showToast('No HTML file found in ZIP.', 'error');
+                        showToast('ZIP file lacks HTML structure core logic.', 'error');
                     }
                 } catch(err) {
-                    showToast('Failed to read ZIP.', 'error');
+                    showToast('Failed to read and expand ZIP correctly.', 'error');
                 }
             } else {
                 const reader = new FileReader();
                 reader.onload = (ev) => {
-                    editor.setValue(ev.target.result);
-                    showToast('Upload Completed');
+                    if (editor) editor.setValue(ev.target.result);
+                    showToast('Upload Completed', 'success');
                 };
                 reader.readAsText(file);
             }
-            fileInput.value = ''; // reset
+            fileInput.value = ''; // Clean buffer 
         });
 
-        // Run (Force Update)
+        // 4. Dedicated Forced Execution Ping function 
         document.getElementById('btn-run').addEventListener('click', () => {
             updatePreview();
-            showToast('Preview Updated', 'success');
+            showToast('Preview Forcibly Triggered & Run Successfully!', 'success');
         });
 
-        // Refresh (Reset Editor)
+        // 5. Restorer Wipe-Out Confirmation Hook Setup Function 
         document.getElementById('btn-refresh').addEventListener('click', () => {
-            if(confirm('Are you sure you want to reset the editor? Unsaved changes will be lost.')) {
-                editor.setValue(defaultCode);
-                showToast('Editor Reset');
+            if (confirm('Proceed reset? Unsaved buffer state code mapping will erase.')) {
+                if (editor) editor.setValue(defaultCode);
+                showToast('Live View Editor Erase & Restored Default', 'info');
             }
         });
 
-        // --- Run on Localhost API ---
+        // 6. External Node LocalHost System Relay
+        // NOTE: Because browser itself cannot deploy a true host locally out the DOM, this targets the pre-written NodeJS express block required by you.
         document.getElementById('btn-localhost').addEventListener('click', async () => {
-            showToast('Starting Localhost Server...', 'info');
+            if (!editor) return;
+            
+            showToast('Transferring core node script deployment..', 'info');
             const html = editor.getValue();
             const port = document.getElementById('port-input').value || 3000;
 
             try {
-                // Pointing to the backend API Server port 3001
+                // Connecting Node Server running at localhost:3001 via api bridge context mapping
                 const response = await fetch('http://localhost:3001/api/run', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ html, port })
+                    body: JSON.stringify({ html: html, port: port })
                 });
 
                 const data = await response.json();
                 
                 if (data.success) {
-                    showToast('Hosted Successfully', 'success');
+                    showToast('Hosted System Port successfully.', 'success');
                     window.open(data.url, '_blank');
                 } else {
-                    showToast(data.message || 'Error hosting.', 'error');
+                    showToast(data.message || 'Error occurred handling Port routing loop logic map error.', 'error');
                 }
             } catch (err) {
                 console.error(err);
-                showToast('Backend server is not running on port 3001.', 'error');
+                // System default message when localNode block environment lacks Express connection API active map layer
+                showToast('Action Failed. Did you run the Node server in Terminal on port 3001?', 'error');
             }
         });
 
-        // --- Preview Controls ---
-        document.getElementById('btn-reload-prev').addEventListener('click', updatePreview);
+        // Layout Preview Interaction Mapping Elements Blocks logic setup: 
+        document.getElementById('btn-reload-prev').addEventListener('click', () => { updatePreview(); });
         
         document.getElementById('btn-new-tab').addEventListener('click', () => {
+            if (!editor) return;
             const blob = new Blob([editor.getValue()], { type: 'text/html' });
             window.open(URL.createObjectURL(blob), '_blank');
         });
         
+        // Context map Fullscreen handling override
         const previewPanel = document.getElementById('preview-panel');
         document.getElementById('btn-fullscreen').addEventListener('click', () => {
             previewPanel.classList.toggle('preview-fullscreen');
-            editor.layout();
+            if(editor) editor.layout(); // Map sizing repair map sequence trigger execution
         });
 
-        // Zoom Controls
-        const zoomIn = document.getElementById('btn-zoom-in');
-        const zoomOut = document.getElementById('btn-zoom-out');
-        zoomIn.addEventListener('click', () => { zoomLevel += 0.1; iframe.style.transform = \`scale(\${zoomLevel})\`; iframe.style.width = \`\${100/zoomLevel}%\`; iframe.style.height = \`\${100/zoomLevel}%\`; });
-        zoomOut.addEventListener('click', () => { zoomLevel = Math.max(0.5, zoomLevel - 0.1); iframe.style.transform = \`scale(\${zoomLevel})\`; iframe.style.width = \`\${100/zoomLevel}%\`; iframe.style.height = \`\${100/zoomLevel}%\`; });
+        // Manual DOM frame execution resize hook override for user interaction view sizes map block: 
+        document.getElementById('btn-zoom-in').addEventListener('click', () => { 
+            zoomLevel += 0.1; 
+            iframe.style.transform = 'scale(' + zoomLevel + ')'; 
+            iframe.style.width = (100 / zoomLevel) + '%'; 
+            iframe.style.height = (100 / zoomLevel) + '%'; 
+        });
 
-        // Theme Toggle
+        document.getElementById('btn-zoom-out').addEventListener('click', () => { 
+            zoomLevel = Math.max(0.5, zoomLevel - 0.1); 
+            iframe.style.transform = 'scale(' + zoomLevel + ')'; 
+            iframe.style.width = (100 / zoomLevel) + '%'; 
+            iframe.style.height = (100 / zoomLevel) + '%'; 
+        });
+
+        // Theme CSS swap manipulation context
         document.getElementById('theme-btn').addEventListener('click', () => {
             isLightMode = !isLightMode;
             document.body.classList.toggle('light-mode', isLightMode);
             const icon = document.querySelector('#theme-btn i');
             icon.className = isLightMode ? 'fas fa-moon' : 'fas fa-sun';
-            if (editor) monaco.editor.setTheme(isLightMode ? 'vs' : 'vs-dark');
+            if (editor) {
+                monaco.editor.setTheme(isLightMode ? 'vs' : 'vs-dark');
+            }
         });
 
-        // Keyboard Shortcuts
+        // Keyboard Shortcut map system injection listeners hook overriding natively: 
         window.addEventListener('keydown', (e) => {
-            // Ctrl + S (Download)
+            // Save Overwrite Block (CTRL+S) Context 
             if (e.ctrlKey && e.key.toLowerCase() === 's') {
                 e.preventDefault();
                 document.getElementById('btn-download').click();
             }
-            // Ctrl + O (Upload)
+            // Trigger Load Box Override Block Context 
             if (e.ctrlKey && e.key.toLowerCase() === 'o') {
                 e.preventDefault();
                 document.getElementById('btn-upload').click();
             }
-            // Ctrl + Enter (Run)
+            // Forced Ping Command Execution Live Overwritten System Trigger Map context block  
             if (e.ctrlKey && e.key === 'Enter') {
                 e.preventDefault();
                 document.getElementById('btn-run').click();
             }
-            // Ctrl + R (Refresh Preview / Not Page)
-            if (e.ctrlKey && e.key.toLowerCase() === 'r') {
+            // System Layout Reset Execution Request Control override
+            if (e.ctrlKey && e.key.toLowerCase() === 'r' && !e.shiftKey) {
+                // If it prevents normal refreshing, user hits standard F5 instead usually. Handled purely for preview maps hook block 
                 e.preventDefault();
-                document.getElementById('btn-reload-prev').click();
+                updatePreview();
             }
-            // Ctrl + Shift + F (Fullscreen)
+            // Trigger Forced Map layout bounds System Expand Overwritten
             if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'f') {
                 e.preventDefault();
                 document.getElementById('btn-fullscreen').click();
             }
         });
 
-        // Prevent default drop behavior & handle Drag/Drop upload
-        window.addEventListener('dragover', e => e.preventDefault());
-        window.addEventListener('drop', e => {
+        // Forced system visual override loop preventing Drop Event Block maps
+        window.addEventListener('dragover', (e) => e.preventDefault());
+        window.addEventListener('drop', (e) => {
             e.preventDefault();
             if(e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                 fileInput.files = e.dataTransfer.files;
@@ -703,6 +727,7 @@
                 fileInput.dispatchEvent(event);
             }
         });
+
     </script>
 </body>
 </html>
