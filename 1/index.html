@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HTML Runner</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        :root {
+            /* Dark Theme Variables (Default) */
+            --bg: #0f172a;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --error: #ef4444;
+            --editor-bg: #1e1e1e;
+        }
+
+        body.light-mode {
+            --bg: #f8fafc;
+            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(0, 0, 0, 0.08);
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --editor-bg: #fffffe;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+        }
+
+        /* --- Header --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            z-index: 10;
+        }
+        
+        .header-title {
+            display: flex;
+            flex-direction: column;
+        }
+        .header-title h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.5px; }
+        .header-title p { font-size: 0.75rem; color: var(--text-muted); }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .port-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+        .port-group input {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            padding: 4px 10px;
+            border-radius: 6px;
+            width: 80px;
+            outline: none;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+        }
+        body.light-mode .port-group input { background: rgba(255,255,255,0.5); }
+        
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+        }
+        .icon-btn:hover { background: var(--glass-border); transform: scale(1.05); }
+
+        /* --- Main Layout --- */
+        .workspace {
+            display: flex;
+            flex: 1;
+            gap: 16px;
+            padding: 0 16px 16px 16px;
+            height: calc(100vh - 65px);
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- Toolbars --- */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            gap: 12px;
+            border-bottom: 1px solid var(--glass-border);
+            overflow-x: auto;
+        }
+        .toolbar::-webkit-scrollbar { display: none; }
+        
+        .btn {
+            background: var(--glass-border);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-1px); }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        /* --- Editor & Iframe Area --- */
+        .editor-container {
+            flex: 1;
+            width: 100%;
+            position: relative;
+        }
+        .iframe-container {
+            flex: 1;
+            background: #ffffff; /* Preview always white background for realism */
+            position: relative;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #fff;
+            transition: transform 0.2s ease-out;
+            transform-origin: top left;
+        }
+
+        /* --- Status Bar --- */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 16px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--glass-border);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .status-group { display: flex; gap: 16px; }
+
+        /* --- Error Console --- */
+        .error-console {
+            height: 120px;
+            border-top: 1px solid var(--glass-border);
+            padding: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.2);
+            display: none;
+        }
+        .error-console.active { display: block; }
+        .error-item { color: var(--error); padding: 4px; border-bottom: 1px solid var(--glass-border); }
+        .error-item span { color: var(--text-muted); margin-right: 8px; }
+
+        /* --- Loading Screen --- */
+        #loader {
+            position: fixed; inset: 0;
+            background: var(--bg);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 50px; height: 50px;
+            border: 4px solid var(--glass-border);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loader-text { margin-top: 16px; font-weight: 600; letter-spacing: 2px; }
+
+        /* --- Toast Notifications --- */
+        #toast-container {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            display: flex; flex-direction: column; gap: 10px;
+            z-index: 1000;
+        }
+        .toast {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            display: flex; align-items: center; gap: 10px;
+            animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast.fade-out { opacity: 0; transform: translateX(100%); transition: all 0.3s ease; }
+
+        /* File Input hidden */
+        #file-input { display: none; }
+
+        /* Fullscreen Preview overrides */
+        .preview-fullscreen {
+            position: fixed !important;
+            inset: 0 !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 992px) {
+            .workspace { flex-direction: column; height: auto; overflow-y: auto; }
+            .panel { min-height: 50vh; }
+        }
+        @media (max-width: 768px) {
+            .header-title p { display: none; }
+            .btn span { display: none; }
+            .port-group span { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Animation -->
+    <div id="loader">
+        <div class="spinner"></div>
+        <div class="loader-text">INITIALIZING...</div>
+    </div>
+
+    <!-- Hidden File Input -->
+    <input type="file" id="file-input" accept=".html,.css,.js,.txt,.zip">
+
+    <!-- Header -->
+    <header class="glass">
+        <div class="header-title">
+            <h1>HTML Runner</h1>
+            <p>This website is made by Naitik Jain</p>
+        </div>
+        <div class="header-controls">
+            <div class="port-group">
+                <span>Port:</span>
+                <input type="number" id="port-input" value="3000" min="1000" max="9999" aria-label="Localhost Port">
+            </div>
+            <button class="icon-btn" id="theme-btn" aria-label="Toggle Theme" title="Toggle Theme">
+                <i class="fas fa-sun"></i>
+            </button>
+            <button class="icon-btn" id="settings-btn" aria-label="Settings" title="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Workspace -->
+    <div class="workspace">
+        
+        <!-- Editor Panel -->
+        <div class="panel glass" id="editor-panel">
+            <div class="toolbar">
+                <button class="btn" id="btn-upload" title="Upload File (Ctrl+O)"><i class="fas fa-file-upload"></i> <span>Upload</span></button>
+                <button class="btn" id="btn-download" title="Download Code (Ctrl+S)"><i class="fas fa-file-download"></i> <span>Download</span></button>
+                <button class="btn" id="btn-copy" title="Copy All (Ctrl+C)"><i class="fas fa-copy"></i> <span>Copy</span></button>
+                <button class="btn btn-primary" id="btn-run" title="Update Live Preview (Ctrl+Enter)"><i class="fas fa-play"></i> <span>Run</span></button>
+                <button class="btn" id="btn-refresh" title="Clear Editor (Ctrl+R)"><i class="fas fa-sync-alt"></i> <span>Refresh</span></button>
+                <button class="btn btn-primary" id="btn-localhost" title="Host on Localhost"><i class="fas fa-server"></i> <span>Run Localhost</span></button>
+            </div>
+            <div class="editor-container" id="monaco-container"></div>
+            <div class="status-bar">
+                <div class="status-group">
+                    <span id="stat-lang">HTML</span>
+                    <span id="stat-size">0 KB</span>
+                </div>
+                <div class="status-group">
+                    <span id="stat-chars">0 Chars</span>
+                    <span id="stat-cursor">Ln 1, Col 1</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Panel -->
+        <div class="panel glass" id="preview-panel">
+            <div class="toolbar">
+                <button class="btn" id="btn-reload-prev" title="Reload Preview"><i class="fas fa-redo"></i></button>
+                <button class="btn" id="btn-new-tab" title="Open in New Tab"><i class="fas fa-external-link-alt"></i></button>
+                <button class="btn" id="btn-fullscreen" title="Fullscreen (Ctrl+Shift+F)"><i class="fas fa-expand"></i></button>
+                <div style="flex:1"></div>
+                <button class="btn" id="btn-zoom-out" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+                <button class="btn" id="btn-zoom-in" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+            </div>
+            <div class="iframe-container">
+                <iframe id="preview-frame" sandbox="allow-scripts allow-modals allow-popups allow-forms allow-same-origin"></iframe>
+            </div>
+            <div class="error-console" id="error-console"></div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <script>
+        // Default Boilerplate
+        const defaultCode = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Preview</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .card:hover { transform: translateY(-5px); }
+        h1 { margin: 0 0 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Hello World!</h1>
+        <p>Edit HTML, CSS, and JS to see live changes.</p>
+    </div>
+    <script>
+        console.log("Successfully loaded.");
+    <\/script>
+</body>
+</html>`;
+
+        // Error catching script injected into iframe to pass errors to parent
+        const errorTrackingScript = `
+            <script>
+                window.onerror = function(msg, url, lineNo, columnNo, error) {
+                    window.parent.postMessage({ type: 'iframe-error', msg: msg, line: lineNo }, '*');
+                    return false;
+                };
+                const originalConsoleError = console.error;
+                console.error = function(...args) {
+                    window.parent.postMessage({ type: 'iframe-error', msg: args.join(' '), line: 'Runtime' }, '*');
+                    originalConsoleError.apply(console, args);
+                };
+            <\/script>
+        `;
+
+        // Variables
+        let editor;
+        let zoomLevel = 1;
+        let isLightMode = false;
+        
+        // Elements
+        const iframe = document.getElementById('preview-frame');
+        const errorConsole = document.getElementById('error-console');
+        const toastContainer = document.getElementById('toast-container');
+        const fileInput = document.getElementById('file-input');
+
+        // Setup Monaco Editor
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
+        require(['vs/editor/editor.main'], function () {
+            
+            // Restore from Auto-Save or use Default
+            const savedCode = localStorage.getItem('html_runner_code') || defaultCode;
+
+            editor = monaco.editor.create(document.getElementById('monaco-container'), {
+                value: savedCode,
+                language: 'html',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                wordWrap: 'on',
+                minimap: { enabled: true },
+                formatOnPaste: true,
+                autoClosingBrackets: 'always',
+                autoClosingQuotes: 'always',
+                autoIndent: 'full',
+                fontSize: 14,
+                fontFamily: "'JetBrains Mono', monospace",
+                lineNumbers: 'on',
+                renderLineHighlight: 'all',
+                smoothScrolling: true,
+                cursorBlinking: 'smooth'
+            });
+
+            // Remove Loader smoothly
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 500);
+            }, 500);
+
+            // Initial Preview Render
+            updatePreview();
+
+            // Status Bar Updates
+            editor.onDidChangeCursorPosition((e) => {
+                document.getElementById('stat-cursor').innerText = \`Ln \${e.position.lineNumber}, Col \${e.position.column}\`;
+            });
+
+            // Auto Save & Status Update on content change
+            let debounceTimer;
+            editor.getModel().onDidChangeContent(() => {
+                const val = editor.getValue();
+                
+                // Update size and chars
+                document.getElementById('stat-chars').innerText = \`\${val.length} Chars\`;
+                document.getElementById('stat-size').innerText = \`\${(new Blob([val]).size / 1024).toFixed(2)} KB\`;
+                
+                // Auto-save
+                localStorage.setItem('html_runner_code', val);
+
+                // Auto Live preview delay
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    updatePreview();
+                }, 800);
+            });
+            
+            // Trigger initial status
+            editor.getModel().applyEdits([{range: new monaco.Range(1,1,1,1), text: ''}]);
+        });
+
+        // Toast Notification System
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = \`toast glass\`;
+            
+            const icon = type === 'success' ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : 
+                         type === 'error' ? '<i class="fas fa-exclamation-circle" style="color:var(--error)"></i>' : 
+                         '<i class="fas fa-info-circle" style="color:var(--accent)"></i>';
+            
+            toast.innerHTML = \`\${icon} <span>\${message}</span>\`;
+            toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('fade-out');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Preview Logic
+        function updatePreview() {
+            if (!editor) return;
+            errorConsole.innerHTML = '';
+            errorConsole.classList.remove('active');
+            let rawCode = editor.getValue();
+            
+            // Inject Error Tracker safely
+            let finalCode = rawCode;
+            if (rawCode.includes('<head>')) {
+                finalCode = rawCode.replace('<head>', '<head>' + errorTrackingScript);
+            } else {
+                finalCode = errorTrackingScript + rawCode;
+            }
+            
+            iframe.srcdoc = finalCode;
+        }
+
+        // Listen for iframe errors
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'iframe-error') {
+                errorConsole.classList.add('active');
+                const errDiv = document.createElement('div');
+                errDiv.className = 'error-item';
+                errDiv.innerHTML = \`<span>[Line \${e.data.line}]</span> \${e.data.msg}\`;
+                errorConsole.appendChild(errDiv);
+            }
+        });
+
+        // --- Toolbar Actions ---
+
+        // Copy Code
+        document.getElementById('btn-copy').addEventListener('click', () => {
+            navigator.clipboard.writeText(editor.getValue()).then(() => {
+                showToast('Copied Successfully');
+            });
+        });
+
+        // Download Code
+        document.getElementById('btn-download').addEventListener('click', () => {
+            const blob = new Blob([editor.getValue()], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Downloaded Successfully');
+        });
+
+        // Upload Code
+        document.getElementById('btn-upload').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Sanitize file name check (prevent basic traversal though browser restricts this)
+            if (file.name.includes('..')) {
+                showToast('Invalid filename.', 'error');
+                return;
+            }
+
+            if (file.name.endsWith('.zip')) {
+                showToast('Extracting ZIP...', 'info');
+                const zip = new JSZip();
+                try {
+                    const contents = await zip.loadAsync(file);
+                    // Find first html file
+                    const htmlFile = Object.values(contents.files).find(f => f.name.endsWith('.html') && !f.dir);
+                    if (htmlFile) {
+                        const content = await htmlFile.async("string");
+                        editor.setValue(content);
+                        showToast('ZIP Extracted & Uploaded Successfully');
+                    } else {
+                        showToast('No HTML file found in ZIP.', 'error');
+                    }
+                } catch(err) {
+                    showToast('Failed to read ZIP.', 'error');
+                }
+            } else {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    editor.setValue(ev.target.result);
+                    showToast('Upload Completed');
+                };
+                reader.readAsText(file);
+            }
+            fileInput.value = ''; // reset
+        });
+
+        // Run (Force Update)
+        document.getElementById('btn-run').addEventListener('click', () => {
+            updatePreview();
+            showToast('Preview Updated', 'success');
+        });
+
+        // Refresh (Reset Editor)
+        document.getElementById('btn-refresh').addEventListener('click', () => {
+            if(confirm('Are you sure you want to reset the editor? Unsaved changes will be lost.')) {
+                editor.setValue(defaultCode);
+                showToast('Editor Reset');
+            }
+        });
+
+        // --- Run on Localhost API ---
+        document.getElementById('btn-localhost').addEventListener('click', async () => {
+            showToast('Starting Localhost Server...', 'info');
+            const html = editor.getValue();
+            const port = document.getElementById('port-input').value || 3000;
+
+            try {
+                // Pointing to the backend API Server port 3001
+                const response = await fetch('http://localhost:3001/api/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ html, port })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Hosted Successfully', 'success');
+                    window.open(data.url, '_blank');
+                } else {
+                    showToast(data.message || 'Error hosting.', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Backend server is not running on port 3001.', 'error');
+            }
+        });
+
+        // --- Preview Controls ---
+        document.getElementById('btn-reload-prev').addEventListener('click', updatePreview);
+        
+        document.getElementById('btn-new-tab').addEventListener('click', () => {
+            const blob = new Blob([editor.getValue()], { type: 'text/html' });
+            window.open(URL.createObjectURL(blob), '_blank');
+        });
+        
+        const previewPanel = document.getElementById('preview-panel');
+        document.getElementById('btn-fullscreen').addEventListener('click', () => {
+            previewPanel.classList.toggle('preview-fullscreen');
+            editor.layout();
+        });
+
+        // Zoom Controls
+        const zoomIn = document.getElementById('btn-zoom-in');
+        const zoomOut = document.getElementById('btn-zoom-out');
+        zoomIn.addEventListener('click', () => { zoomLevel += 0.1; iframe.style.transform = \`scale(\${zoomLevel})\`; iframe.style.width = \`\${100/zoomLevel}%\`; iframe.style.height = \`\${100/zoomLevel}%\`; });
+        zoomOut.addEventListener('click', () => { zoomLevel = Math.max(0.5, zoomLevel - 0.1); iframe.style.transform = \`scale(\${zoomLevel})\`; iframe.style.width = \`\${100/zoomLevel}%\`; iframe.style.height = \`\${100/zoomLevel}%\`; });
+
+        // Theme Toggle
+        document.getElementById('theme-btn').addEventListener('click', () => {
+            isLightMode = !isLightMode;
+            document.body.classList.toggle('light-mode', isLightMode);
+            const icon = document.querySelector('#theme-btn i');
+            icon.className = isLightMode ? 'fas fa-moon' : 'fas fa-sun';
+            if (editor) monaco.editor.setTheme(isLightMode ? 'vs' : 'vs-dark');
+        });
+
+        // Keyboard Shortcuts
+        window.addEventListener('keydown', (e) => {
+            // Ctrl + S (Download)
+            if (e.ctrlKey && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                document.getElementById('btn-download').click();
+            }
+            // Ctrl + O (Upload)
+            if (e.ctrlKey && e.key.toLowerCase() === 'o') {
+                e.preventDefault();
+                document.getElementById('btn-upload').click();
+            }
+            // Ctrl + Enter (Run)
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('btn-run').click();
+            }
+            // Ctrl + R (Refresh Preview / Not Page)
+            if (e.ctrlKey && e.key.toLowerCase() === 'r') {
+                e.preventDefault();
+                document.getElementById('btn-reload-prev').click();
+            }
+            // Ctrl + Shift + F (Fullscreen)
+            if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'f') {
+                e.preventDefault();
+                document.getElementById('btn-fullscreen').click();
+            }
+        });
+
+        // Prevent default drop behavior & handle Drag/Drop upload
+        window.addEventListener('dragover', e => e.preventDefault());
+        window.addEventListener('drop', e => {
+            e.preventDefault();
+            if(e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                const event = new Event('change');
+                fileInput.dispatchEvent(event);
+            }
+        });
+    </script>
+</body>
+</html>
