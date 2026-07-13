@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HTML Runner & Multi-Compiler Workspace</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg: #0f172a;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --error: #ef4444;
+            --editor-bg: #1e1e1e;
+        }
+
+        body.light-mode {
+            --bg: #f8fafc;
+            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(0, 0, 0, 0.08);
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --editor-bg: #fffffe;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 24px;
+            z-index: 10;
+        }
+        
+        .header-title { display: flex; flex-direction: column; }
+        .header-title h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.5px; }
+        .header-title p { font-size: 0.75rem; color: var(--text-muted); }
+
+        .header-controls { display: flex; align-items: center; gap: 16px; flex-wrap: wrap;}
+
+        .port-group { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+        .port-group input {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            padding: 4px 10px;
+            border-radius: 6px;
+            width: 80px;
+            outline: none;
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+        }
+        body.light-mode .port-group input { background: rgba(255,255,255,0.5); }
+        
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.2s, color 0.2s;
+            display: flex; align-items: center; justify-content: center;
+            width: 36px; height: 36px;
+            border-radius: 50%;
+        }
+        .icon-btn:hover { background: var(--glass-border); transform: scale(1.05); }
+
+        /* Workspace Layout */
+        .workspace {
+            display: flex;
+            flex: 1;
+            gap: 16px;
+            padding: 0 16px 16px 16px;
+            height: calc(100vh - 65px);
+        }
+
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            min-height: 0; 
+        }
+
+        /* Toolbars */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            gap: 12px;
+            border-bottom: 1px solid var(--glass-border);
+            overflow-x: auto;
+        }
+        .toolbar::-webkit-scrollbar { height: 6px; }
+        .toolbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius:10px; }
+        
+        .btn {
+            background: var(--glass-border);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-1px); }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); }
+
+        select.btn { outline:none; background: var(--glass-bg); appearance: none; -moz-appearance: none; -webkit-appearance: none; text-align: center; }
+        select.btn option { background: var(--editor-bg); color: var(--text-main); border:none; padding:10px;}
+        body.light-mode select.btn option { background:#ffffff; color:#0f172a;}
+
+        /* Containers */
+        .editor-container {
+            flex: 1;
+            width: 100%;
+            position: relative;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .iframe-container {
+            flex: 1;
+            background: #ffffff;
+            position: relative;
+            overflow: hidden;
+            min-height: 0;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #fff;
+            transition: transform 0.2s ease-out;
+            transform-origin: top left;
+        }
+        
+        /* Inner terminal Overlay for Async Compiler waiting display*/
+        .compiler-wait-layer { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content:center; align-items:center; flex-direction:column; color:white; z-index:50;}
+
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 16px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--glass-border);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .status-group { display: flex; gap: 16px; }
+
+        /* Error Console */
+        .error-console {
+            height: 120px;
+            border-top: 1px solid var(--glass-border);
+            padding: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.2);
+            display: none;
+        }
+        .error-console.active { display: block; }
+        .error-item { color: var(--error); padding: 4px; border-bottom: 1px solid var(--glass-border); }
+        .error-item span { color: var(--text-muted); margin-right: 8px; }
+
+        /* Loader */
+        #loader {
+            position: fixed; inset: 0;
+            background: var(--bg);
+            z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        .spinner { width: 50px; height: 50px; border: 4px solid var(--glass-border); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loader-text { margin-top: 16px; font-weight: 600; letter-spacing: 2px; }
+
+        /* Toasts */
+        #toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 10px; z-index: 1000;}
+        .toast {
+            padding: 12px 20px; border-radius: 8px; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 10px;
+            animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            background: rgba(30, 41, 59, 0.95); color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast.fade-out { opacity: 0; transform: translateX(100%); transition: all 0.3s ease; }
+
+        #file-input { display: none; }
+        .preview-fullscreen { position: fixed !important; inset: 0 !important; z-index: 9999 !important; border-radius: 0 !important; }
+
+        @media (max-width: 992px) {
+            .workspace { flex-direction: column; height: auto; overflow-y: auto; display: block;}
+            .panel { min-height: 500px; margin-bottom:16px;}
+        }
+        @media (max-width: 768px) {
+            .header-title p { display: none; }
+            .btn span { display: none; }
+            .port-group > span { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <div class="loader-text">LOADING ENVIRONMENT...</div>
+    </div>
+    
+    <input type="file" id="file-input" accept=".html,.css,.js,.txt,.zip,.py,.java">
+
+    <!-- Top Header -->
+    <header class="glass">
+        <div class="header-title">
+            <h1>HTML Runner</h1>
+            <p>This website is made by Naitik Jain</p>
+        </div>
+        <div class="header-controls">
+            
+            <div class="port-group">
+                <span>Port:</span>
+                <input type="number" id="port-input" value="3000" min="1000" max="9999" aria-label="Localhost Port">
+                
+                <button class="btn btn-primary" id="btn-direct-localhost" title="Open entered Localhost in New Tab" style="padding: 4px 8px; font-size: 0.8rem; margin-left: 4px;">
+                    <i class="fas fa-external-link-square-alt"></i> <span>Open</span>
+                </button>
+            </div>
+            
+            <button class="icon-btn" id="theme-btn" aria-label="Toggle Theme" title="Toggle Theme">
+                <i class="fas fa-sun"></i>
+            </button>
+            <button class="icon-btn" id="settings-btn" aria-label="Settings" title="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        
+        <!-- Editor Left Panel -->
+        <div class="panel glass" id="editor-panel">
+            <div class="toolbar">
+                <!-- NEW MULTI LANGUAGE SWITCHER SELECTOR MENU -->
+                <select id="lang-selector" class="btn" title="Language Syntax/Executor Environment Mapping Select" style="padding-left:14px; padding-right:10px;">
+                    <option value="html" selected>🌐 HTML / Combo</option>
+                    <option value="css">🎨 CSS Core</option>
+                    <option value="javascript">⚡ JS / Node</option>
+                    <option value="python">🐍 Python Console</option>
+                    <option value="java">☕ Java Backend Cloud</option>
+                </select>
+
+                <button class="btn" id="btn-upload" title="Upload Code (Ctrl+O)"><i class="fas fa-file-upload"></i></button>
+                <button class="btn" id="btn-download" title="Download Source (Ctrl+S)"><i class="fas fa-file-download"></i></button>
+                <button class="btn" id="btn-copy" title="Copy Content (Ctrl+C)"><i class="fas fa-copy"></i></button>
+                <button class="btn btn-primary" id="btn-run" title="Execute Sandbox Runtime & Format Code Layout Trigger Engine Frame(Ctrl+Enter)"><i class="fas fa-play"></i> <span>Run</span></button>
+                <button class="btn" id="btn-refresh" title="Reset Code Frame Workspace (Ctrl+R)"><i class="fas fa-sync-alt"></i></button>
+                <button class="btn btn-primary" id="btn-localhost" title="Push Root Environment Logic Block to Main Core Background Active App Script Handler via Bridge Map" style="margin-left:auto"><i class="fas fa-server"></i> <span>Host To Root Express Node DB</span></button>
+            </div>
+            
+            <!-- Workspace Node Element Maps Bind Engine Script Render Injection Map Setup -->
+            <div class="editor-container" id="monaco-container"></div>
+            
+            <div class="status-bar">
+                <div class="status-group">
+                    <span id="stat-lang">HTML Workspace</span>
+                    <span id="stat-size">0 KB</span>
+                </div>
+                <div class="status-group">
+                    <span id="stat-chars">0 Chars</span>
+                    <span id="stat-cursor">Ln 1, Col 1</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview System Context Element Layout  -->
+        <div class="panel glass" id="preview-panel">
+            <div class="toolbar">
+                <span style="font-weight: 500; font-size: 0.85rem; color:var(--text-muted);"><i class="fas fa-terminal"></i> Terminal Sandbox</span>
+                <div style="flex:1"></div>
+                <button class="btn" id="btn-reload-prev" title="Reload Visual IFrame Layer State Engine Preview"><i class="fas fa-redo"></i></button>
+                <button class="btn" id="btn-new-tab" title="Output Window Mode New Process Tab Render Target"><i class="fas fa-external-link-alt"></i></button>
+                <button class="btn" id="btn-fullscreen" title="Full-scale Zoom Display Engine Overlay Block Window(Ctrl+Shift+F)"><i class="fas fa-expand"></i></button>
+                <button class="btn" id="btn-zoom-out" title="Frame Layout Squeeze Ratio Mapping Out "><i class="fas fa-search-minus"></i></button>
+                <button class="btn" id="btn-zoom-in" title="Enlarge Visual Aspect System Format Target Focus Frame"><i class="fas fa-search-plus"></i></button>
+            </div>
+            
+            <div class="iframe-container">
+                <iframe id="preview-frame" sandbox="allow-scripts allow-modals allow-popups allow-forms allow-same-origin"></iframe>
+                <!-- A Block Component Engine Target For Backend Map Calls wait states. -->
+                <div class="compiler-wait-layer" id="wait-spinner">
+                    <div class="spinner"></div><br><small style="color:var(--text-muted)">Querying secure public runtime endpoint server engine logic request queue...</small>
+                </div>
+            </div>
+            
+            <div class="error-console" id="error-console"></div>
+        </div>
+    </div>
+
+    <!-- Notification Toasts Map Block Array Setup target inject layer hook System element. -->
+    <div id="toast-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+
+    <script>
+        // Language Prebuilt Engine Layout Initialized Logic Default Variables mapped by Language Model String Block keys for quick reset structure setups and autosaving individual languages isolated accurately out context maps! 
+        const templateLibraryCodesBlocksMappingSetEngineKeysDataModelArrayStructureObjectsMapCodeTargetObjectJSONStoreFormatBaseDefaults = {
+            html: "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <title>Sandbox View Mode Layout Config Set Mapping Tool Live Viewer Layer Target Core Render HTML File Standard Code Map Frame Style Script Config</title>\n  <style>\n     body { background:#3b82f6; display:flex; justify-content:center; align-items:center; height:100vh; color:white; font-family:sans-serif; text-shadow:0 0 10px black; font-size:30px; text-transform:uppercase;}\n     .x-bounce{ animation: bump 1s infinite alternate ease-in;}\n     @keyframes bump{ 0%{transform:scale(1);} 100%{transform:scale(1.2);} }\n  </style>\n</head>\n<body>\n    <div class='x-bounce'>Ready Set Code!</div>\n</body>\n</html>",
+            css: "/* Beautiful gradient base styling map frame target design object component demo box! */\n\n.my-css-demo-sandbox-target {\n  background: linear-gradient(to right, #ec4899, #8b5cf6);\n  padding: 40px;\n  border-radius: 20px;\n  color: white;\n  box-shadow: 0px 10px 40px rgba(0,0,0,0.5);\n  transition: all 0.3s ease;\n}\n\n.my-css-demo-sandbox-target:hover {\n  transform: translateY(-20px);\n  background: linear-gradient(to left, #ec4899, #8b5cf6);\n  cursor:pointer;\n}",
+            javascript: "// JavaScript Console Tool Execute Runner!\n\nconsole.log(\"Initialization Target Starting Event Set Array Map Target Loaded Memory!\");\n\nfor (let i = 1; i <= 5; i++) {\n    console.log(\"Script Block Executing Core Thread Queue System Data: [ Index System ] ->\", i);\n}\n\nconsole.log(\"App Output Processing Map Loop Complete Finished Trigger Engine Status Result Code Successfully Block Core App Engine Layer Mode Set Terminated Config Mapping Setup Loaded Output Successfully Run Output.\");\n",
+            python: "import sys\nimport time\nimport math\n\nprint('Initializing System Output Output Screen Setup Screen... Successfully Run Block Output Python Console Native Virtual Space Memory Structure Mode Display System Trigger Layout Hook Block Logic!')\nprint('')\n\nfor i in range(1, 6):\n   print('Python Loop Counter Render Event Object Log Value -> ', i)\n   \nx = 24.567\nprint('\\nFloating calculation target test value executed value process data model array event mapped value return structure execution set string object format structure mapping block set:', math.ceil(x))",
+            java: "class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Java Code execution engine connected!\");\n    System.out.println(\"This leverages public sandbox REST API compile service routing request network mapping engine systems without key structure constraints!\");\n    \n    int max = 3;\n    for(int j = 0; j < max; j++) {\n       System.out.println(\"Loading Index Map Model Values Set Code Execution Value Output Result Layout Process Set Index Java Format Value Process Log Display Object: \" + j);\n    }\n  }\n}"
+        };
+
+        const globalAutoSaveDatabaseObjectsAppMappingCodeEngineStateMemoryBufferJSONValueObjectArrayCoreSetEngineCacheVariablesLayoutLayerModeKeyReference = "app_codes_localstorage_map_all_cache";
+        
+        // Grab code layouts block string formats stored safely out isolated 
+        let cacheBufferSystemValuesObjectsObjectValueBlockModeTargetFileData;
+        try {
+           cacheBufferSystemValuesObjectsObjectValueBlockModeTargetFileData = JSON.parse(localStorage.getItem(globalAutoSaveDatabaseObjectsAppMappingCodeEngineStateMemoryBufferJSONValueObjectArrayCoreSetEngineCacheVariablesLayoutLayerModeKeyReference) || '{}');
+        } catch(e) {
+           cacheBufferSystemValuesObjectsObjectValueBlockModeTargetFileData = {};
+        }
+        
+        let editor; let currentWorkspaceEnvironmentTargetEngineBlockCodeLanguageConfigIdentifierBaseModeTypeFormatTypeLayoutSettingType = 'html'; let isLightMode = false; let zoomLevel = 1;
+        
+        const uiAppDisplayIframeComponentScreenOutputFrameMonitor = document.getElementById('preview-frame');
+        const langDropdownControllerMapUIStateToolSwitchEngineInputSelectNodeControlObj = document.getElementById('lang-selector');
+        
+        function showToast(message, type = 'success') {
+            const boxObjUIOutputConfigModelElement = document.createElement('div');
+            boxObjUIOutputConfigModelElement.className = 'toast';
+            boxObjUIOutputConfigModelElement.innerHTML = (type === 'success' ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' : (type === 'error' ? '<i class="fas fa-exclamation-circle" style="color:var(--error)"></i>' : '<i class="fas fa-info-circle" style="color:var(--accent)"></i>')) + ' <span>' + message + '</span>';
+            document.getElementById('toast-container').appendChild(boxObjUIOutputConfigModelElement);
+            setTimeout(() => { boxObjUIOutputConfigModelElement.classList.add('fade-out'); setTimeout(() => boxObjUIOutputConfigModelElement.remove(), 300); }, 3000);
+        }
+
+        // --- CODE / UI MAP BIND INJECTION LAYERS ---
+        const trackingHTMLMapLayoutDataArrayHookFunctionSetupMapFormatLayerSetVariables = `<script>
+            window.onerror = function(msg, url, ln, col) { window.parent.postMessage({ type:'iframe-err', line: ln, message: msg }, '*'); return false; };
+            console.error = function(...args) { window.parent.postMessage({ type:'iframe-err', line:'App Error', message:args.join(' ') }, '*'); };
+        <\/script>`;
+
+        const standardWebSystemErrorUIMapLayerModelEventCatchRenderLogicUpdateViewOutputControlSetNodeFrameMappingTargetUIEventBlockEngineEventOutputModeObjFunctionSystemLayerObject = document.getElementById('error-console');
+        window.addEventListener('message', (envAppFrameProcessSysNodeMapUIArrayDataStructInfoObjectObjCoreSystemVarCallLayerObject) => {
+            if(envAppFrameProcessSysNodeMapUIArrayDataStructInfoObjectObjCoreSystemVarCallLayerObject.data && envAppFrameProcessSysNodeMapUIArrayDataStructInfoObjectObjCoreSystemVarCallLayerObject.data.type === 'iframe-err'){
+               standardWebSystemErrorUIMapLayerModelEventCatchRenderLogicUpdateViewOutputControlSetNodeFrameMappingTargetUIEventBlockEngineEventOutputModeObjFunctionSystemLayerObject.classList.add('active');
+               const eLayerErrorNoticeInfoUIDisplayObjectRenderSysModeEventControlFormatLayoutMap = document.createElement('div');
+               eLayerErrorNoticeInfoUIDisplayObjectRenderSysModeEventControlFormatLayoutMap.className='error-item';
+               eLayerErrorNoticeInfoUIDisplayObjectRenderSysModeEventControlFormatLayoutMap.innerHTML = '<span>[Code Notice Context Exception Layout File: ' + envAppFrameProcessSysNodeMapUIArrayDataStructInfoObjectObjCoreSystemVarCallLayerObject.data.line + ']</span> ' + envAppFrameProcessSysNodeMapUIArrayDataStructInfoObjectObjCoreSystemVarCallLayerObject.data.message;
+               standardWebSystemErrorUIMapLayerModelEventCatchRenderLogicUpdateViewOutputControlSetNodeFrameMappingTargetUIEventBlockEngineEventOutputModeObjFunctionSystemLayerObject.appendChild(eLayerErrorNoticeInfoUIDisplayObjectRenderSysModeEventControlFormatLayoutMap);
+            }
+        });
+
+        function wrapCodeExecuteModelForUIEngineSysNodeStateLayoutCoreMappingRunTargetEngineComponentConfigBlockTargetModeStringReturnSetupData(strSourceModelSyntaxFileRawMapCodeStringFormatValueInputStrMapTypeSysNodeStringLayoutSetObjCodeCodeValueMap) {
+             const mLanguageObjControlSetUIEngineIdentifierVar = currentWorkspaceEnvironmentTargetEngineBlockCodeLanguageConfigIdentifierBaseModeTypeFormatTypeLayoutSettingType;
+             
+             // Setup Engine Wrap Output Return Format Result Value Set
+             if(mLanguageObjControlSetUIEngineIdentifierVar === 'html'){
+                if(strSourceModelSyntaxFileRawMapCodeStringFormatValueInputStrMapTypeSysNodeStringLayoutSetObjCodeCodeValueMap.indexOf('<head>')!==-1){ return strSourceModelSyntaxFileRawMapCodeStringFormatValueInputStrMapTypeSysNodeStringLayoutSetObjCodeCodeValueMap.replace('<head>', '<head>'+trackingHTMLMapLayoutDataArrayHookFunctionSetupMapFormatLayerSetVariables); }
+                else return trackingHTMLMapLayoutDataArrayHookFunctionSetupMapFormatLayerSetVariables + strSourceModelSyntaxFileRawMapCodeStringFormatValueInputStrMapTypeSysNodeStringLayoutSetObjCodeCodeValueMap;
+             } 
+             
+             else if(mLanguageObjControlSetUIEngineIdentifierVar === 'css'){
+                 return "<html><head><style>body,html{height:100%; margin:0; padding:0; background-color:#e2e8f0; font-family:'Segoe UI',sans-serif;}</style>"
+                 +"<style>" + strSourceModelSyntaxFileRawMapCodeStringFormatValueInputStrMapTypeSysNodeStringLayoutSetObjCodeCodeValueMap + "</style></head><body>"
+                 +"<div style='display:flex; justify-content:center; align-items:center; height:100vh;'><div class='my-css-demo-sandbox-target'><h1>Virtual UI CSS Target Preview Component Tool Structure Setup View Rendering Object Frame Display.</h1></div></div></body></html>";
+             } 
+             
+             else if(mLanguageObjControlSetUIEngineIdentifierVar === 'javascript') {
+                 // Virtual Script Engine Layer Set Control Log Interception Print UI Node Terminal Wrap System Output Map Render HTML Result Value Obj Object HTML Render String Mode:
+                 let baseRenderOutHTMLNodeCodeLayoutSetupAppTerminalScriptStyleStructureFrameScreenResultSetupOutputStringNodeLayerMapSet = `<body style="background:#020617; font-family:monospace; margin:20px; font-size:15px;"><div id="outputContainerTargetNodeLayerWrapSys" style="display:flex; flex-direction:column; gap:5px;"></div><script>
+                   let objContainerRootAppNodeTerminalCoreUI = document.getElementById('outputContainerTargetNodeLayerWrapSys');
+                   let fnLogCacheOriginMethodModelEngineUIOutSetFunction = console.log;
+                   console.log=function(...varsParamArgsListLayerAppSetFormatVarConfigListObjects){
+                      fnLogCacheOriginMethodModelEngineUIOutSetFunction.apply(console, varsParamArgsListLayerAppSetFormatVarConfigListObjects);
+                      objContainerRootAppNodeTerminalCoreUI.innerHTML += "<div style='color:#10b981'>" + varsParamArgsListLayerAppSetFormatVarConfigListObjects.join(' ').replace(/</g,"&lt;") + "</div>";
+                   };
+                   let fnErrorOriginUIStoreEngineSysValueLogObjFormat=console.error;
+                   console.error=function(...cArgErrSystemValueLogObjectsParamArrayConfigFormatSetupObjectsObjListArgsFormatObjectSysOutputAppNodeVarsListsVarsListModeDataVarsModeFormatListsArrValueArrayDataDataArrayModelArgsObjectsVarMap){
+                      fnErrorOriginUIStoreEngineSysValueLogObjFormat.apply(console, cArgErrSystemValueLogObjectsParamArrayConfigFormatSetupObjectsObjListArgsFormatObjectSysOutputAppNodeVarsListsVarsListModeDataVarsModeFormatListsArrValueArrayDataDataArrayModelArgsObjectsVarMap);
+                      objContainerRootAppNodeTerminalCoreUI.innerHTML += "<div style='color:#ef4444'>[EXCEPTION UI EXECUTE ERROR LAYER]: " + cArgErrSystemValueLogObjectsParamArrayConfigFormatSetupObjectsObjListArgsFormatObjectSysOutputAppNodeVarsListsVarsListModeDataVarsModeFormatListsArrValueArrayDataDataArrayModelArgsObjectsVarMap.join(' ').replace(/</g,"&lt;") + "</div>";
+                   };
+                   
+                   try{
+                        `+ strSourceModelSyntaxFileRawMapCodeStringFormatValueInputStrMapTypeSysNodeStringLayoutSetObjCodeCodeValueMap + `
+                   }catch(errRuntimeThrowCoreCodeExecutionSyntaxConfigMapLogicSysAppLayerObjectFormatTypeModeExceptionCodeMessageUIValueLayout){ console.error(errRuntimeThrowCoreCodeExecutionSyntaxConfigMapLogicSysAppLayerObjectFormatTypeModeExceptionCodeMessageUIValueLayout.message); }
+                 <\/script></body>`;
+                 return baseRenderOutHTMLNodeCodeLayoutSetupAppTerminalScriptStyleStructureFrameScreenResultSetupOutputStringNodeLayerMapSet;
+             }
+             
+             else if(mLanguageObjControlSetUIEngineIdentifierVar === 'python') {
+                  // Direct native execution brython front block virtual python setup. Runs local frontend resources. No wait times. Perfect functionality. 
+                  const UIStringHtmlWrapRenderTemplateDisplayObjectNodeForAppModelLayoutPythonExecUIViewStructureFrameOutModeObject = `<html><head><script src="https://cdnjs.cloudflare.com/ajax/libs/brython/3.12.0/brython.min.js"><\/script>
+                  <style>body{background:#000; color:#32CD32; margin:20px; font-size:16px; font-family:'Courier New', monospace; display:block; white-space:pre-wrap;} span.red{color:red;}</style>
+                  </head><body onload="brython()"><script type="text/python">
+import sys, traceback
+from browser import document, html
+class AppStdoutNodeTargetUIElement:
+    def write(self, sDataLayerTargetModelOutputNodeObjModeArg):
+        if str(sDataLayerTargetModelOutputNodeObjModeArg) != '':
+            document <= html.SPAN(str(sDataLayerTargetModelOutputNodeObjModeArg).replace('<','&lt;'))
+    def flush(self): pass
+class AppStderrNode:
+    def write(self, textDataNodeOutputAppObjVarTargetError): 
+        if textDataNodeOutputAppObjVarTargetError: 
+             document <= html.SPAN(textDataNodeOutputAppObjVarTargetError, Class="red")
+    def flush(self): pass
+sys.stdout = AppStdoutNodeTargetUIElement()
+sys.stderr = AppStderrNode()
+
+try:
+` + (strSourceModelSyntaxFileRawMapCodeStringFormatValueInputStrMapTypeSysNodeStringLayoutSetObjCodeCodeValueMap.replace(/^/gm, '    ')) + `
+except Exception as codeErrorTrapPythonVMSystemEventModeTargetSetupConfigBlockUIDataEventObjectObjectObjMapVarNodeArrayLayerObjSetupFrameAppNodeUIOutVal: 
+    print("\\n"+traceback.format_exc(), file=sys.stderr)
+                  <\/script></body></html>`;
+                  
+                  return UIStringHtmlWrapRenderTemplateDisplayObjectNodeForAppModelLayoutPythonExecUIViewStructureFrameOutModeObject;
+             }
+
+             return "<html><body><code>Format Support Model Code Exec Missing Frame</code></body></html>";
+        }
+
+
+        // Java Async Rest Logic execution. 
+        async function runRemoteCloudCompilationExecutionMapBridgeRestToolApiEngineObjRunSetupMethodConfigCallNodeForLanguageConfigStringObjLayerLayoutFunctionSetupProcessOutputValueAppOutputDataReturnLayerSetupObjModelSetupRequestModelExecuteRunCoreEngine(cloudCodeModelDataLanguageScriptTarget) {
+            document.getElementById('wait-spinner').style.display='flex'; // Open Layer Waiting Tool Overlay Mode Config Obj System Overlay Box Visual Update Value App Method Display Status
+            
+            try {
+                // Public Community Compiling Core Service Open WandBox Network. Request format map API object. CORS is intrinsically enabled map backend system service map output mode request type standard form response process map setup payload:
+                let resultValueResponseJSONModelSystemDataStringMapRestApiObjectReturnSystemValuesCallTargetSystemLayoutResultTargetFetchProcessDataStringJSONResultNodeSetupObj = await fetch('https://wandbox.org/api/compile.json', {
+                    method:'POST',
+                    body:JSON.stringify({ compiler: "openjdk-head", code: cloudCodeModelDataLanguageScriptTarget }),
+                    headers:{ 'Content-Type': 'application/json', 'Accept':'application/json' }
+                });
+                
+                let jsonValuesCoreValueStringOutputLayerUIObjObjectArrayDataFormatSysLogRenderResponseSysMapResponseEngineDataArrayStringOutputValObjObjFormatDataValTypeObj = await resultValueResponseJSONModelSystemDataStringMapRestApiObjectReturnSystemValuesCallTargetSystemLayoutResultTargetFetchProcessDataStringJSONResultNodeSetupObj.json();
+                
+                let compiledOutputsCodeFormatUIBoxModeMessageLayerArrayMapValuesDisplayArrayValueLayoutArrayTargetStrStrUIStrDisplayBoxLogStringUIOutputNodeMapReturnLogModeMessageSetupAppSystemOutputStrDisplayAppModelModeLayerBox = (jsonValuesCoreValueStringOutputLayerUIObjObjectArrayDataFormatSysLogRenderResponseSysMapResponseEngineDataArrayStringOutputValObjObjFormatDataValTypeObj.program_message || "").replace(/</g, "&lt;");
+                let compErrorNodeMapUIStrLayoutLogValueBoxConfigVarLayoutAppTypeObjLayerModelMessageSetupModelStringValueDataLogErrModeLogObjectOutput = (jsonValuesCoreValueStringOutputLayerUIObjObjectArrayDataFormatSysLogRenderResponseSysMapResponseEngineDataArrayStringOutputValObjObjFormatDataValTypeObj.compiler_message || jsonValuesCoreValueStringOutputLayerUIObjObjectArrayDataFormatSysLogRenderResponseSysMapResponseEngineDataArrayStringOutputValObjObjFormatDataValTypeObj.program_error || "").replace(/</g, "&lt;");
+                
+                uiAppDisplayIframeComponentScreenOutputFrameMonitor.srcdoc = "<body style='background:#0f172a; margin:15px; color:#10b981; font-family:monospace; font-size:16px;'><div style='white-space:pre-wrap'>" 
+                            + compiledOutputsCodeFormatUIBoxModeMessageLayerArrayMapValuesDisplayArrayValueLayoutArrayTargetStrStrUIStrDisplayBoxLogStringUIOutputNodeMapReturnLogModeMessageSetupAppSystemOutputStrDisplayAppModelModeLayerBox 
+                            + "</div><br/><div style='color:#ef4444;white-space:pre-wrap;'>" + compErrorNodeMapUIStrLayoutLogValueBoxConfigVarLayoutAppTypeObjLayerModelMessageSetupModelStringValueDataLogErrModeLogObjectOutput + "</div></body>";
+                            
+            } catch(executeProcessTimeNetworkErrorConnectionCatchVarSetupCallObjVarSysFormatObjObjectLayoutCodeStrObjValDataAppEngineFormatCallResultMapSysLogLayerReturnErrObjectMessageSysModeDataList) {
+                uiAppDisplayIframeComponentScreenOutputFrameMonitor.srcdoc = "<body style='color:red; background:black;'><p>WandBox Native Cloud Connection Fetch Block Access Event Rest Endpoint Failure Frame Format Value Map Method Block. <br><br>MSG:"+executeProcessTimeNetworkErrorConnectionCatchVarSetupCallObjVarSysFormatObjObjectLayoutCodeStrObjValDataAppEngineFormatCallResultMapSysLogLayerReturnErrObjectMessageSysModeDataList.message+"</p></body>";
+            } finally {
+                document.getElementById('wait-spinner').style.display='none';
+            }
+        }
+
+
+        // Master run handler core layout update call method system loop set! 
+        function applySourceCodeTriggerSandboxLayerEngineTargetModeStateRunProcessSystemUI() {
+            if(!editor) return;
+            standardWebSystemErrorUIMapLayerModelEventCatchRenderLogicUpdateViewOutputControlSetNodeFrameMappingTargetUIEventBlockEngineEventOutputModeObjFunctionSystemLayerObject.innerHTML = '';
+            standardWebSystemErrorUIMapLayerModelEventCatchRenderLogicUpdateViewOutputControlSetNodeFrameMappingTargetUIEventBlockEngineEventOutputModeObjFunctionSystemLayerObject.classList.remove('active');
+            let editorSourceAppFrameContentMapSetupFormatModeSetRawMap = editor.getValue();
+            
+            // Map run method format 
+            if(currentWorkspaceEnvironmentTargetEngineBlockCodeLanguageConfigIdentifierBaseModeTypeFormatTypeLayoutSettingType === 'java'){
+               runRemoteCloudCompilationExecutionMapBridgeRestToolApiEngineObjRunSetupMethodConfigCallNodeForLanguageConfigStringObjLayerLayoutFunctionSetupProcessOutputValueAppOutputDataReturnLayerSetupObjModelSetupRequestModelExecuteRunCoreEngine(editorSourceAppFrameContentMapSetupFormatModeSetRawMap);
+            } else {
+               let formatSourceScriptReturnExecutionEngineObjResultFormatDisplayWrapUIAppUIOutSetup = wrapCodeExecuteModelForUIEngineSysNodeStateLayoutCoreMappingRunTargetEngineComponentConfigBlockTargetModeStringReturnSetupData(editorSourceAppFrameContentMapSetupFormatModeSetRawMap);
+               uiAppDisplayIframeComponentScreenOutputFrameMonitor.srcdoc = formatSourceScriptReturnExecutionEngineObjResultFormatDisplayWrapUIAppUIOutSetup;
+            }
+        }
+
+
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
+        require(['vs/editor/editor.main'], function () {
+            
+            let loadValueLayoutMemoryDefaultKeyModeStringSourceOutputLayerBlockTargetSource = cacheBufferSystemValuesObjectsObjectValueBlockModeTargetFileData['html'] || templateLibraryCodesBlocksMappingSetEngineKeysDataModelArrayStructureObjectsMapCodeTargetObjectJSONStoreFormatBaseDefaults['html'];
+
+            editor = monaco.editor.create(document.getElementById('monaco-container'), {
+                value: loadValueLayoutMemoryDefaultKeyModeStringSourceOutputLayerBlockTargetSource,
+                language: 'html',
+                theme: 'vs-dark', automaticLayout: true, wordWrap: 'on', minimap: { enabled: true },
+                formatOnPaste: true, autoClosingBrackets: 'always', autoIndent: 'full', fontSize: 14, smoothScrolling: true, renderLineHighlight:'all'
+            });
+
+            setTimeout(() => { document.getElementById('loader').style.opacity = '0'; setTimeout(() => document.getElementById('loader').remove(), 500); }, 600);
+
+            // Base execution launch.
+            applySourceCodeTriggerSandboxLayerEngineTargetModeStateRunProcessSystemUI();
+
+            editor.onDidChangeCursorPosition((evValueEventSourceLayoutPositionMapInfoSetVarSetupCursorListUpdateInfo) => { document.getElementById('stat-cursor').innerText = 'Ln ' + evValueEventSourceLayoutPositionMapInfoSetVarSetupCursorListUpdateInfo.position.lineNumber + ', Col ' + evValueEventSourceLayoutPositionMapInfoSetVarSetupCursorListUpdateInfo.position.column; });
+
+            let timeoutAutoEventProcessLayerBufferIdTriggerRenderRunStateNodeVal;
+            editor.getModel().onDidChangeContent(() => {
+                const liveRawEditorMapMemorySystemObjectData = editor.getValue();
+                
+                document.getElementById('stat-chars').innerText = liveRawEditorMapMemorySystemObjectData.length + ' Chars';
+                document.getElementById('stat-size').innerText = (new Blob([liveRawEditorMapMemorySystemObjectData]).size / 1024).toFixed(2) + ' KB';
+                
+                // Keep local mapped independent mode block set key state sync cache save format engine variables out format values struct Map layer list code object JSON output mapping file 
+                cacheBufferSystemValuesObjectsObjectValueBlockModeTargetFileData[currentWorkspaceEnvironmentTargetEngineBlockCodeLanguageConfigIdentifierBaseModeTypeFormatTypeLayoutSettingType] = liveRawEditorMapMemorySystemObjectData;
+                localStorage.setItem(globalAutoSaveDatabaseObjectsAppMappingCodeEngineStateMemoryBufferJSONValueObjectArrayCoreSetEngineCacheVariablesLayoutLayerModeKeyReference, JSON.stringify(cacheBufferSystemValuesObjectsObjectValueBlockModeTargetFileData));
+
+                // Java API too heavy for Auto trigger, delay longer or avoid for remote compiles but native executes instant via JS Event Loop Block Output Set App Model Node Trigger! 
+                clearTimeout(timeoutAutoEventProcessLayerBufferIdTriggerRenderRunStateNodeVal);
+                
+                // Instant update bypass cloud delay maps set if Java 
+                if(currentWorkspaceEnvironmentTargetEngineBlockCodeLanguageConfigIdentifierBaseModeTypeFormatTypeLayoutSettingType!=='java'){
+                     timeoutAutoEventProcessLayerBufferIdTriggerRenderRunStateNodeVal = setTimeout(applySourceCodeTriggerSandboxLayerEngineTargetModeStateRunProcessSystemUI, 900);
+                }
+            });
+            editor.getModel().applyEdits([{range: new monaco.Range(1,1,1,1), text: ''}]); // kick GUI UI Map Value Label Status Event State Map Display Format List Info Var List Event Value Event Code Config Obj Value Value Model Layout Run Event Obj Data System Layer Update Object Process Start!
+            
+        });
+
+
+        // Drop down swap config action logic structure state model changes Map Layout Event Source Map Handler Object Engine Change Target List Model Node Engine Function Script Set Layout App Model Config! 
+        langDropdownControllerMapUIStateToolSwitchEngineInputSelectNodeControlObj.addEventListener('change', (elEventChangeActionOptionFormatUIVariableSourceConfigModeSetTargetObjectItemSourceUIConfigSystem) => {
+             const stringCodeKeyConfigIdObjectItemMapSetupModeCodeSourceArrayLayerSelectedOptionModelItemConfigSysObjLayoutNodeUIObjectModeEngineStringLayer = elEventChangeActionOptionFormatUIVariableSourceConfigModeSetTargetObjectItemSourceUIConfigSystem.target.value;
+             currentWorkspaceEnvironmentTargetEngineBlockCodeLanguageConfigIdentifierBaseModeTypeFormatTypeLayoutSettingType = stringCodeKeyConfigIdObjectItemMapSetupModeCodeSourceArrayLayerSelectedOptionModelItemConfigSysObjLayoutNodeUIObjectModeEngineStringLayer;
+             
+             monaco.editor.setModelLanguage(editor.getModel(), stringCodeKeyConfigIdObjectItemMapSetupModeCodeSourceArrayLayerSelectedOptionModelItemConfigSysObjLayoutNodeUIObjectModeEngineStringLayer === 'plaintext'?'plaintext':stringCodeKeyConfigIdObjectItemMapSetupModeCodeSourceArrayLayerSelectedOptionModelItemConfigSysObjLayoutNodeUIObjectModeEngineStringLayer);
+             document.getElementById('stat-lang').innerText = stringCodeKeyConfigIdObjectItemMapSetupModeCodeSourceArrayLayerSelectedOptionModelItemConfigSysObjLayoutNodeUIObjectModeEngineStringLayer.toUpperCase() + ' Target Sandbox';
+             
+             let restoredLayoutFormatValConfigStrStoreTargetMemoryArraySetEngineMap = cacheBufferSystemValuesObjectsObjectValueBlockModeTargetFileData[stringCodeKeyConfigIdObjectItemMapSetupModeCodeSourceArrayLayerSelectedOptionModelItemConfigSysObjLayoutNodeUIObjectModeEngineStringLayer] || templateLibraryCodesBlocksMappingSetEngineKeysDataModelArrayStructureObjectsMapCodeTargetObjectJSONStoreFormatBaseDefaults[stringCodeKeyConfigIdObjectItemMapSetupModeCodeSourceArrayLayerSelectedOptionModelItemConfigSysObjLayoutNodeUIObjectModeEngineStringLayer] || "";
+             editor.setValue(restoredLayoutFormatValConfigStrStoreTargetMemoryArraySetEngineMap);
+             applySourceCodeTriggerSandboxLayerEngineTargetModeStateRunProcessSystemUI();
+        });
+
+
+        // All existing actions maps block variables 
+
+        document.getElementById('btn-copy').addEventListener('click', () => { navigator.clipboard.writeText(editor.getValue()).then(()=>showToast('Source System Buffer File Model Format Value Copied Memory Model Object Successfully Process Tool Info Data State','success')); });
+        document.getElementById('btn-download').addEventListener('click', () => {
+             const mSetFileNameExtensionUIComponentFileStoreToolListTypeConfigModelVariableUIStringObjectLayoutBlockStrFileOutValSourceTargetFormatArrayModeNameValObjectAppInfoExtObjSourceStrStrSourceModelFileExtLayoutTypeMap= { html:'html',css:'css',javascript:'js',python:'py',java:'java',plaintext:'txt'};
+             const stringFileNameSystemConfigSetRenderDataAppSysFormatValExtensionNodeOutputBlockEngineInfoStrSysSourceStoreToolListRenderCodeExtValueObjectArrayUIItemInfoTypeStringData = 'app_script_src.' + mSetFileNameExtensionUIComponentFileStoreToolListTypeConfigModelVariableUIStringObjectLayoutBlockStrFileOutValSourceTargetFormatArrayModeNameValObjectAppInfoExtObjSourceStrStrSourceModelFileExtLayoutTypeMap[currentWorkspaceEnvironmentTargetEngineBlockCodeLanguageConfigIdentifierBaseModeTypeFormatTypeLayoutSettingType];
+             const eStrObjectDataSysVarURLAppBlobStringInfoFormat = URL.createObjectURL(new Blob([editor.getValue()], { type:'text/plain' }));
+             const elementActionLinkToolDownloadSetupTriggerNodeConfigRenderProcessTargetListObjInfoModelSetValObjectConfigMapNodeArraySys=document.createElement('a'); 
+             elementActionLinkToolDownloadSetupTriggerNodeConfigRenderProcessTargetListObjInfoModelSetValObjectConfigMapNodeArraySys.href=eStrObjectDataSysVarURLAppBlobStringInfoFormat; elementActionLinkToolDownloadSetupTriggerNodeConfigRenderProcessTargetListObjInfoModelSetValObjectConfigMapNodeArraySys.download=stringFileNameSystemConfigSetRenderDataAppSysFormatValExtensionNodeOutputBlockEngineInfoStrSysSourceStoreToolListRenderCodeExtValueObjectArrayUIItemInfoTypeStringData; elementActionLinkToolDownloadSetupTriggerNodeConfigRenderProcessTargetListObjInfoModelSetValObjectConfigMapNodeArraySys.click();
+             URL.revokeObjectURL(eStrObjectDataSysVarURLAppBlobStringInfoFormat);
+        });
+
+        document.getElementById('btn-upload').addEventListener('click', () => { document.getElementById('file-input').click(); });
+        
+        document.getElementById('file-input').addEventListener('change', async (targetValueActionElementFileProcessMethodArrayConfigParamUIInfoSysAppListStringVarDataVarSourceVarDataNodeOutputSetupValueRenderEventItemInputFormatConfigAppFormatValObjectObjectEventMapSysRenderTargetObjConfigInfoConfigLayerSysFormatModelListArgsSystemEventInputLayerFormatListStrUI) => {
+             let uploadedFileDataValDataModelFormatListValSetVarListMapLayoutUIStrOutputRenderDataValueValCodeConfigObjNodeSetFileSys = targetValueActionElementFileProcessMethodArrayConfigParamUIInfoSysAppListStringVarDataVarSourceVarDataNodeOutputSetupValueRenderEventItemInputFormatConfigAppFormatValObjectObjectEventMapSysRenderTargetObjConfigInfoConfigLayerSysFormatModelListArgsSystemEventInputLayerFormatListStrUI.target.files[0];
+             if(!uploadedFileDataValDataModelFormatListValSetVarListMapLayoutUIStrOutputRenderDataValueValCodeConfigObjNodeSetFileSys)return;
+
+             if(uploadedFileDataValDataModelFormatListValSetVarListMapLayoutUIStrOutputRenderDataValueValCodeConfigObjNodeSetFileSys.name.endsWith('.zip')){
+                 showToast("Loading App Node Sandbox Render Structure Extractor Frame Unpack Source Map Block Model Execution Mode...",'info');
+                 let libEngineZIPModelNodeSetupMapProcessFrameFileToolExtractMethodSource = new JSZip(); let targetContentFormatDataProcessFileObjectVarSourceVarDataModelLayoutCodeConfigDataFileFormatCodeConfigArrayValuesFormatDataConfigProcessEngineMapAppObjConfigFormatInfoValValueArrayMap = await libEngineZIPModelNodeSetupMapProcessFrameFileToolExtractMethodSource.loadAsync(uploadedFileDataValDataModelFormatListValSetVarListMapLayoutUIStrOutputRenderDataValueValCodeConfigObjNodeSetFileSys);
+                 let sysCoreStrNameDataOutputModeModelKeyMapFindSetupValAppTypeLayoutSourceDataValCodeFormatNameAppArrayDataOutputValStrInfoObjCodeConfigInfoNameLayoutVarNameInfoExtModeInfoSetupCodeTarget=null;
+                 for (let fileNameIter in targetContentFormatDataProcessFileObjectVarSourceVarDataModelLayoutCodeConfigDataFileFormatCodeConfigArrayValuesFormatDataConfigProcessEngineMapAppObjConfigFormatInfoValValueArrayMap.files) { if(fileNameIter.endsWith('.html')){sysCoreStrNameDataOutputModeModelKeyMapFindSetupValAppTypeLayoutSourceDataValCodeFormatNameAppArrayDataOutputValStrInfoObjCodeConfigInfoNameLayoutVarNameInfoExtModeInfoSetupCodeTarget=fileNameIter; break;} }
+                 if(sysCoreStrNameDataOutputModeModelKeyMapFindSetupValAppTypeLayoutSourceDataValCodeFormatNameAppArrayDataOutputValStrInfoObjCodeConfigInfoNameLayoutVarNameInfoExtModeInfoSetupCodeTarget){
+                    let dataAppSetupModelCodeSysExtractLayoutExtArrayValueNodeModeAppUIValueFormatSystemLayout = await targetContentFormatDataProcessFileObjectVarSourceVarDataModelLayoutCodeConfigDataFileFormatCodeConfigArrayValuesFormatDataConfigProcessEngineMapAppObjConfigFormatInfoValValueArrayMap.file(sysCoreStrNameDataOutputModeModelKeyMapFindSetupValAppTypeLayoutSourceDataValCodeFormatNameAppArrayDataOutputValStrInfoObjCodeConfigInfoNameLayoutVarNameInfoExtModeInfoSetupCodeTarget).async("string");
+                    editor.setValue(dataAppSetupModelCodeSysExtractLayoutExtArrayValueNodeModeAppUIValueFormatSystemLayout); showToast("Upload OK!");
+                 }
+             } else {
+                 let arrFileLayoutUIObjectSplitTargetModeValSetProcessRenderArrayObjInfoMapUIFormatCodeAppArrayMapDataConfigMapArrayRenderModeNameTypeModelStringValueLayoutSysListFormatCodeTargetStringUI = uploadedFileDataValDataModelFormatListValSetVarListMapLayoutUIStrOutputRenderDataValueValCodeConfigObjNodeSetFileSys.name.split('.').pop().toLowerCase();
+                 let nextKeyLanguageDataStringStoreSetupCodeRenderNameSourceModelExtObjectConfigUIConfigTargetSysRenderNameUIObjModelDataSetupTypeFormatListStringMapProcessNodeObjectSysModeValueAppValueDataSys = "plaintext";
+                 if(arrFileLayoutUIObjectSplitTargetModeValSetProcessRenderArrayObjInfoMapUIFormatCodeAppArrayMapDataConfigMapArrayRenderModeNameTypeModelStringValueLayoutSysListFormatCodeTargetStringUI==='html')nextKeyLanguageDataStringStoreSetupCodeRenderNameSourceModelExtObjectConfigUIConfigTargetSysRenderNameUIObjModelDataSetupTypeFormatListStringMapProcessNodeObjectSysModeValueAppValueDataSys='html'; else if(arrFileLayoutUIObjectSplitTargetModeValSetProcessRenderArrayObjInfoMapUIFormatCodeAppArrayMapDataConfigMapArrayRenderModeNameTypeModelStringValueLayoutSysListFormatCodeTargetStringUI==='js')nextKeyLanguageDataStringStoreSetupCodeRenderNameSourceModelExtObjectConfigUIConfigTargetSysRenderNameUIObjModelDataSetupTypeFormatListStringMapProcessNodeObjectSysModeValueAppValueDataSys='javascript'; else if(arrFileLayoutUIObjectSplitTargetModeValSetProcessRenderArrayObjInfoMapUIFormatCodeAppArrayMapDataConfigMapArrayRenderModeNameTypeModelStringValueLayoutSysListFormatCodeTargetStringUI==='py')nextKeyLanguageDataStringStoreSetupCodeRenderNameSourceModelExtObjectConfigUIConfigTargetSysRenderNameUIObjModelDataSetupTypeFormatListStringMapProcessNodeObjectSysModeValueAppValueDataSys='python'; else if(arrFileLayoutUIObjectSplitTargetModeValSetProcessRenderArrayObjInfoMapUIFormatCodeAppArrayMapDataConfigMapArrayRenderModeNameTypeModelStringValueLayoutSysListFormatCodeTargetStringUI==='css')nextKeyLanguageDataStringStoreSetupCodeRenderNameSourceModelExtObjectConfigUIConfigTargetSysRenderNameUIObjModelDataSetupTypeFormatListStringMapProcessNodeObjectSysModeValueAppValueDataSys='css'; else if(arrFileLayoutUIObjectSplitTargetModeValSetProcessRenderArrayObjInfoMapUIFormatCodeAppArrayMapDataConfigMapArrayRenderModeNameTypeModelStringValueLayoutSysListFormatCodeTargetStringUI==='java')nextKeyLanguageDataStringStoreSetupCodeRenderNameSourceModelExtObjectConfigUIConfigTargetSysRenderNameUIObjModelDataSetupTypeFormatListStringMapProcessNodeObjectSysModeValueAppValueDataSys='java';
+                 langDropdownControllerMapUIStateToolSwitchEngineInputSelectNodeControlObj.value = nextKeyLanguageDataStringStoreSetupCodeRenderNameSourceModelExtObjectConfigUIConfigTargetSysRenderNameUIObjModelDataSetupTypeFormatListStringMapProcessNodeObjectSysModeValueAppValueDataSys; langDropdownControllerMapUIStateToolSwitchEngineInputSelectNodeControlObj.dispatchEvent(new Event('change'));
+                 let dataObjectStreamMethodSetupValueFileSysFormatModelCodeNodeValRenderDataArrayConfigUIModeProcessCallTargetStringAppMethodFileReaderCallTargetAppSysUI = new FileReader(); dataObjectStreamMethodSetupValueFileSysFormatModelCodeNodeValRenderDataArrayConfigUIModeProcessCallTargetStringAppMethodFileReaderCallTargetAppSysUI.onload = (eNodeEventSetupDataResultMapStrSourceInfoExtFileAppSystemLayoutValueStringObjectTargetModelLayoutAppValueCodeProcessModeAppValueModelResultProcessCallEngineNodeOutputMapValueValSetValLayerObjectSysArraySetupLayerItemUIString) => { editor.setValue(eNodeEventSetupDataResultMapStrSourceInfoExtFileAppSystemLayoutValueStringObjectTargetModelLayoutAppValueCodeProcessModeAppValueModelResultProcessCallEngineNodeOutputMapValueValSetValLayerObjectSysArraySetupLayerItemUIString.target.result); showToast("Upload OK!"); }; dataObjectStreamMethodSetupValueFileSysFormatModelCodeNodeValRenderDataArrayConfigUIModeProcessCallTargetStringAppMethodFileReaderCallTargetAppSysUI.readAsText(uploadedFileDataValDataModelFormatListValSetVarListMapLayoutUIStrOutputRenderDataValueValCodeConfigObjNodeSetFileSys);
+             } document.getElementById('file-input').value=''; 
+        });
+
+        document.getElementById('btn-run').addEventListener('click', applySourceCodeTriggerSandboxLayerEngineTargetModeStateRunProcessSystemUI);
+
+        document.getElementById('btn-refresh').addEventListener('click', () => { 
+           if(confirm('Target Workspace System Module Process Buffer App Info Wipe Overwrite Target Configuration UI Event Trigger Confirmation Display System Process Engine Tool Output System?')){
+              editor.setValue(templateLibraryCodesBlocksMappingSetEngineKeysDataModelArrayStructureObjectsMapCodeTargetObjectJSONStoreFormatBaseDefaults[currentWorkspaceEnvironmentTargetEngineBlockCodeLanguageConfigIdentifierBaseModeTypeFormatTypeLayoutSettingType]);
+           } 
+        });
+
+        document.getElementById('btn-localhost').addEventListener('click', async () => {
+           let codeValuePostSysStringCodeDataMapLayoutObjectArrayValTargetRequestFormatModeDataOutputUIInfoVarListStringSystemModelUIObjectDataSetupNodeMapObjectFormatAppLayerConfigAppAppSysDataCodeEngineProcessToolCode = editor.getValue();
+           let codeSystemEngineNumberVariableLayerValSetupDisplayValPortSysOutputModelSetTypePortCodeSourceSys = document.getElementById('port-input').value||3000;
+           showToast('System Core Event Host Sandbox Bridge Connecting Target Value Event Data Mapping Method Target Display Port Target Mode Process Output Start Frame Call Process Layer Execute Status Sys Run Setup...','info');
+           try{
+               let responseSystemMapAppHostNetworkPortCodePostSetupCodeModeEngineObjectSysSourceJSONMapSetObjValFormatArrayRenderNetworkProcessArrayMapFormatModelDataReturnNodeFormatValObjectArrayOutputUIFormatNetworkMode = await fetch('http://localhost:3001/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({html:codeValuePostSysStringCodeDataMapLayoutObjectArrayValTargetRequestFormatModeDataOutputUIInfoVarListStringSystemModelUIObjectDataSetupNodeMapObjectFormatAppLayerConfigAppAppSysDataCodeEngineProcessToolCode, port:codeSystemEngineNumberVariableLayerValSetupDisplayValPortSysOutputModelSetTypePortCodeSourceSys})});
+               let returnedFormatProcessTargetOutputJSONVarSysResultNetworkMessageStatusObjValSourceAppEngineJSONModeSetupResponseProcessModeValueFormatCallFormatObjectAppRenderModelStringNodeLayer = await responseSystemMapAppHostNetworkPortCodePostSetupCodeModeEngineObjectSysSourceJSONMapSetObjValFormatArrayRenderNetworkProcessArrayMapFormatModelDataReturnNodeFormatValObjectArrayOutputUIFormatNetworkMode.json();
+               if(returnedFormatProcessTargetOutputJSONVarSysResultNetworkMessageStatusObjValSourceAppEngineJSONModeSetupResponseProcessModeValueFormatCallFormatObjectAppRenderModelStringNodeLayer.success){showToast("Online Frame Sys Event Core Success Mapping Execute App Status Event Tool Layout", 'success'); window.open(returnedFormatProcessTargetOutputJSONVarSysResultNetworkMessageStatusObjValSourceAppEngineJSONModeSetupResponseProcessModeValueFormatCallFormatObjectAppRenderModelStringNodeLayer.url, '_blank');} else showToast('Port Data Bind Error Set Mode Sys Request Config Node Execute','error');
+           }catch(e){showToast("Node Backend App Network Port Setup Missing Run Output Connection Engine Start Event Status Node Server Error Code Exec", 'error');}
+        });
+        
+        document.getElementById('btn-direct-localhost').addEventListener('click', ()=>{ window.open('http://localhost:'+ (document.getElementById('port-input').value||3000),'_blank');});
+        document.getElementById('btn-reload-prev').addEventListener('click', applySourceCodeTriggerSandboxLayerEngineTargetModeStateRunProcessSystemUI);
+        document.getElementById('btn-new-tab').addEventListener('click', ()=>{ window.open(URL.createObjectURL(new Blob([uiAppDisplayIframeComponentScreenOutputFrameMonitor.srcdoc],{type:'text/html'})),'_blank');});
+        document.getElementById('btn-fullscreen').addEventListener('click', ()=>{ document.getElementById('preview-panel').classList.toggle('preview-fullscreen'); editor.layout(); });
+        document.getElementById('btn-zoom-in').addEventListener('click',()=>{ zoomLevel+=0.1; uiAppDisplayIframeComponentScreenOutputFrameMonitor.style.transform='scale('+zoomLevel+')'; uiAppDisplayIframeComponentScreenOutputFrameMonitor.style.width=(100/zoomLevel)+'%'; uiAppDisplayIframeComponentScreenOutputFrameMonitor.style.height=(100/zoomLevel)+'%';});
+        document.getElementById('btn-zoom-out').addEventListener('click',()=>{ zoomLevel=Math.max(0.5,zoomLevel-0.1); uiAppDisplayIframeComponentScreenOutputFrameMonitor.style.transform='scale('+zoomLevel+')'; uiAppDisplayIframeComponentScreenOutputFrameMonitor.style.width=(100/zoomLevel)+'%'; uiAppDisplayIframeComponentScreenOutputFrameMonitor.style.height=(100/zoomLevel)+'%';});
+        document.getElementById('theme-btn').addEventListener('click', ()=>{isLightMode=!isLightMode;document.body.classList.toggle('light-mode');document.querySelector('#theme-btn i').className=isLightMode?'fas fa-moon':'fas fa-sun'; if(editor)monaco.editor.setTheme(isLightMode?'vs':'vs-dark');});
+
+        window.addEventListener('keydown',(evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap)=>{
+            if(evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.ctrlKey&&evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.key.toLowerCase()==='s'){evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.preventDefault();document.getElementById('btn-download').click();}
+            if(evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.ctrlKey&&evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.key.toLowerCase()==='o'){evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.preventDefault();document.getElementById('btn-upload').click();}
+            if(evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.ctrlKey&&evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.key==='Enter'){evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.preventDefault();applySourceCodeTriggerSandboxLayerEngineTargetModeStateRunProcessSystemUI();}
+            if(evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.ctrlKey&&evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.key.toLowerCase()==='r'&&!evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.shiftKey){evTriggerEventParamSystemMethodObjKeyPressToolActionKeyTargetDataListFormatRenderSetValuesStringArrMap.preventDefault();applySourceCodeTriggerSandboxLayerEngineTargetModeStateRunProcessSystemUI();}
+        });
+    </script>
+</body>
+</html>
