@@ -3,614 +3,1237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML Preview Website & Editor</title>
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-    <!-- Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <title>Professional Voice Assistant - Speech To Text</title>
     <style>
+        /* CSS Variables */
         :root {
             /* Light Theme */
-            --bg-gradient: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
-            --glass-bg: rgba(255, 255, 255, 0.65);
-            --glass-border: rgba(255, 255, 255, 0.5);
-            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
-            --text-main: #1e293b;
-            --text-muted: #475569;
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --danger: #ef4444;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --panel-bg: rgba(255, 255, 255, 0.85);
-            --editor-bg: #1e1e1e;
-            --editor-text: #d4d4d4;
-            --gutter-bg: #2d2d2d;
-            --gutter-text: #858585;
-            --border-radius: 12px;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4e69;
+            --interim-text: #9ca3af;
+            --accent-color: #4361ee;
+            --accent-hover: #3a0ca3;
+            --danger-color: #e63946;
+            --success-color: #2a9d8f;
+            --warning-color: #f4a261;
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            --card-radius: 20px;
+            --btn-radius: 12px;
             --transition: all 0.3s ease;
         }
 
         [data-theme="dark"] {
             /* Dark Theme */
-            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-            --glass-bg: rgba(15, 23, 42, 0.65);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --primary: #6366f1;
-            --primary-hover: #818cf8;
-            --panel-bg: rgba(30, 41, 59, 0.85);
-            --editor-bg: #121212;
-            --editor-text: #e0e0e0;
-            --gutter-bg: #1a1a1a;
-            --gutter-text: #6b6b6b;
+            --bg-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            --glass-bg: rgba(15, 23, 42, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8f9fa;
+            --text-secondary: #adb5bd;
+            --interim-text: #6c757d;
+            --accent-color: #4cc9f0;
+            --accent-hover: #4361ee;
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
         }
 
+        /* Reset & Base */
         * {
-            box-sizing: border-box; margin: 0; padding: 0;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
             background: var(--bg-gradient);
-            color: var(--text-main);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
+            align-items: center;
+            padding: 2rem 1rem;
             transition: var(--transition);
+            overflow-x: hidden;
         }
 
-        /* Utility */
-        .glass {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            box-shadow: var(--glass-shadow);
-        }
-
-        /* Header */
-        header {
-            position: sticky;
-            top: 0; z-index: 100;
-            padding: 1rem 2rem;
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom-left-radius: var(--border-radius);
-            border-bottom-right-radius: var(--border-radius);
-            margin-bottom: 1rem;
-            animation: slideDown 0.6s ease-out;
-        }
-
-        .header-title {
-            font-size: 1.25rem; font-weight: 700;
-            background: linear-gradient(90deg, var(--primary), #a855f7);
+        /* Typography */
+        h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            background: -webkit-linear-gradient(45deg, var(--accent-color), var(--text-primary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-align: center; flex-grow: 1;
         }
 
-        .theme-toggle {
-            background: none; border: none; cursor: pointer;
-            color: var(--text-main); font-size: 1.5rem; width: 40px; height: 40px;
-            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+        h2.subtitle {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 2rem;
+            letter-spacing: 1px;
+        }
+
+        /* Glassmorphism Container */
+        .glass-container {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--card-radius);
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 1200px;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
             transition: var(--transition);
         }
 
-        .theme-toggle:hover { background: rgba(128, 128, 128, 0.2); }
-
-        /* Layout Container */
-        .container {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: 1.5rem; padding: 0 1.5rem 1.5rem 1.5rem;
-            flex-grow: 1; max-width: 1920px; margin: 0 auto; width: 100%;
-            height: calc(100vh - 100px);
+        @media(min-width: 992px) {
+            .glass-container {
+                grid-template-columns: 3fr 1fr;
+            }
+            .full-width {
+                grid-column: 1 / -1;
+            }
         }
 
-        /* Sidebar Component */
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        /* Mic Animation */
+        .mic-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 1rem 0;
+            flex-direction: column;
+        }
+
+        .mic-btn {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .mic-btn svg {
+            width: 40px;
+            height: 40px;
+            fill: currentColor;
+            z-index: 2;
+        }
+
+        .mic-btn.listening {
+            color: white;
+            background: var(--danger-color);
+            border-color: var(--danger-color);
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0.7); }
+            70% { box-shadow: 0 0 0 25px rgba(230, 57, 70, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(230, 57, 70, 0); }
+        }
+
+        /* Controls */
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: var(--btn-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        button svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+            border-color: var(--danger-color);
+        }
+
+        .btn-icon {
+            padding: 0.8rem;
+            border-radius: 50%;
+        }
+
+        /* Dropdown */
+        select {
+            padding: 0.8rem 1.2rem;
+            border-radius: var(--btn-radius);
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--glass-border);
+            font-size: 1rem;
+            cursor: pointer;
+            outline: none;
+            backdrop-filter: blur(10px);
+            appearance: none;
+        }
+        
+        .select-wrapper {
+            position: relative;
+        }
+
+        .select-wrapper::after {
+            content: "▼";
+            font-size: 0.8rem;
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--text-primary);
+        }
+
+        /* Transcript Area */
+        .transcript-container {
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem;
+            min-height: 400px;
+            max-height: 60vh;
+            overflow-y: auto;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            scroll-behavior: smooth;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .transcript-container:focus-visible {
+            outline: 2px solid var(--accent-color);
+        }
+
+        .timestamp {
+            font-size: 0.85em;
+            color: var(--accent-color);
+            font-weight: 600;
+            margin-right: 0.5rem;
+            user-select: none;
+        }
+
+        .final-text {
+            color: var(--text-primary);
+        }
+
+        .interim-text {
+            color: var(--interim-text);
+            font-style: italic;
+        }
+
+        .placeholder-text {
+            color: var(--text-secondary);
+            font-style: italic;
+            text-align: center;
+            margin: auto;
+            opacity: 0.7;
+        }
+
+        /* Sidebar & Statistics */
         .sidebar {
-            display: flex; flex-direction: column; gap: 1.2rem;
-            animation: slideRight 0.6s ease-out; height: 100%; overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
         }
 
         .panel {
-            padding: 1.2rem; border-radius: var(--border-radius);
-            background: var(--panel-bg);
-            border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);
+            background: var(--glass-bg);
+            border-radius: var(--card-radius);
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem;
         }
 
-        .panel-title {
-            font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;
-            display: flex; align-items: center; gap: 0.5rem;
-            border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;
+        .panel h3 {
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 0.5rem;
         }
 
-        /* Buttons & Forms */
-        .input-group label { display: block; font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-bottom: 0.3rem;}
-        .input-group input { 
-            width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--glass-border);
-            background: rgba(255, 255, 255, 0.5); color: var(--text-main); outline: none; transition: 0.3s;
-        }
-        .input-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,0.2); }
-
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 1rem; }
-        .btn-full { grid-column: span 2; }
-        .btn {
-            padding: 0.7rem; border: none; border-radius: 8px; font-weight: 500; cursor: pointer;
-            display: flex; justify-content: center; align-items: center; gap: 0.5rem; transition: var(--transition);
-            color: #fff; overflow: hidden; position: relative; font-family: inherit; font-size: 0.9rem;
-        }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-primary { background: var(--primary); }
-        .btn-primary:hover:not(:disabled) { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(79,70,229,0.3);}
-        .btn-danger { background: var(--danger); }
-        .btn-success { background: var(--success); }
-        .btn-secondary { background: rgba(128, 128, 128, 0.2); color: var(--text-main); }
-        .btn-secondary:hover:not(:disabled) { background: rgba(128, 128, 128, 0.3); }
-
-        /* Localhost Info UI */
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); margin-right: 0.5rem; box-shadow: 0 0 5px var(--danger); display: inline-block; transition: 0.3s;}
-        .status-dot.active { background: var(--success); box-shadow: 0 0 8px var(--success); }
-        .info-box { font-size: 0.8rem; margin-top: 1rem; color: var(--text-muted); background: rgba(245,158,11,0.1); border-left: 3px solid var(--warning); padding: 0.75rem; border-radius: 4px; display: none;}
-        .url-box { margin-top: 1rem; padding: 0.8rem; border: 1px dashed var(--glass-border); border-radius: 8px; font-size: 0.85rem; display: none; background: rgba(0,0,0,0.05); }
-
-        /* Main Workspace */
-        .workspace {
-            display: flex; flex-direction: column; gap: 1.5rem; height: 100%;
-            animation: slideLeft 0.6s ease-out; overflow: hidden;
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+            font-size: 0.95rem;
         }
 
-        .panel-flex {
-            display: flex; flex-direction: column; flex: 1; min-height: 0;
-            background: var(--panel-bg); border-radius: var(--border-radius);
-            box-shadow: var(--glass-shadow); border: 1px solid var(--glass-border); overflow: hidden;
+        .stat-label {
+            color: var(--text-secondary);
         }
 
-        .panel-header {
-            padding: 0.8rem 1rem; background: rgba(128, 128, 128, 0.1); border-bottom: 1px solid var(--glass-border);
-            display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; font-weight: 600;
-        }
-
-        /* Code Editor Style */
-        .editor-wrapper {
-            display: flex; flex: 1; background: var(--editor-bg); position: relative; overflow: hidden;
-            font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.6;
-        }
-
-        .editor-gutters {
-            padding: 1rem 0.5rem; background: var(--gutter-bg); color: var(--gutter-text);
-            text-align: right; width: 50px; user-select: none; border-right: 1px solid #333; overflow: hidden;
-        }
-
-        .editor-gutters span { display: block; }
-
-        .editor-textarea {
-            flex: 1; padding: 1rem; border: none; background: transparent; color: var(--editor-text);
-            font-family: inherit; font-size: inherit; line-height: inherit; outline: none;
-            resize: none; white-space: pre; overflow: auto;
+        .stat-value {
+            font-weight: bold;
+            color: var(--text-primary);
         }
         
-        .editor-textarea::selection { background: #3a3d41; }
-
-        /* Preview Panel */
-        .iframe-wrapper {
-            flex: 1; position: relative; overflow: hidden; background: #ffffff;
-            transition: transform 0.3s ease; transform-origin: top left; width: 100%; height: 100%;
+        .status-badge {
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background: var(--glass-border);
         }
 
-        iframe { width: 100%; height: 100%; border: none; }
+        .status-badge.active { background: var(--success-color); color: white; }
+        .status-badge.error { background: var(--danger-color); color: white; }
+        .status-badge.warning { background: var(--warning-color); color: white; }
 
-        select.zoom-control {
-            background: rgba(255,255,255,0.7); border: 1px solid #ccc; padding: 0.3rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; color: #333;
+        /* Settings Checkboxes */
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            cursor: pointer;
         }
 
-        /* Overlay */
+        .setting-item input[type="checkbox"] {
+            appearance: none;
+            width: 40px;
+            height: 20px;
+            background: var(--glass-border);
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .setting-item input[type="checkbox"]::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: var(--transition);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .setting-item input[type="checkbox"]:checked {
+            background: var(--success-color);
+        }
+
+        .setting-item input[type="checkbox"]:checked::before {
+            transform: translateX(20px);
+        }
+
+        .setting-item input[type="range"] {
+            width: 100px;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            padding: 1rem 1.5rem;
+            border-radius: var(--btn-radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-icon.success { color: var(--success-color); }
+        .toast-icon.error { color: var(--danger-color); }
+        .toast-icon.info { color: var(--accent-color); }
+
+        /* Modals/Overlays */
         .overlay {
-            position: absolute; inset: 0; background: var(--glass-bg); backdrop-filter: blur(4px);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            opacity: 0; pointer-events: none; transition: 0.3s; z-index: 10;
-        }
-        .overlay.active { opacity: 1; pointer-events: all; }
-        .spinner { width: 40px; height: 40px; border: 4px solid var(--glass-border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-
-        /* Responsive Layouts */
-        @media (max-width: 1024px) {
-            .container { grid-template-columns: 240px 1fr; }
-            .workspace { flex-direction: column; }
-        }
-        @media (max-width: 768px) {
-            .container { grid-template-columns: 1fr; height: auto; display: block; }
-            .sidebar { margin-bottom: 1.5rem; }
-            .workspace { height: 80vh; margin-bottom: 2rem;}
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: var(--transition);
         }
 
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        @keyframes slideDown { from { transform: translateY(-100%); opacity:0; } to { transform: translateY(0); opacity:1;} }
-        @keyframes slideLeft { from { transform: translateX(50px); opacity:0; } to { transform: translateX(0); opacity:1;} }
-        @keyframes slideRight { from { transform: translateX(-50px); opacity:0; } to { transform: translateX(0); opacity:1;} }
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
 
-        /* Ripple effect */
-        .ripple { position: absolute; border-radius: 50%; transform: scale(0); animation: ripple-anim 0.5s linear; background: rgba(255,255,255,0.3); pointer-events: none;}
-        @keyframes ripple-anim { to { transform: scale(4); opacity: 0; } }
+        .modal {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 2rem;
+            border-radius: var(--card-radius);
+            max-width: 400px;
+            text-align: center;
+            transform: scale(0.8);
+            transition: var(--transition);
+        }
+
+        .overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal h2 { margin-bottom: 1rem; }
+        .modal p { margin-bottom: 1.5rem; color: var(--text-secondary); }
+        .modal .modal-btns { display: flex; gap: 1rem; justify-content: center; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
+
+        /* Accessibility Focus */
+        :focus-visible {
+            outline: 2px dashed var(--accent-color);
+            outline-offset: 4px;
+        }
+
+        /* Keyboard Shortcuts Help */
+        .shortcuts-help {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        kbd {
+            background: var(--glass-border);
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 0 0.2rem;
+        }
+
     </style>
 </head>
-<body>
+<body data-theme="light">
 
-    <header class="glass">
-        <div style="width: 40px;"></div>
-        <div class="header-title">This website is made by Naitik Jain</div>
-        <button class="theme-toggle" id="themeToggle"><i class="fas fa-moon"></i></button>
-    </header>
+    <h1>Professional Voice Assistant</h1>
+    <h2 class="subtitle">Real-Time Speech To Text</h2>
 
-    <div class="container">
-        <!-- Sidebar Controls -->
-        <aside class="sidebar">
+    <div class="glass-container">
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
             
-            <!-- Code Operations Panel -->
-            <div class="panel glass">
-                <div class="panel-title"><i class="fas fa-code"></i> Workspace Tools</div>
+            <div class="top-bar">
+                <div class="select-wrapper">
+                    <select id="languageSelect" aria-label="Select Language">
+                        <option value="en-US">English (US)</option>
+                        <option value="en-GB">English (UK)</option>
+                        <option value="hi-IN">Hindi</option>
+                        <option value="gu-IN">Gujarati</option>
+                        <option value="mr-IN">Marathi</option>
+                        <option value="pa-IN">Punjabi</option>
+                        <option value="ta-IN">Tamil</option>
+                        <option value="te-IN">Telugu</option>
+                        <option value="kn-IN">Kannada</option>
+                        <option value="ml-IN">Malayalam</option>
+                        <option value="bn-IN">Bengali</option>
+                        <option value="ur-PK">Urdu</option>
+                        <option value="es-ES">Spanish</option>
+                        <option value="fr-FR">French</option>
+                        <option value="de-DE">German</option>
+                        <option value="it-IT">Italian</option>
+                        <option value="ja-JP">Japanese</option>
+                        <option value="zh-CN">Chinese</option>
+                        <option value="ko-KR">Korean</option>
+                        <option value="ru-RU">Russian</option>
+                        <option value="ar-SA">Arabic</option>
+                    </select>
+                </div>
                 
-                <input type="file" id="htmlUpload" accept=".html,.htm" style="display:none;">
-                
-                <div class="btn-group">
-                    <button class="btn btn-secondary btn-full" id="btnUpload" title="Upload HTML">
-                        <i class="fas fa-file-upload"></i> Upload HTML File
+                <div class="controls-row">
+                    <button id="themeToggle" class="btn-icon" aria-label="Toggle Theme" title="Toggle Light/Dark Mode">
+                        <svg viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zm0-2a7 7 0 1 0 0-14 7 7 0 0 0 0 14z"/></svg>
                     </button>
-                    <button class="btn btn-primary" id="btnCopy" title="Copy to clipboard">
-                        <i class="fas fa-copy"></i> Copy
-                    </button>
-                    <button class="btn btn-primary" id="btnDownload" title="Download Code">
-                        <i class="fas fa-download"></i> Download
-                    </button>
-                    <button class="btn btn-success btn-full" id="btnRun" title="Render Preview">
-                        <i class="fas fa-play"></i> Run Code (Update)
+                    <button id="fullscreenBtn" class="btn-icon" aria-label="Fullscreen" title="Toggle Fullscreen">
+                        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
                     </button>
                 </div>
             </div>
 
-            <!-- Localhost Controller -->
-            <div class="panel glass">
-                <div class="panel-title"><i class="fas fa-server"></i> Local Server</div>
-                <div>
-                    <span class="status-dot" id="dotHost"></span>
-                    <span id="txtHost" style="font-weight:500;font-size:0.9rem;">Status: Stopped</span>
-                </div>
+            <div class="mic-container">
+                <button id="micBtn" class="mic-btn" aria-label="Microphone" title="Start/Stop Listening">
+                    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                </button>
+                <div class="shortcuts-help">Press <kbd>Space</kbd> to toggle</div>
+            </div>
 
-                <div class="input-group" style="margin-top:1rem;">
-                    <label>Localhost Port</label>
-                    <input type="number" id="portInput" value="8080" placeholder="e.g., 3000, 8080">
-                </div>
+            <div class="controls-row">
+                <button id="startBtn" class="btn-primary">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Start
+                </button>
+                <button id="pauseBtn" disabled>
+                    <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Pause
+                </button>
+                <button id="stopBtn" class="btn-danger" disabled>
+                    <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg> Stop
+                </button>
+            </div>
 
-                <div class="btn-group">
-                    <button class="btn btn-secondary" id="btnOn" style="background:var(--success); color:white;"><i class="fas fa-power-off"></i> Enable</button>
-                    <button class="btn btn-danger" id="btnOff" disabled><i class="fas fa-stop"></i> Stop</button>
-                </div>
+            <div class="controls-row">
+                <button id="copyBtn" title="Ctrl + C">
+                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy
+                </button>
+                <button id="downloadBtn" title="Ctrl + S">
+                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Download
+                </button>
+                <button id="clearBtn">
+                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Clear
+                </button>
+            </div>
 
-                <div class="info-box" id="infoBox">
-                    <i class="fas fa-info-circle"></i> Browser Security Notice: The browser cannot magically create a server. Start external Live Server/Node first on the selected port!
+            <div id="transcriptBox" class="transcript-container" tabindex="0" aria-label="Speech Transcript Area">
+                <div id="placeholder" class="placeholder-text">Press Start Listening and begin speaking...</div>
+                <div id="finalOutput"></div>
+                <div id="interimOutput" class="interim-text"></div>
+            </div>
+
+            <div class="shortcuts-help">
+                <kbd>Ctrl+C</kbd> Copy | <kbd>Ctrl+S</kbd> Download | <kbd>Esc</kbd> Stop
+            </div>
+
+        </main>
+
+        <!-- Sidebar Area -->
+        <aside class="sidebar">
+            
+            <div class="panel">
+                <h3>Live Statistics</h3>
+                <div class="stat-item">
+                    <span class="stat-label">Status</span>
+                    <span id="statusBadge" class="status-badge">Idle</span>
                 </div>
-                
-                <div class="url-box" id="urlBox">
-                    <strong style="color:var(--primary); display:block; margin-bottom:5px;">Preview Server:</strong>
-                    <a href="#" target="_blank" id="localLink" style="color:var(--text-main); word-break: break-all;">http://localhost:8080</a>
+                <div class="stat-item">
+                    <span class="stat-label">Duration</span>
+                    <span id="statDuration" class="stat-value">00:00</span>
                 </div>
+                <div class="stat-item">
+                    <span class="stat-label">Characters</span>
+                    <span id="statChars" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Words</span>
+                    <span id="statWords" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Sentences</span>
+                    <span id="statSentences" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Mic Permission</span>
+                    <span id="statMic" class="stat-value">Unknown</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Network</span>
+                    <span id="statNetwork" class="stat-value">Online</span>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Settings</h3>
+                <label class="setting-item">
+                    <span class="stat-label">Auto-Scroll</span>
+                    <input type="checkbox" id="set-autoscroll" checked>
+                </label>
+                <label class="setting-item">
+                    <span class="stat-label">Auto Restart</span>
+                    <input type="checkbox" id="set-autorestart" checked>
+                </label>
+                <label class="setting-item">
+                    <span class="stat-label">Show Timestamps</span>
+                    <input type="checkbox" id="set-timestamps" checked>
+                </label>
+                <label class="setting-item">
+                    <span class="stat-label">Sound Effects</span>
+                    <input type="checkbox" id="set-sounds" checked>
+                </label>
+                <label class="setting-item">
+                    <span class="stat-label">Animations</span>
+                    <input type="checkbox" id="set-animations" checked>
+                </label>
+                <label class="setting-item">
+                    <span class="stat-label">Font Size</span>
+                    <input type="range" id="set-fontsize" min="14" max="32" value="18">
+                </label>
             </div>
 
         </aside>
 
-        <!-- Main IDE Split -->
-        <main class="workspace">
-            
-            <!-- Code Editor Panel -->
-            <div class="panel-flex">
-                <div class="panel-header">
-                    <span><i class="fas fa-laptop-code"></i> index.html</span>
-                    <span id="lineCounterDisplay" style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal;">0 Lines</span>
-                </div>
-                <div class="editor-wrapper">
-                    <div class="editor-gutters" id="gutters"><span>1</span></div>
-                    <textarea class="editor-textarea" id="editorCode" spellcheck="false" placeholder="Write or upload your HTML code here..."></textarea>
-                </div>
-            </div>
-
-            <!-- Live Preview Panel -->
-            <div class="panel-flex">
-                <div class="panel-header">
-                    <span><i class="fas fa-eye"></i> Live Preview</span>
-                    <div style="display:flex; gap:0.5rem;">
-                        <select class="zoom-control" id="zoomLevel">
-                            <option value="0.5">Zoom: 50%</option>
-                            <option value="0.75">Zoom: 75%</option>
-                            <option value="1" selected>Zoom: 100%</option>
-                            <option value="1.25">Zoom: 125%</option>
-                            <option value="1.5">Zoom: 150%</option>
-                        </select>
-                        <button class="btn btn-secondary" id="btnExpand" style="padding:0.2rem 0.5rem;" title="Fullscreen"><i class="fas fa-expand"></i></button>
-                        <button class="btn btn-secondary" id="btnNewTab" style="padding:0.2rem 0.5rem;" title="Open in New Tab"><i class="fas fa-external-link-alt"></i></button>
-                    </div>
-                </div>
-                <div style="flex:1; position:relative; overflow:hidden;">
-                    <!-- Wrapper scales for zoom feature -->
-                    <div class="iframe-wrapper" id="frameWrap">
-                        <iframe id="previewIframe" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe>
-                    </div>
-                    
-                    <div class="overlay" id="loaderOverlay">
-                        <div class="spinner"></div><p style="margin-top:10px; font-weight:600;">Processing Code...</p>
-                    </div>
-                </div>
-            </div>
-
-        </main>
     </div>
 
-    <!-- Main Logic -->
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+    <!-- Overlays -->
+    <div id="unsupportedOverlay" class="overlay">
+        <div class="modal">
+            <h2>Browser Not Supported</h2>
+            <p>Your browser does not support the Web Speech API. Please use a modern Chromium-based browser like Google Chrome or Microsoft Edge.</p>
+        </div>
+    </div>
+
+    <div id="clearConfirmOverlay" class="overlay">
+        <div class="modal">
+            <h2>Clear Transcript?</h2>
+            <p>Are you sure you want to delete all text? This action cannot be undone.</p>
+            <div class="modal-btns">
+                <button id="cancelClearBtn">Cancel</button>
+                <button id="confirmClearBtn" class="btn-danger">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="permissionOverlay" class="overlay">
+        <div class="modal">
+            <h2>Microphone Access Denied</h2>
+            <p>Please grant microphone permissions in your browser settings to use the Voice Assistant.</p>
+            <div class="modal-btns">
+                <button id="closePermissionBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        /**
+         * Professional Voice Assistant App
+         * Vanilla JavaScript (ES2025)
+         * No External Dependencies
+         */
 
-            // Basic DOM Nodes
-            const btnTheme = document.getElementById('themeToggle');
-            const editorCode = document.getElementById('editorCode');
-            const gutters = document.getElementById('gutters');
-            const linesDisplay = document.getElementById('lineCounterDisplay');
-            const previewIframe = document.getElementById('previewIframe');
-            const frameWrap = document.getElementById('frameWrap');
-            const loaderOverlay = document.getElementById('loaderOverlay');
+        const App = {
+            // State
+            recognition: null,
+            isListening: false,
+            isPaused: false,
+            manualStop: true,
+            finalTranscript: '',
+            startTime: null,
+            durationInterval: null,
+            audioCtx: null,
 
-            let currentObjectUrl = null;
+            // Settings Defaults
+            settings: {
+                theme: 'light',
+                language: 'en-US',
+                autoScroll: true,
+                autoRestart: true,
+                showTimestamps: true,
+                sounds: true,
+                animations: true,
+                fontSize: 18
+            },
 
-            // Boilerplate
-            const boilerplate = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello Naitik Jain</title>
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0;
-            background: #f0f4f8; 
-            color: #333;
-        }
-        h1 { color: #4f46e5; }
-    </style>
-</head>
-<body>
-    <div>
-        <h1>Welcome!</h1>
-        <p>Edit this HTML to see live updates below.</p>
-    </div>
-</body>
-</html>`;
-            editorCode.value = boilerplate;
+            // DOM Elements
+            els: {},
 
-            /* ==============================================================
-             * THEME MANAGEMENT 
-             * ============================================================== */
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            updateThemeIcon(savedTheme);
+            init() {
+                this.cacheDOM();
+                this.loadSettings();
+                this.applySettings();
+                this.setupSpeechRecognition();
+                this.bindEvents();
+                this.checkNetwork();
+                this.updateStats();
+            },
 
-            btnTheme.addEventListener('click', () => {
-                let cur = document.documentElement.getAttribute('data-theme');
-                let target = cur === 'dark' ? 'light' : 'dark';
-                document.documentElement.setAttribute('data-theme', target);
-                localStorage.setItem('theme', target);
-                updateThemeIcon(target);
-            });
-
-            function updateThemeIcon(mode) {
-                btnTheme.innerHTML = mode === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-            }
-
-            /* ==============================================================
-             * CODE EDITOR LOGIC & LINE COUNTING 
-             * ============================================================== */
-            function updateLineNumbers() {
-                const lines = editorCode.value.split('\n').length;
-                linesDisplay.innerText = `${lines} Line${lines !== 1 ? 's' : ''}`;
-                
-                // Building HTML array for massive string concat is faster
-                let gutterHtml = '';
-                for (let i = 1; i <= lines; i++) {
-                    gutterHtml += `<span>${i}</span>`;
-                }
-                gutters.innerHTML = gutterHtml;
-            }
-
-            // Sync scrolling of lines & text area
-            editorCode.addEventListener('scroll', () => {
-                gutters.scrollTop = editorCode.scrollTop;
-            });
-
-            // Update on type
-            editorCode.addEventListener('input', updateLineNumbers);
-
-            // Handle Tab Key for indents
-            editorCode.addEventListener('keydown', function(e) {
-                if (e.key === 'Tab') {
-                    e.preventDefault();
-                    let start = this.selectionStart;
-                    let end = this.selectionEnd;
-
-                    // Set textarea value to: text before caret + tab + text after caret
-                    this.value = this.value.substring(0, start) + "    " + this.value.substring(end);
-                    
-                    // Put caret at right position
-                    this.selectionStart = this.selectionEnd = start + 4;
-                }
-            });
-
-            // Init numbers
-            updateLineNumbers();
-
-            /* ==============================================================
-             * WORKSPACE TOOLBAR OPERATIONS 
-             * ============================================================== */
-            
-            // Render to Iframe (Run)
-            function executeCode() {
-                loaderOverlay.classList.add('active');
-                
-                if (currentObjectUrl) {
-                    URL.revokeObjectURL(currentObjectUrl);
-                }
-
-                const content = editorCode.value;
-                const blob = new Blob([content], { type: 'text/html' });
-                currentObjectUrl = URL.createObjectURL(blob);
-                
-                previewIframe.src = currentObjectUrl;
-
-                previewIframe.onload = () => { loaderOverlay.classList.remove('active'); };
-            }
-
-            document.getElementById('btnRun').addEventListener('click', executeCode);
-
-            // Copy Action
-            document.getElementById('btnCopy').addEventListener('click', function() {
-                navigator.clipboard.writeText(editorCode.value).then(() => {
-                    const ogHtml = this.innerHTML;
-                    this.innerHTML = '<i class="fas fa-check"></i> Copied';
-                    setTimeout(() => { this.innerHTML = ogHtml; }, 2000);
-                });
-            });
-
-            // Download Action
-            document.getElementById('btnDownload').addEventListener('click', function() {
-                const content = editorCode.value;
-                if(!content) return alert("Nothing to download.");
-                
-                const element = document.createElement('a');
-                const file = new Blob([content], {type: 'text/html'});
-                element.href = URL.createObjectURL(file);
-                element.download = "index.html";
-                document.body.appendChild(element);
-                element.click();
-                document.body.removeChild(element);
-            });
-
-            // Upload File Action
-            const fileUpload = document.getElementById('htmlUpload');
-            document.getElementById('btnUpload').addEventListener('click', () => fileUpload.click());
-            
-            fileUpload.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    editorCode.value = evt.target.result;
-                    updateLineNumbers();
-                    executeCode(); // Auto Run immediately after loading
+            cacheDOM() {
+                const $ = id => document.getElementById(id);
+                this.els = {
+                    body: document.body,
+                    languageSelect: $('languageSelect'),
+                    themeToggle: $('themeToggle'),
+                    fullscreenBtn: $('fullscreenBtn'),
+                    micBtn: $('micBtn'),
+                    startBtn: $('startBtn'),
+                    pauseBtn: $('pauseBtn'),
+                    stopBtn: $('stopBtn'),
+                    copyBtn: $('copyBtn'),
+                    downloadBtn: $('downloadBtn'),
+                    clearBtn: $('clearBtn'),
+                    transcriptBox: $('transcriptBox'),
+                    finalOutput: $('finalOutput'),
+                    interimOutput: $('interimOutput'),
+                    placeholder: $('placeholder'),
+                    statusBadge: $('statusBadge'),
+                    statDuration: $('statDuration'),
+                    statChars: $('statChars'),
+                    statWords: $('statWords'),
+                    statSentences: $('statSentences'),
+                    statMic: $('statMic'),
+                    statNetwork: $('statNetwork'),
+                    toastContainer: $('toastContainer'),
+                    unsupportedOverlay: $('unsupportedOverlay'),
+                    clearConfirmOverlay: $('clearConfirmOverlay'),
+                    permissionOverlay: $('permissionOverlay'),
+                    cancelClearBtn: $('cancelClearBtn'),
+                    confirmClearBtn: $('confirmClearBtn'),
+                    closePermissionBtn: $('closePermissionBtn'),
+                    // Settings
+                    setAutoScroll: $('set-autoscroll'),
+                    setAutoRestart: $('set-autorestart'),
+                    setTimestamps: $('set-timestamps'),
+                    setSounds: $('set-sounds'),
+                    setAnimations: $('set-animations'),
+                    setFontSize: $('set-fontsize')
                 };
-                reader.readAsText(file);
-                this.value = ""; // reset
-            });
+            },
 
-
-            /* ==============================================================
-             * PREVIEW UTILITIES (Zoom, Expand, New Tab) 
-             * ============================================================== */
-             const zoomEl = document.getElementById('zoomLevel');
-             zoomEl.addEventListener('change', () => {
-                 let val = parseFloat(zoomEl.value);
-                 frameWrap.style.transform = `scale(${val})`;
-                 frameWrap.style.width = `${100/val}%`;
-                 frameWrap.style.height = `${100/val}%`;
-             });
-
-             document.getElementById('btnExpand').addEventListener('click', () => {
-                 const container = previewIframe.parentElement.parentElement; // gets panel-flex bounds
-                 if(container.requestFullscreen) {
-                     container.requestFullscreen();
-                 } else if (container.webkitRequestFullscreen) {
-                     container.webkitRequestFullscreen();
-                 }
-             });
-
-             document.getElementById('btnNewTab').addEventListener('click', () => {
-                if(currentObjectUrl) window.open(currentObjectUrl, '_blank');
-             });
-
-             
-            /* ==============================================================
-             * LOCALHOST CONTROLS 
-             * ============================================================== */
-            const btnOn = document.getElementById('btnOn');
-            const btnOff = document.getElementById('btnOff');
-            const portInput = document.getElementById('portInput');
-            const dotHost = document.getElementById('dotHost');
-            const txtHost = document.getElementById('txtHost');
-            const infoBox = document.getElementById('infoBox');
-            const urlBox = document.getElementById('urlBox');
-            const localLink = document.getElementById('localLink');
-            
-            let hostActive = false;
-
-            function syncLocalhost() {
-                const port = portInput.value || 8080;
-                if(hostActive) {
-                    btnOn.disabled = true; btnOff.disabled = false;
-                    portInput.disabled = true;
-                    dotHost.classList.add('active');
-                    txtHost.textContent = "Status: Running";
-                    
-                    localLink.href = `http://localhost:${port}`;
-                    localLink.textContent = `http://localhost:${port}`;
-                    urlBox.style.display = 'block';
-
-                    const onLocalEnv = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-                    infoBox.style.display = onLocalEnv ? 'none' : 'block';
-                } else {
-                    btnOn.disabled = false; btnOff.disabled = true;
-                    portInput.disabled = false;
-                    dotHost.classList.remove('active');
-                    txtHost.textContent = "Status: Stopped";
-                    infoBox.style.display = 'none';
-                    urlBox.style.display = 'none';
+            loadSettings() {
+                const saved = localStorage.getItem('voiceApp_settings');
+                if (saved) {
+                    try {
+                        this.settings = { ...this.settings, ...JSON.parse(saved) };
+                    } catch (e) {
+                        console.error("Error loading settings");
+                    }
                 }
-            }
+            },
 
-            btnOn.addEventListener('click', () => { hostActive = true; syncLocalhost(); });
-            btnOff.addEventListener('click', () => { hostActive = false; syncLocalhost(); });
+            saveSettings() {
+                localStorage.setItem('voiceApp_settings', JSON.stringify(this.settings));
+            },
 
-            if(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                portInput.value = window.location.port || '80';
-                hostActive = true;
-                syncLocalhost();
-            }
+            applySettings() {
+                this.els.body.setAttribute('data-theme', this.settings.theme);
+                this.els.languageSelect.value = this.settings.language;
+                this.els.setAutoScroll.checked = this.settings.autoScroll;
+                this.els.setAutoRestart.checked = this.settings.autoRestart;
+                this.els.setTimestamps.checked = this.settings.showTimestamps;
+                this.els.setSounds.checked = this.settings.sounds;
+                this.els.setAnimations.checked = this.settings.animations;
+                this.els.setFontSize.value = this.settings.fontSize;
+                this.els.transcriptBox.style.fontSize = `${this.settings.fontSize}px`;
 
-            /* ==============================================================
-             * BUTTON RIPPLE EFFECT 
-             * ============================================================== */
-            document.querySelectorAll('.btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    let rect = this.getBoundingClientRect();
-                    let x = e.clientX - rect.left;
-                    let y = e.clientY - rect.top;
-                    let ripple = document.createElement('span');
-                    ripple.className = 'ripple';
-                    ripple.style.left = x + 'px';
-                    ripple.style.top = y + 'px';
-                    this.appendChild(ripple);
-                    setTimeout(() => { ripple.remove(); }, 500);
+                if (!this.settings.animations) {
+                    document.documentElement.style.setProperty('--transition', 'none');
+                } else {
+                    document.documentElement.style.setProperty('--transition', 'all 0.3s ease');
+                }
+            },
+
+            setupSpeechRecognition() {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    this.els.unsupportedOverlay.classList.add('active');
+                    return;
+                }
+
+                this.recognition = new SpeechRecognition();
+                this.recognition.continuous = true;
+                this.recognition.interimResults = true;
+                this.recognition.lang = this.settings.language;
+
+                this.recognition.onstart = () => {
+                    this.isListening = true;
+                    this.isPaused = false;
+                    this.updateUIStatus();
+                    this.startTimer();
+                    this.els.statMic.textContent = "Granted";
+                    this.els.statMic.style.color = "var(--success-color)";
+                    this.playSound('start');
+                    this.showToast('Listening started', 'success');
+                };
+
+                this.recognition.onresult = (event) => {
+                    if (this.isPaused) return;
+                    
+                    let interimText = '';
+                    let finalBlock = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalBlock += event.results[i][0].transcript;
+                        } else {
+                            interimText += event.results[i][0].transcript;
+                        }
+                    }
+
+                    if (finalBlock) {
+                        this.appendFinalText(finalBlock);
+                    }
+                    
+                    this.els.interimOutput.textContent = interimText;
+
+                    if (this.settings.autoScroll) {
+                        this.els.transcriptBox.scrollTop = this.els.transcriptBox.scrollHeight;
+                    }
+                    this.updateStats();
+                };
+
+                this.recognition.onerror = (event) => {
+                    console.warn("Speech Recognition Error:", event.error);
+                    if (event.error === 'not-allowed') {
+                        this.els.statMic.textContent = "Denied";
+                        this.els.statMic.style.color = "var(--danger-color)";
+                        this.els.permissionOverlay.classList.add('active');
+                        this.forceStop();
+                    } else if (event.error === 'network') {
+                        this.showToast('Network error occurred', 'error');
+                        this.forceStop();
+                    } else if (event.error === 'no-speech') {
+                        // ignore silently, handled by continuous mode
+                    } else {
+                        this.showToast(`Error: ${event.error}`, 'warning');
+                    }
+                };
+
+                this.recognition.onend = () => {
+                    this.isListening = false;
+                    if (!this.manualStop && this.settings.autoRestart && navigator.onLine && !this.isPaused) {
+                        // Auto Restart
+                        try {
+                            this.recognition.start();
+                            return;
+                        } catch (e) {
+                            console.error("Auto-restart failed", e);
+                        }
+                    }
+                    this.updateUIStatus();
+                    this.stopTimer();
+                    if(this.manualStop) this.playSound('stop');
+                };
+            },
+
+            appendFinalText(text) {
+                this.els.placeholder.style.display = 'none';
+                
+                const p = document.createElement('p');
+                p.className = 'final-text';
+                
+                if (this.settings.showTimestamps) {
+                    const timeSpan = document.createElement('span');
+                    timeSpan.className = 'timestamp';
+                    timeSpan.textContent = `[${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}]`;
+                    p.appendChild(timeSpan);
+                }
+                
+                const textNode = document.createTextNode(" " + text.trim());
+                p.appendChild(textNode);
+                
+                this.els.finalOutput.appendChild(p);
+                this.finalTranscript += text + ' ';
+            },
+
+            toggleListening() {
+                if (!this.recognition) return;
+                
+                if (this.isListening && !this.isPaused) {
+                    this.forceStop();
+                } else {
+                    this.startListening();
+                }
+            },
+
+            startListening() {
+                this.manualStop = false;
+                this.isPaused = false;
+                this.recognition.lang = this.settings.language;
+                try {
+                    this.recognition.start();
+                } catch (e) {
+                    // Already started
+                }
+            },
+
+            pauseListening() {
+                if (this.isListening) {
+                    this.isPaused = !this.isPaused;
+                    this.els.interimOutput.textContent = '';
+                    this.updateUIStatus();
+                    this.showToast(this.isPaused ? 'Paused' : 'Resumed', 'info');
+                }
+            },
+
+            forceStop() {
+                this.manualStop = true;
+                this.isPaused = false;
+                try {
+                    this.recognition.stop();
+                } catch(e) {}
+                this.els.interimOutput.textContent = '';
+                this.updateUIStatus();
+                this.showToast('Stopped listening', 'info');
+            },
+
+            updateUIStatus() {
+                // Mic Button
+                if (this.isListening && !this.isPaused) {
+                    this.els.micBtn.classList.add('listening');
+                    if(!this.settings.animations) this.els.micBtn.style.animation = 'none';
+                } else {
+                    this.els.micBtn.classList.remove('listening');
+                    this.els.micBtn.style.animation = '';
+                }
+
+                // Controls
+                this.els.startBtn.disabled = this.isListening && !this.isPaused;
+                this.els.pauseBtn.disabled = !this.isListening;
+                this.els.stopBtn.disabled = !this.isListening;
+                
+                this.els.pauseBtn.innerHTML = this.isPaused 
+                    ? `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Resume`
+                    : `<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Pause`;
+
+                // Status Badge
+                const badge = this.els.statusBadge;
+                badge.className = 'status-badge';
+                if (this.isPaused) {
+                    badge.textContent = 'Paused';
+                    badge.classList.add('warning');
+                } else if (this.isListening) {
+                    badge.textContent = 'Listening';
+                    badge.classList.add('active');
+                } else {
+                    badge.textContent = 'Idle';
+                }
+            },
+
+            startTimer() {
+                if (this.durationInterval) clearInterval(this.durationInterval);
+                if (!this.startTime) this.startTime = Date.now();
+                
+                this.durationInterval = setInterval(() => {
+                    if (this.isPaused) {
+                        this.startTime += 1000; // offset pause
+                        return;
+                    }
+                    const diff = Math.floor((Date.now() - this.startTime) / 1000);
+                    const m = String(Math.floor(diff / 60)).padStart(2, '0');
+                    const s = String(diff % 60).padStart(2, '0');
+                    this.els.statDuration.textContent = `${m}:${s}`;
+                }, 1000);
+            },
+
+            stopTimer() {
+                clearInterval(this.durationInterval);
+                this.startTime = null;
+            },
+
+            updateStats() {
+                const text = this.els.finalOutput.innerText + " " + this.els.interimOutput.innerText;
+                const cleanText = text.trim();
+                
+                this.els.statChars.textContent = cleanText.length;
+                this.els.statWords.textContent = cleanText === '' ? 0 : cleanText.split(/\s+/).length;
+                this.els.statSentences.textContent = cleanText === '' ? 0 : cleanText.split(/[.!?]+/).filter(Boolean).length;
+            },
+
+            copyToClipboard() {
+                const text = this.els.finalOutput.innerText.trim();
+                if (!text) {
+                    this.showToast('Nothing to copy', 'warning');
+                    return;
+                }
+                navigator.clipboard.writeText(text).then(() => {
+                    this.showToast('Copied to clipboard!', 'success');
+                }).catch(() => {
+                    this.showToast('Failed to copy', 'error');
                 });
-            });
+            },
 
-            // Initial Run Code Render
-            setTimeout(executeCode, 200);
+            downloadTranscript() {
+                const text = this.els.finalOutput.innerText.trim();
+                if (!text) {
+                    this.showToast('Nothing to download', 'warning');
+                    return;
+                }
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0];
+                const timeStr = `${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}`;
+                const filename = `Speech_${dateStr}_${timeStr}.txt`;
+                
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+                this.showToast('Download started', 'success');
+            },
+
+            clearTranscript() {
+                if (!this.els.finalOutput.innerText.trim()) return;
+                this.els.clearConfirmOverlay.classList.add('active');
+            },
+
+            executeClear() {
+                this.els.finalOutput.innerHTML = '';
+                this.els.interimOutput.textContent = '';
+                this.finalTranscript = '';
+                this.els.placeholder.style.display = 'block';
+                this.els.statDuration.textContent = '00:00';
+                this.startTime = Date.now();
+                this.updateStats();
+                this.els.clearConfirmOverlay.classList.remove('active');
+                this.showToast('Transcript cleared', 'info');
+            },
+
+            toggleTheme() {
+                this.settings.theme = this.settings.theme === 'light' ? 'dark' : 'light';
+                this.els.body.setAttribute('data-theme', this.settings.theme);
+                this.saveSettings();
+            },
+
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        this.showToast(`Error attempting to enable fullscreen: ${err.message}`, 'error');
+                    });
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    }
+                }
+            },
+
+            showToast(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                
+                let icon = '';
+                if(type === 'success') icon = `<svg class="toast-icon success" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
+                else if(type === 'error') icon = `<svg class="toast-icon error" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
+                else icon = `<svg class="toast-icon info" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
+
+                toast.innerHTML = `${icon} <span>${message}</span>`;
+                
+                this.els.toastContainer.appendChild(toast);
+                
+                // Trigger reflow for animation
+                void toast.offsetWidth;
+                toast.classList.add('show');
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            },
+
+            playSound(type) {
+                if (!this.settings.sounds) return;
+                try {
+                    if (!this.audioCtx) this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+                    
+                    const osc = this.audioCtx.createOscillator();
+                    const gain = this.audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.audioCtx.destination);
+                    
+                    if (type === 'start') {
+                        osc.frequency.setValueAtTime(880, this.audioCtx.currentTime); // A5
+                        osc.type = 'sine';
+                        gain.gain.setValueAtTime(0, this.audioCtx.currentTime);
+                        gain.gain.linearRampToValueAtTime(0.1, this.audioCtx.currentTime + 0.05);
+                        gain.gain.linearRampToValueAtTime(0, this.audioCtx.currentTime + 0.15);
+                        osc.start();
+                        osc.stop(this.audioCtx.currentTime + 0.2);
+                    } else if (type === 'stop') {
+                        osc.frequency.setValueAtTime(440, this.audioCtx.currentTime); // A4
+                        osc.type = 'sine';
+                        gain.gain.setValueAtTime(0, this.audioCtx.currentTime);
+                        gain.gain.linearRampToValueAtTime(0.1, this.audioCtx.currentTime + 0.05);
+                        gain.gain.linearRampToValueAtTime(0, this.audioCtx.currentTime + 0.2);
+                        osc.start();
+                        osc.stop(this.audioCtx.currentTime + 0.25);
+                    }
+                } catch(e) {
+                    console.warn("AudioContext failed", e);
+                }
+            },
+
+            checkNetwork() {
+                const updateNetworkStat = () => {
+                    if (navigator.onLine) {
+                        this.els.statNetwork.textContent = 'Online';
+                        this.els.statNetwork.style.color = 'var(--success-color)';
+                        if(this.manualStop === false && !this.isListening) this.startListening();
+                    } else {
+                        this.els.statNetwork.textContent = 'Offline';
+                        this.els.statNetwork.style.color = 'var(--danger-color)';
+                        this.showToast('Internet connection lost. Speech recognition may fail.', 'error');
+                    }
+                };
+                window.addEventListener('online', updateNetworkStat);
+                window.addEventListener('offline', updateNetworkStat);
+                updateNetworkStat();
+            },
+
+            bindEvents() {
+                // Main Buttons
+                this.els.micBtn.addEventListener('click', () => this.toggleListening());
+                this.els.startBtn.addEventListener('click', () => this.startListening());
+                this.els.pauseBtn.addEventListener('click', () => this.pauseListening());
+                this.els.stopBtn.addEventListener('click', () => this.forceStop());
+                this.els.copyBtn.addEventListener('click', () => this.copyToClipboard());
+                this.els.downloadBtn.addEventListener('click', () => this.downloadTranscript());
+                this.els.clearBtn.addEventListener('click', () => this.clearTranscript());
+                
+                // Top Bar
+                this.els.themeToggle.addEventListener('click', () => this.toggleTheme());
+                this.els.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+                
+                // Settings & Language
+                this.els.languageSelect.addEventListener('change', (e) => {
+                    this.settings.language = e.target.value;
+                    this.saveSettings();
+                    if (this.isListening) {
+                        this.forceStop();
+                        setTimeout(() => this.startListening(), 300);
+                    }
+                });
+
+                this.els.setAutoScroll.addEventListener('change', e => { this.settings.autoScroll = e.target.checked; this.saveSettings(); });
+                this.els.setAutoRestart.addEventListener('change', e => { this.settings.autoRestart = e.target.checked; this.saveSettings(); });
+                this.els.setTimestamps.addEventListener('change', e => { this.settings.showTimestamps = e.target.checked; this.saveSettings(); });
+                this.els.setSounds.addEventListener('change', e => { this.settings.sounds = e.target.checked; this.saveSettings(); });
+                this.els.setAnimations.addEventListener('change', e => { 
+                    this.settings.animations = e.target.checked; 
+                    this.saveSettings();
+                    this.applySettings(); 
+                });
+                this.els.setFontSize.addEventListener('input', e => {
+                    this.settings.fontSize = e.target.value;
+                    this.els.transcriptBox.style.fontSize = `${this.settings.fontSize}px`;
+                    this.saveSettings();
+                });
+
+                // Modals
+                this.els.cancelClearBtn.addEventListener('click', () => this.els.clearConfirmOverlay.classList.remove('active'));
+                this.els.confirmClearBtn.addEventListener('click', () => this.executeClear());
+                this.els.closePermissionBtn.addEventListener('click', () => this.els.permissionOverlay.classList.remove('active'));
+
+                // Keyboard Shortcuts
+                window.addEventListener('keydown', (e) => {
+                    // Check if focus is inside an input/select
+                    const activeTag = document.activeElement.tagName.toLowerCase();
+                    if (activeTag === 'input' || activeTag === 'select' || activeTag === 'textarea') return;
+
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        this.toggleListening();
+                    } else if (e.code === 'Escape') {
+                        e.preventDefault();
+                        this.forceStop();
+                    } else if (e.ctrlKey && e.code === 'KeyC') {
+                        // Let native copy happen if text is selected, else copy all
+                        if (!window.getSelection().toString()) {
+                            e.preventDefault();
+                            this.copyToClipboard();
+                        }
+                    } else if (e.ctrlKey && e.code === 'KeyS') {
+                        e.preventDefault();
+                        this.downloadTranscript();
+                    }
+                });
+            }
+        };
+
+        // Initialize App on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
         });
+
     </script>
 </body>
 </html>
