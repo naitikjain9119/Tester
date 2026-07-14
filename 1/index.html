@@ -1,732 +1,1095 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HTML Runner</title>
-    
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <title>Professional PDF Reader</title>
+
+    <!-- External Assets -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.js"></script>
+
     <style>
+        /* ================= VARIABLES & THEMING ================= */
         :root {
-            --bg: #0f172a;
-            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-            --glass-bg: rgba(30, 41, 59, 0.6);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #3b82f6;
-            --accent-hover: #2563eb;
-            --success: #10b981;
-            --error: #ef4444;
-            --editor-bg: #1e1e1e;
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-base: #F3F4F6;
+            --bg-surface: rgba(255, 255, 255, 0.85);
+            --bg-panel: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-full: 9999px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --glass-blur: blur(16px);
         }
 
-        body.light-mode {
-            --bg: #f8fafc;
-            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --glass-border: rgba(0, 0, 0, 0.08);
-            --text-main: #0f172a;
-            --text-muted: #475569;
-            --accent: #2563eb;
-            --accent-hover: #1d4ed8;
-            --editor-bg: #fffffe;
+        [data-theme="dark"] {
+            --primary: #6366F1;
+            --primary-hover: #818CF8;
+            --bg-base: #0F172A;
+            --bg-surface: rgba(30, 41, 59, 0.85);
+            --bg-panel: #1E293B;
+            --text-main: #F9FAFB;
+            --text-muted: #9CA3AF;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* Reading Modes applied to Main Viewer */
+        .mode-sepia .pdfViewer .page { filter: sepia(0.4) brightness(0.9); }
+        .mode-dark-reading .pdfViewer .page { filter: invert(0.9) hue-rotate(180deg) brightness(0.95); }
+        .mode-night .pdfViewer .page { filter: invert(1) hue-rotate(180deg) brightness(0.7) contrast(1.2); }
+        .mode-high-contrast .pdfViewer .page { filter: grayscale(1) contrast(2) invert(1); }
+        .mode-dark-reading, .mode-night, .mode-high-contrast { background-color: #121212 !important; }
+        .mode-sepia { background-color: #F4ECD8 !important; }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-gradient);
-            color: var(--text-main);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
+        /* ================= GLOBAL RESETS ================= */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-base); color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; transition: background-color var(--transition), color var(--transition); }
+        button, input, select { font-family: inherit; outline: none; border: none; background: none; color: inherit; }
+        button { cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; border-radius: var(--radius-md); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        ul { list-style: none; }
+        a { text-decoration: none; color: inherit; }
 
-        .glass {
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-        }
+        /* ================= ICONS & BUTTONS ================= */
+        .icon-btn { width: 40px; height: 40px; border-radius: 50%; color: var(--text-main); position: relative; overflow: hidden; }
+        .icon-btn:hover { background-color: var(--border-color); }
+        .btn-primary { background-color: var(--primary); color: white; padding: 10px 20px; border-radius: var(--radius-full); font-weight: 500; box-shadow: var(--shadow-md); }
+        .btn-primary:hover { background-color: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
 
-        /* Header */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 24px;
-            z-index: 10;
-        }
+        /* ================= APP CONTAINER & VIEWS ================= */
+        .view { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+        .view.active { display: flex; flex-direction: column; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* ================= DASHBOARD ================= */
+        .top-app-bar { height: 70px; display: flex; justify-content: space-between; align-items: center; padding: 0 30px; background: var(--bg-surface); backdrop-filter: var(--glass-blur); border-bottom: 1px solid var(--border-color); z-index: 10; }
+        .logo-title { display: flex; align-items: center; gap: 12px; font-size: 1.25rem; font-weight: 600; color: var(--primary); }
+        .app-actions { display: flex; align-items: center; gap: 10px; }
+        .dashboard-content { flex: 1; overflow-y: auto; padding: 40px; display: flex; flex-direction: column; gap: 40px; align-items: center; }
         
-        .header-title { display: flex; flex-direction: column; }
-        .header-title h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.5px; }
-        .header-title p { font-size: 0.75rem; color: var(--text-muted); }
+        .hero-dropzone { width: 100%; max-width: 800px; padding: 60px 20px; border: 2px dashed var(--primary); border-radius: var(--radius-lg); background: var(--bg-panel); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 20px; transition: all 0.3s; cursor: pointer; box-shadow: var(--shadow-sm); }
+        .hero-dropzone.dragover { background: rgba(79, 70, 229, 0.1); border-color: var(--primary-hover); transform: scale(1.02); }
+        .hero-dropzone .material-symbols-rounded { font-size: 64px; color: var(--primary); }
+        .hero-dropzone h2 { font-size: 1.5rem; font-weight: 600; }
+        .hero-dropzone p { color: var(--text-muted); }
 
-        .header-controls { display: flex; align-items: center; gap: 16px; }
+        .recent-section { width: 100%; max-width: 1000px; display: flex; flex-direction: column; gap: 20px; }
+        .recent-section h3 { font-size: 1.2rem; font-weight: 600; }
+        .recent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .recent-card { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 20px; display: flex; flex-direction: column; gap: 12px; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm); }
+        .recent-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--primary); }
+        .recent-card-title { font-weight: 600; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .recent-card-meta { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); }
 
-        .port-group { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
-        .port-group input {
-            background: rgba(0,0,0,0.2);
-            border: 1px solid var(--glass-border);
-            color: var(--text-main);
-            padding: 4px 10px;
-            border-radius: 6px;
-            width: 80px;
-            outline: none;
-            font-family: 'JetBrains Mono', monospace;
-            text-align: center;
-        }
-        body.light-mode .port-group input { background: rgba(255,255,255,0.5); }
+        /* ================= VIEWER WORKSPACE ================= */
+        .viewer-toolbar { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; background: var(--bg-surface); backdrop-filter: var(--glass-blur); border-bottom: 1px solid var(--border-color); z-index: 100; box-shadow: var(--shadow-sm); }
+        .toolbar-group { display: flex; align-items: center; gap: 4px; }
+        .toolbar-divider { width: 1px; height: 24px; background: var(--border-color); margin: 0 8px; }
+        .search-container { display: flex; align-items: center; background: var(--bg-base); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 4px 8px; }
+        .search-container input { width: 150px; padding: 4px 8px; font-size: 0.9rem; }
+        .search-counter { font-size: 0.8rem; color: var(--text-muted); margin: 0 8px; white-space: nowrap; }
+
+        .workspace { display: flex; flex: 1; overflow: hidden; position: relative; }
         
-        .icon-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-main);
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: transform 0.2s, color 0.2s;
-            display: flex; align-items: center; justify-content: center;
-            width: 36px; height: 36px;
-            border-radius: 50%;
-        }
-        .icon-btn:hover { background: var(--glass-border); transform: scale(1.05); }
+        .sidebar { width: 320px; background: var(--bg-panel); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: transform var(--transition); z-index: 50; flex-shrink: 0; }
+        .sidebar.collapsed { transform: translateX(-100%); position: absolute; height: 100%; }
+        .sidebar-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
+        .sidebar-tab { flex: 1; padding: 12px 0; text-align: center; font-weight: 500; font-size: 0.9rem; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-muted); }
+        .sidebar-tab.active { border-bottom-color: var(--primary); color: var(--primary); }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 10px; position: relative; }
+        .sidebar-pane { display: none; height: 100%; }
+        .sidebar-pane.active { display: block; }
 
-        /* Workspace Layout */
-        .workspace {
-            display: flex;
-            flex: 1;
-            gap: 16px;
-            padding: 0 16px 16px 16px;
-            height: calc(100vh - 65px);
-        }
-
-        .panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            border-radius: 12px;
-            overflow: hidden;
-            position: relative;
-            min-height: 0; 
-        }
-
-        /* Toolbars */
-        .toolbar {
-            display: flex;
-            align-items: center;
-            padding: 10px 16px;
-            gap: 12px;
-            border-bottom: 1px solid var(--glass-border);
-            overflow-x: auto;
-        }
-        .toolbar::-webkit-scrollbar { display: none; }
+        /* Thumbnail specific overrides */
+        #thumbnail-view { position: absolute; top:0; bottom:0; left:0; right:0; padding: 10px; overflow-y: auto; }
         
-        .btn {
-            background: var(--glass-border);
-            border: 1px solid var(--glass-border);
-            color: var(--text-main);
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        .btn:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-1px); }
-        .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-        .btn-primary:hover { background: var(--accent-hover); }
+        /* Bookmarks & Outline */
+        .outline-tree ul { padding-left: 16px; margin-top: 4px; }
+        .outline-tree li { padding: 6px; cursor: pointer; border-radius: 4px; font-size: 0.9rem; margin-bottom: 2px; }
+        .outline-tree li:hover { background: var(--bg-base); color: var(--primary); }
+        .bookmark-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-base); border-radius: var(--radius-md); margin-bottom: 8px; }
+        .bookmark-item span { cursor: pointer; font-weight: 500; font-size: 0.9rem; flex: 1; }
+        .bookmark-actions button { width: 28px; height: 28px; }
 
-        /* Containers */
-        .editor-container {
-            flex: 1;
-            width: 100%;
-            position: relative;
-            min-height: 0;
-            overflow: hidden;
-        }
-        .iframe-container {
-            flex: 1;
-            background: #ffffff;
-            position: relative;
-            overflow: hidden;
-            min-height: 0;
-        }
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            background: #fff;
-            transition: transform 0.2s ease-out;
-            transform-origin: top left;
-        }
-
-        /* Status Bar */
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 16px;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            border-top: 1px solid var(--glass-border);
-            font-family: 'JetBrains Mono', monospace;
-        }
-        .status-group { display: flex; gap: 16px; }
-
-        /* Error Console */
-        .error-console {
-            height: 120px;
-            border-top: 1px solid var(--glass-border);
-            padding: 8px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            overflow-y: auto;
-            background: rgba(0,0,0,0.2);
-            display: none;
-        }
-        .error-console.active { display: block; }
-        .error-item { color: var(--error); padding: 4px; border-bottom: 1px solid var(--glass-border); }
-        .error-item span { color: var(--text-muted); margin-right: 8px; }
+        .main-viewer-area { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; background: var(--bg-base); }
+        
+        /* PDF.js Viewer Wrapper */
+        #viewer-wrapper { position: absolute; top: 0; left: 0; right: 0; bottom: 0; overflow: auto; background-color: transparent; outline: none; }
+        .pdfViewer .page { box-shadow: var(--shadow-md) !important; border: none !important; margin: 16px auto !important; border-radius: 4px; overflow: hidden; transition: filter 0.3s; }
+        
+        /* Bottom Toolbar & Status */
+        .bottom-toolbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--bg-surface); backdrop-filter: var(--glass-blur); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: var(--radius-full); box-shadow: var(--shadow-lg); display: flex; gap: 8px; align-items: center; z-index: 100; transition: transform 0.3s; }
+        .status-bar { position: absolute; bottom: 0; width: 100%; height: 24px; background: var(--bg-panel); border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; padding: 0 16px; font-size: 0.75rem; color: var(--text-muted); z-index: 10; }
+        
+        .page-nav { display: flex; align-items: center; gap: 8px; margin: 0 12px; }
+        .page-input { width: 50px; text-align: center; border: 1px solid var(--border-color); border-radius: 4px; padding: 4px; background: var(--bg-panel); color: inherit; }
+        
+        /* ================= MODALS & OVERLAYS ================= */
+        .overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 1000; display: none; align-items: center; justify-content: center; }
+        .overlay.active { display: flex; animation: fadeIn 0.3s ease; }
+        
+        .modal { background: var(--bg-panel); border-radius: var(--radius-lg); width: 90%; max-width: 500px; box-shadow: var(--shadow-lg); border: 1px solid var(--border-color); overflow: hidden; display: flex; flex-direction: column; }
+        .modal-header { padding: 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 1.2rem; font-weight: 600; }
+        .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; max-height: 70vh; overflow-y: auto; }
+        .modal-footer { padding: 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; }
 
         /* Loader */
-        #loader {
-            position: fixed; inset: 0;
-            background: var(--bg);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: opacity 0.5s ease;
-        }
-        .spinner {
-            width: 50px; height: 50px;
-            border: 4px solid var(--glass-border);
-            border-top: 4px solid var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loader-text { margin-top: 16px; font-weight: 600; letter-spacing: 2px; }
+        .loader-container { display: flex; flex-direction: column; align-items: center; gap: 20px; color: white; }
+        .spinner { width: 60px; height: 60px; border: 4px solid rgba(255,255,255,0.2); border-top-color: #ffffff; border-radius: 50%; animation: spin 1s linear infinite; }
+        .progress-bar-bg { width: 300px; height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; overflow: hidden; margin-top: 10px; }
+        .progress-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
-        /* Toasts */
-        #toast-container {
-            position: fixed;
-            bottom: 24px; right: 24px;
-            display: flex; flex-direction: column; gap: 10px;
-            z-index: 1000;
-        }
-        .toast {
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            display: flex; align-items: center; gap: 10px;
-            animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
-            background: rgba(30, 41, 59, 0.95);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .toast.fade-out { opacity: 0; transform: translateX(100%); transition: all 0.3s ease; }
+        /* Form Elements */
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-size: 0.9rem; font-weight: 500; }
+        .form-select, .form-input { padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-base); color: inherit; font-size: 1rem; width: 100%; }
+        
+        /* Range Slider */
+        input[type=range] { -webkit-appearance: none; width: 100px; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--primary); cursor: pointer; margin-top: -6px; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: var(--border-color); border-radius: 2px; }
 
-        #file-input { display: none; }
-        .preview-fullscreen {
-            position: fixed !important;
-            inset: 0 !important;
-            z-index: 9999 !important;
-            border-radius: 0 !important;
-        }
-
-        /* Responsiveness */
-        @media (max-width: 992px) {
-            .workspace { flex-direction: column; height: auto; overflow-y: auto; display: block;}
-            .panel { min-height: 500px; margin-bottom:16px;}
-        }
+        /* Responsive */
         @media (max-width: 768px) {
-            .header-title p { display: none; }
-            .btn span { display: none; }
-            .port-group span { display: none; }
+            .toolbar-group.hide-mobile { display: none; }
+            .sidebar { position: absolute; height: 100%; z-index: 200; box-shadow: var(--shadow-lg); }
+            .sidebar:not(.collapsed) { transform: translateX(0); }
+            .bottom-toolbar { width: 95%; overflow-x: auto; justify-content: flex-start; border-radius: var(--radius-md); bottom: 30px; }
+            .hero-dropzone { padding: 40px 10px; }
         }
+        
+        /* Utility */
+        .ripple { position: absolute; border-radius: 50%; transform: scale(0); animation: ripple 0.6s linear; background-color: rgba(255, 255, 255, 0.3); }
+        @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+        .hide { display: none !important; }
     </style>
 </head>
 <body>
 
-    <!-- Loading Screen -->
-    <div id="loader">
-        <div class="spinner"></div>
-        <div class="loader-text">LOADING EDITOR...</div>
-    </div>
+    <input type="file" id="file-input" accept=".pdf" style="display: none;">
 
-    <!-- Hidden Input for File Upload -->
-    <input type="file" id="file-input" accept=".html,.css,.js,.txt,.zip">
-
-    <!-- Top Header -->
-    <header class="glass">
-        <div class="header-title">
-            <h1>HTML Runner</h1>
-            <p>This website is made by Naitik Jain</p>
-        </div>
-        <div class="header-controls">
-            <div class="port-group">
-                <span>Port:</span>
-                <input type="number" id="port-input" value="3000" min="1000" max="9999" aria-label="Localhost Port">
+    <!-- ================= DASHBOARD VIEW ================= -->
+    <div id="view-dashboard" class="view active">
+        <header class="top-app-bar">
+            <div class="logo-title">
+                <span class="material-symbols-rounded">picture_as_pdf</span>
+                Professional PDF Reader
             </div>
-            <button class="icon-btn" id="theme-btn" aria-label="Toggle Theme" title="Toggle Theme">
-                <i class="fas fa-sun"></i>
-            </button>
-            <button class="icon-btn" id="settings-btn" aria-label="Settings" title="Settings">
-                <i class="fas fa-cog"></i>
-            </button>
-        </div>
-    </header>
-
-    <!-- Editor and Preview Workspace -->
-    <div class="workspace">
-        
-        <!-- Editor Left Panel -->
-        <div class="panel glass" id="editor-panel">
-            <div class="toolbar">
-                <button class="btn" id="btn-upload" title="Upload File (Ctrl+O)"><i class="fas fa-file-upload"></i> <span>Upload</span></button>
-                <button class="btn" id="btn-download" title="Download Code (Ctrl+S)"><i class="fas fa-file-download"></i> <span>Download</span></button>
-                <button class="btn" id="btn-copy" title="Copy All (Ctrl+C)"><i class="fas fa-copy"></i> <span>Copy</span></button>
-                <button class="btn btn-primary" id="btn-run" title="Update Live Preview (Ctrl+Enter)"><i class="fas fa-play"></i> <span>Run</span></button>
-                <button class="btn" id="btn-refresh" title="Clear Editor (Ctrl+R)"><i class="fas fa-sync-alt"></i> <span>Refresh</span></button>
-                <button class="btn btn-primary" id="btn-localhost" title="Host on Localhost Server"><i class="fas fa-server"></i> <span>Run Localhost</span></button>
+            <div class="app-actions">
+                <button class="icon-btn" id="btn-dash-theme" aria-label="Toggle Theme" title="Toggle Theme">
+                    <span class="material-symbols-rounded">dark_mode</span>
+                </button>
+                <button class="icon-btn" id="btn-dash-settings" aria-label="Settings" title="Settings">
+                    <span class="material-symbols-rounded">settings</span>
+                </button>
+                <button class="btn-primary" id="btn-dash-open">
+                    <span class="material-symbols-rounded" style="margin-right: 8px; font-size: 20px;">folder_open</span>
+                    Open PDF
+                </button>
             </div>
-            <!-- Container for Monaco Editor -->
-            <div class="editor-container" id="monaco-container"></div>
-            
-            <div class="status-bar">
-                <div class="status-group">
-                    <span id="stat-lang">HTML</span>
-                    <span id="stat-size">0 KB</span>
-                </div>
-                <div class="status-group">
-                    <span id="stat-chars">0 Chars</span>
-                    <span id="stat-cursor">Ln 1, Col 1</span>
+        </header>
+
+        <main class="dashboard-content">
+            <div class="hero-dropzone" id="dropzone">
+                <span class="material-symbols-rounded">cloud_upload</span>
+                <h2>Drag & Drop your PDF here</h2>
+                <p>Or click to browse from your device. Everything remains offline.</p>
+                <button class="btn-primary" id="btn-hero-browse">Browse Files</button>
+            </div>
+
+            <div class="recent-section">
+                <h3>Recent Files</h3>
+                <div class="recent-grid" id="recent-grid">
+                    <!-- Dynamic Recent Files -->
                 </div>
             </div>
-        </div>
+        </main>
+    </div>
 
-        <!-- Preview Right Panel -->
-        <div class="panel glass" id="preview-panel">
-            <div class="toolbar">
-                <button class="btn" id="btn-reload-prev" title="Reload Preview"><i class="fas fa-redo"></i></button>
-                <button class="btn" id="btn-new-tab" title="Open in New Tab"><i class="fas fa-external-link-alt"></i></button>
-                <button class="btn" id="btn-fullscreen" title="Fullscreen (Ctrl+Shift+F)"><i class="fas fa-expand"></i></button>
-                <div style="flex:1"></div>
-                <button class="btn" id="btn-zoom-out" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
-                <button class="btn" id="btn-zoom-in" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+    <!-- ================= VIEWER VIEW ================= -->
+    <div id="view-viewer" class="view">
+        <header class="viewer-toolbar">
+            <div class="toolbar-group">
+                <button class="icon-btn" id="btn-toggle-sidebar" aria-label="Toggle Sidebar" title="Toggle Sidebar">
+                    <span class="material-symbols-rounded">menu</span>
+                </button>
+                <div class="toolbar-divider"></div>
+                <button class="icon-btn" id="btn-close-pdf" aria-label="Close PDF" title="Back to Dashboard">
+                    <span class="material-symbols-rounded">arrow_back</span>
+                </button>
+                <span id="app-title-name" style="font-weight: 500; margin-left: 8px; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" class="hide-mobile">Document.pdf</span>
             </div>
-            
-            <div class="iframe-container">
-                <iframe id="preview-frame" sandbox="allow-scripts allow-modals allow-popups allow-forms allow-same-origin"></iframe>
+
+            <div class="toolbar-group search-container">
+                <span class="material-symbols-rounded" style="color: var(--text-muted); font-size: 20px;">search</span>
+                <input type="text" id="search-input" placeholder="Search document..." aria-label="Search">
+                <span class="search-counter" id="search-counter">0 / 0</span>
+                <button class="icon-btn" style="width: 28px; height: 28px;" id="btn-search-prev" title="Previous Match"><span class="material-symbols-rounded" style="font-size: 18px;">expand_less</span></button>
+                <button class="icon-btn" style="width: 28px; height: 28px;" id="btn-search-next" title="Next Match"><span class="material-symbols-rounded" style="font-size: 18px;">expand_more</span></button>
             </div>
-            
-            <div class="error-console" id="error-console"></div>
+
+            <div class="toolbar-group">
+                <button class="icon-btn hide-mobile" id="btn-scroll-mode" title="Toggle Scroll Mode (Single / Infinite)">
+                    <span class="material-symbols-rounded">splitscreen</span>
+                </button>
+                <button class="icon-btn" id="btn-viewer-theme" title="Toggle Theme">
+                    <span class="material-symbols-rounded">dark_mode</span>
+                </button>
+                <button class="icon-btn" id="btn-viewer-settings" title="Settings">
+                    <span class="material-symbols-rounded">settings</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="workspace">
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-tabs">
+                    <div class="sidebar-tab active" data-target="pane-thumbnails">Thumbnails</div>
+                    <div class="sidebar-tab" data-target="pane-outline">Outline</div>
+                    <div class="sidebar-tab" data-target="pane-bookmarks">Bookmarks</div>
+                </div>
+                <div class="sidebar-content">
+                    <div id="pane-thumbnails" class="sidebar-pane active">
+                        <div id="thumbnail-view"></div>
+                    </div>
+                    <div id="pane-outline" class="sidebar-pane">
+                        <div class="outline-tree" id="outline-container" style="padding: 10px;">
+                            <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">No outline available.</p>
+                        </div>
+                    </div>
+                    <div id="pane-bookmarks" class="sidebar-pane">
+                        <div style="padding: 10px; display: flex; flex-direction: column; gap: 10px;">
+                            <button class="btn-primary" id="btn-add-bookmark" style="width: 100%; padding: 8px; font-size: 0.9rem;">
+                                <span class="material-symbols-rounded" style="font-size: 18px; margin-right: 4px;">bookmark_add</span> Add Current Page
+                            </button>
+                            <div id="bookmarks-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="main-viewer-area" id="main-viewer-area">
+                <div id="viewer-wrapper">
+                    <div id="viewer" class="pdfViewer"></div>
+                </div>
+
+                <!-- Bottom Toolbar -->
+                <div class="bottom-toolbar">
+                    <button class="icon-btn" id="btn-page-prev" title="Previous Page"><span class="material-symbols-rounded">navigate_before</span></button>
+                    <div class="page-nav">
+                        <input type="number" id="page-input" class="page-input" min="1" value="1">
+                        <span style="font-size: 0.9rem; margin-right: 8px;">/ <span id="page-total">1</span></span>
+                        <input type="range" id="page-slider" min="1" max="1" value="1" class="hide-mobile">
+                    </div>
+                    <button class="icon-btn" id="btn-page-next" title="Next Page"><span class="material-symbols-rounded">navigate_next</span></button>
+                    
+                    <div class="toolbar-divider"></div>
+                    
+                    <button class="icon-btn" id="btn-zoom-out" title="Zoom Out"><span class="material-symbols-rounded">zoom_out</span></button>
+                    <select id="zoom-select" class="form-select hide-mobile" style="width: auto; padding: 4px 24px 4px 8px; height: 32px; font-size: 0.85rem;" title="Zoom Level">
+                        <option value="auto">Automatic</option>
+                        <option value="page-actual">Actual Size</option>
+                        <option value="page-fit">Fit Page</option>
+                        <option value="page-width" selected>Fit Width</option>
+                        <option value="page-height">Fit Height</option>
+                        <option value="0.5">50%</option>
+                        <option value="0.75">75%</option>
+                        <option value="1">100%</option>
+                        <option value="1.25">125%</option>
+                        <option value="1.5">150%</option>
+                        <option value="2">200%</option>
+                    </select>
+                    <button class="icon-btn" id="btn-zoom-in" title="Zoom In"><span class="material-symbols-rounded">zoom_in</span></button>
+                    <button class="icon-btn hide-mobile" id="btn-zoom-reset" title="Reset Zoom"><span class="material-symbols-rounded">center_focus_strong</span></button>
+
+                    <div class="toolbar-divider"></div>
+
+                    <button class="icon-btn" id="btn-rotate" title="Rotate Clockwise"><span class="material-symbols-rounded">rotate_right</span></button>
+                    <button class="icon-btn" id="btn-fullscreen" title="Full Screen"><span class="material-symbols-rounded">fullscreen</span></button>
+                    
+                    <div class="toolbar-divider hide-mobile"></div>
+                    
+                    <button class="icon-btn hide-mobile" id="btn-print" title="Print"><span class="material-symbols-rounded">print</span></button>
+                    <button class="icon-btn hide-mobile" id="btn-download" title="Download"><span class="material-symbols-rounded">download</span></button>
+                </div>
+
+                <!-- Status Bar -->
+                <div class="status-bar">
+                    <div>
+                        <span id="status-size">0 KB</span> | 
+                        <span id="status-zoom">100%</span> |
+                        <span id="status-rotation">0°</span>
+                    </div>
+                    <div id="status-msg">Ready</div>
+                </div>
+            </main>
         </div>
     </div>
 
-    <!-- Toast Notification Container -->
-    <div id="toast-container"></div>
-
-    <!-- Script sequence MUST remain strictly this way to prevent AMD RequireJS and JSZip conflicts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
-
-    <script>
-        // Default Template code 
-        const defaultCode = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Preview</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: white;
-        }
-        .card {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            text-align: center;
-            transition: transform 0.3s;
-        }
-        .card:hover { transform: translateY(-5px); }
-        h1 { margin: 0 0 10px 0; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h1>HTML Runner</h1>
-        <p>Edit HTML, CSS, and JS on the left to see live changes.</p>
+    <!-- ================= MODALS ================= -->
+    <!-- Loading Overlay -->
+    <div class="overlay" id="overlay-loader" style="background: rgba(0,0,0,0.8); z-index: 9999;">
+        <div class="loader-container">
+            <div class="spinner"></div>
+            <h2 id="loader-text">Loading Document...</h2>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="loader-progress"></div>
+            </div>
+            <span id="loader-percentage">0%</span>
+        </div>
     </div>
+
+    <!-- Error Modal -->
+    <div class="overlay" id="overlay-error">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 style="color: #EF4444; display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-rounded">error</span> Error
+                </h3>
+                <button class="icon-btn btn-close-modal"><span class="material-symbols-rounded">close</span></button>
+            </div>
+            <div class="modal-body">
+                <p id="error-msg-text">An unexpected error occurred.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary btn-close-modal" style="background: #EF4444;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="overlay" id="overlay-settings">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><span class="material-symbols-rounded" style="vertical-align: middle; margin-right: 8px;">settings</span>Settings</h3>
+                <button class="icon-btn btn-close-modal"><span class="material-symbols-rounded">close</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Theme</label>
+                    <select id="setting-theme" class="form-select">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                        <option value="system">System Default</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Reading Mode</label>
+                    <select id="setting-reading-mode" class="form-select">
+                        <option value="normal">Normal</option>
+                        <option value="dark-reading">Dark Reading (Inverted)</option>
+                        <option value="sepia">Sepia (Eye Care)</option>
+                        <option value="night">Night Mode</option>
+                        <option value="high-contrast">High Contrast</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Default Zoom</label>
+                    <select id="setting-default-zoom" class="form-select">
+                        <option value="page-width">Fit Width</option>
+                        <option value="page-fit">Fit Page</option>
+                        <option value="auto">Automatic</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Default Sidebar State</label>
+                    <select id="setting-sidebar" class="form-select">
+                        <option value="open">Open</option>
+                        <option value="collapsed">Collapsed</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="btn-save-settings">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        console.log("Welcome to HTML Runner!");
-    <\/script>
-</body>
-</html>`;
+        /* ================= CONFIGURATION & PDF.JS SETUP ================= */
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const CMAP_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/';
+        const CMAP_PACKED = true;
 
-        // Tracker script appended dynamically to intercept user errors and report to Error panel
-        const errorTrackingScript = `<script>
-            window.onerror = function(msg, url, lineNo, columnNo, error) {
-                window.parent.postMessage({ type: 'iframe-error', msg: msg, line: lineNo }, '*');
-                return false;
-            };
-            const originalConsoleError = console.error;
-            console.error = function(...args) {
-                window.parent.postMessage({ type: 'iframe-error', msg: args.join(' '), line: 'Runtime' }, '*');
-                originalConsoleError.apply(console, args);
-            };
-        <\/script>`;
+        /* ================= GLOBAL STATE ================= */
+        const AppState = {
+            currentDoc: null,
+            fileName: '',
+            fileSize: 0,
+            fileId: null,
+            arrayBuffer: null,
+            pdfViewer: null,
+            pdfThumbnailViewer: null,
+            eventBus: null,
+            linkService: null,
+            findController: null,
+            bookmarks: [],
+            settings: {
+                theme: 'system',
+                readingMode: 'normal',
+                defaultZoom: 'page-width',
+                sidebarState: 'open'
+            }
+        };
 
-        // Editor Application state logic
-        let editor;
-        let zoomLevel = 1;
-        let isLightMode = false;
-        
-        const iframe = document.getElementById('preview-frame');
-        const errorConsole = document.getElementById('error-console');
-        const toastContainer = document.getElementById('toast-container');
-        const fileInput = document.getElementById('file-input');
-        const statChars = document.getElementById('stat-chars');
-        const statSize = document.getElementById('stat-size');
-        const statCursor = document.getElementById('stat-cursor');
+        /* ================= INDEXED DB STORAGE ================= */
+        const StorageDB = {
+            db: null,
+            init() {
+                return new Promise((resolve, reject) => {
+                    const req = indexedDB.open('PDFReaderDB', 1);
+                    req.onupgradeneeded = e => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('recentFiles')) {
+                            db.createObjectStore('recentFiles', { keyPath: 'id' });
+                        }
+                    };
+                    req.onsuccess = e => { this.db = e.target.result; resolve(); };
+                    req.onerror = e => reject(e);
+                });
+            },
+            async saveFile(id, name, size, time, data) {
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('recentFiles', 'readwrite');
+                    tx.objectStore('recentFiles').put({ id, name, size, time, data });
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                });
+            },
+            async getFiles() {
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('recentFiles', 'readonly');
+                    const req = tx.objectStore('recentFiles').getAll();
+                    req.onsuccess = e => {
+                        // Return metadata only for list
+                        resolve(e.target.result.map(r => ({ id: r.id, name: r.name, size: r.size, time: r.time })).sort((a,b)=>b.time - a.time));
+                    };
+                    req.onerror = () => reject();
+                });
+            },
+            async getFileData(id) {
+                return new Promise((resolve, reject) => {
+                    const tx = this.db.transaction('recentFiles', 'readonly');
+                    const req = tx.objectStore('recentFiles').get(id);
+                    req.onsuccess = e => resolve(req.result ? req.result.data : null);
+                    req.onerror = () => reject();
+                });
+            }
+        };
 
-        // Toast functionality (no double escapes, fully safe literal mapping)
-        function showToast(message, type = 'success') {
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            
-            const iconHTML = type === 'success' 
-                ? '<i class="fas fa-check-circle" style="color:var(--success)"></i>' 
-                : (type === 'error' ? '<i class="fas fa-exclamation-circle" style="color:var(--error)"></i>' : '<i class="fas fa-info-circle" style="color:var(--accent)"></i>');
-            
-            toast.innerHTML = iconHTML + ' <span>' + message + '</span>';
-            toastContainer.appendChild(toast);
+        /* ================= UTILS ================= */
+        const $ = id => document.getElementById(id);
+        const formatBytes = (bytes, decimals = 2) => {
+            if (!+bytes) return '0 Bytes';
+            const k = 1024, dm = decimals < 0 ? 0 : decimals, sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        };
+        const formatDate = ms => new Date(ms).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' });
 
-            setTimeout(() => {
-                toast.classList.add('fade-out');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+        /* ================= UI CONTROLLERS ================= */
+        function switchView(viewName) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            $(`view-${viewName}`).classList.add('active');
         }
 
-        // Preview Render core function
-        function updatePreview() {
-            if (!editor) return;
-            
-            errorConsole.innerHTML = '';
-            errorConsole.classList.remove('active');
-            let rawCode = editor.getValue();
-            let finalCode;
-            
-            // Embed iframe script dynamically securely
-            if (rawCode.indexOf('<head>') !== -1) {
-                finalCode = rawCode.replace('<head>', '<head>' + errorTrackingScript);
-            } else {
-                finalCode = errorTrackingScript + rawCode;
-            }
-            
-            iframe.srcdoc = finalCode;
+        function showLoader(text = "Loading Document...") {
+            $('loader-text').innerText = text;
+            $('loader-progress').style.width = '0%';
+            $('loader-percentage').innerText = '0%';
+            $('overlay-loader').classList.add('active');
+        }
+        function updateLoader(percent) {
+            $('loader-progress').style.width = `${percent}%`;
+            $('loader-percentage').innerText = `${Math.round(percent)}%`;
+        }
+        function hideLoader() {
+            $('overlay-loader').classList.remove('active');
         }
 
-        // Cross-window Error Event Listener
-        window.addEventListener('message', (e) => {
-            if (e.data && e.data.type === 'iframe-error') {
-                errorConsole.classList.add('active');
-                const errDiv = document.createElement('div');
-                errDiv.className = 'error-item';
-                errDiv.innerHTML = '<span>[Line ' + e.data.line + ']</span> ' + e.data.msg;
-                errorConsole.appendChild(errDiv);
-            }
+        function showError(msg) {
+            hideLoader();
+            $('error-msg-text').innerText = msg;
+            $('overlay-error').classList.add('active');
+        }
+
+        document.querySelectorAll('.btn-close-modal').forEach(btn => {
+            btn.onclick = function() { this.closest('.overlay').classList.remove('active'); };
         });
 
-        // Initialize Monaco correctly over RequireJS
-        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
-        require(['vs/editor/editor.main'], function () {
+        /* ================= SETTINGS & THEME ================= */
+        function loadSettings() {
+            const saved = localStorage.getItem('pdf_reader_settings');
+            if (saved) {
+                AppState.settings = { ...AppState.settings, ...JSON.parse(saved) };
+            }
+            applySettings();
+        }
+
+        function applySettings() {
+            // Theme
+            let theme = AppState.settings.theme;
+            if (theme === 'system') {
+                theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            document.documentElement.setAttribute('data-theme', theme);
             
-            const savedCode = localStorage.getItem('html_runner_code') || defaultCode;
+            // Reading Mode
+            const wrapper = $('viewer-wrapper');
+            wrapper.className = ''; // reset
+            if (AppState.settings.readingMode !== 'normal') {
+                wrapper.classList.add(`mode-${AppState.settings.readingMode}`);
+            }
 
-            editor = monaco.editor.create(document.getElementById('monaco-container'), {
-                value: savedCode,
-                language: 'html',
-                theme: 'vs-dark',
-                automaticLayout: true,
-                wordWrap: 'on',
-                minimap: { enabled: true },
-                formatOnPaste: true,
-                autoClosingBrackets: 'always',
-                autoClosingQuotes: 'always',
-                autoIndent: 'full',
-                fontSize: 14,
-                fontFamily: "'JetBrains Mono', monospace",
-                lineNumbers: 'on',
-                renderLineHighlight: 'all',
-                smoothScrolling: true,
-                cursorBlinking: 'smooth'
-            });
+            // Sync settings UI
+            $('setting-theme').value = AppState.settings.theme;
+            $('setting-reading-mode').value = AppState.settings.readingMode;
+            $('setting-default-zoom').value = AppState.settings.defaultZoom;
+            $('setting-sidebar').value = AppState.settings.sidebarState;
+        }
 
-            // Delay closing the loading animation completely for smoothness
-            setTimeout(() => {
-                const loader = document.getElementById('loader');
-                if (loader) {
-                    loader.style.opacity = '0';
-                    setTimeout(() => loader.remove(), 500);
+        $('btn-save-settings').onclick = () => {
+            AppState.settings.theme = $('setting-theme').value;
+            AppState.settings.readingMode = $('setting-reading-mode').value;
+            AppState.settings.defaultZoom = $('setting-default-zoom').value;
+            AppState.settings.sidebarState = $('setting-sidebar').value;
+            localStorage.setItem('pdf_reader_settings', JSON.stringify(AppState.settings));
+            applySettings();
+            $('overlay-settings').classList.remove('active');
+        };
+
+        const toggleTheme = () => {
+            AppState.settings.theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('pdf_reader_settings', JSON.stringify(AppState.settings));
+            applySettings();
+        };
+        $('btn-dash-theme').onclick = toggleTheme;
+        $('btn-viewer-theme').onclick = toggleTheme;
+        $('btn-dash-settings').onclick = () => $('overlay-settings').classList.add('active');
+        $('btn-viewer-settings').onclick = () => $('overlay-settings').classList.add('active');
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (AppState.settings.theme === 'system') applySettings();
+        });
+
+        /* ================= DASHBOARD & RECENT FILES ================= */
+        async function loadRecentFiles() {
+            try {
+                const files = await StorageDB.getFiles();
+                const grid = $('recent-grid');
+                grid.innerHTML = '';
+                if (files.length === 0) {
+                    grid.innerHTML = '<p style="color: var(--text-muted); grid-column: 1/-1;">No recent files found.</p>';
+                    return;
                 }
-            }, 600);
+                files.forEach(f => {
+                    const card = document.createElement('div');
+                    card.className = 'recent-card';
+                    card.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:8px; color: var(--primary);">
+                            <span class="material-symbols-rounded">description</span>
+                            <div class="recent-card-title" title="${f.name}">${f.name}</div>
+                        </div>
+                        <div class="recent-card-meta">
+                            <span>${formatDate(f.time)}</span>
+                            <span>${formatBytes(f.size)}</span>
+                        </div>
+                    `;
+                    card.onclick = () => openRecentFile(f.id, f.name, f.size);
+                    grid.appendChild(card);
+                });
+            } catch (e) {
+                console.error("Failed to load recent files", e);
+            }
+        }
 
-            updatePreview(); // initial iframe loading
+        async function openRecentFile(id, name, size) {
+            showLoader("Loading from storage...");
+            try {
+                const data = await StorageDB.getFileData(id);
+                if (!data) throw new Error("File data not found");
+                AppState.fileName = name;
+                AppState.fileSize = size;
+                AppState.fileId = id;
+                AppState.arrayBuffer = data;
+                await initViewer();
+                switchView('viewer');
+            } catch (e) {
+                showError("Could not open recent file. It may be corrupted.");
+            } finally {
+                hideLoader();
+            }
+        }
 
-            // Events triggers when User Clicks/Moves cursor 
-            editor.onDidChangeCursorPosition((e) => {
-                statCursor.innerText = 'Ln ' + e.position.lineNumber + ', Col ' + e.position.column;
+        /* ================= FILE INPUT & DRAG DROP ================= */
+        $('btn-dash-open').onclick = () => $('file-input').click();
+        $('btn-hero-browse').onclick = () => $('file-input').click();
+        
+        $('file-input').onchange = (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+            e.target.value = ''; // reset
+        };
+
+        const dropzone = $('dropzone');
+        dropzone.ondragover = e => { e.preventDefault(); dropzone.classList.add('dragover'); };
+        dropzone.ondragleave = () => dropzone.classList.remove('dragover');
+        dropzone.ondrop = e => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+        };
+
+        async function handleFile(file) {
+            if (!file || file.type !== 'application/pdf') {
+                showError('Invalid file type. Please select a PDF file.');
+                return;
+            }
+            if (file.size === 0) { showError('The selected file is empty.'); return; }
+            if (file.size > 250 * 1024 * 1024) { showError('File is too large (Max 250MB).'); return; }
+
+            showLoader("Reading file...");
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                AppState.fileName = file.name;
+                AppState.fileSize = file.size;
+                AppState.fileId = file.name + "_" + file.size;
+                AppState.arrayBuffer = arrayBuffer;
+                
+                // Save asynchronously
+                StorageDB.saveFile(AppState.fileId, file.name, file.size, Date.now(), arrayBuffer).then(loadRecentFiles).catch(console.error);
+                
+                await initViewer();
+                switchView('viewer');
+            } catch (err) {
+                showError('Could not read the file.');
+            } finally {
+                hideLoader();
+            }
+        }
+
+        /* ================= PDF.JS VIEWER INITIALIZATION ================= */
+        async function initViewer() {
+            // Clean up previous
+            if (AppState.currentDoc) {
+                await AppState.currentDoc.destroy();
+                AppState.currentDoc = null;
+            }
+
+            if (!AppState.eventBus) {
+                AppState.eventBus = new pdfjsViewer.EventBus();
+                AppState.linkService = new pdfjsViewer.PDFLinkService({ eventBus: AppState.eventBus });
+                AppState.findController = new pdfjsViewer.PDFFindController({ eventBus: AppState.eventBus, linkService: AppState.linkService });
+                
+                AppState.pdfViewer = new pdfjsViewer.PDFViewer({
+                    container: $('viewer-wrapper'),
+                    eventBus: AppState.eventBus,
+                    linkService: AppState.linkService,
+                    findController: AppState.findController,
+                    removePageBorders: true,
+                    useOnlyCssZoom: false // Allow canvas redraw for sharpness
+                });
+                AppState.linkService.setViewer(AppState.pdfViewer);
+
+                AppState.pdfThumbnailViewer = new pdfjsViewer.PDFThumbnailViewer({
+                    container: $('thumbnail-view'),
+                    eventBus: AppState.eventBus,
+                    linkService: AppState.linkService
+                });
+
+                setupViewerEvents();
+            }
+
+            // Load Document
+            const loadingTask = pdfjsLib.getDocument({
+                data: new Uint8Array(AppState.arrayBuffer),
+                cMapUrl: CMAP_URL,
+                cMapPacked: CMAP_PACKED
             });
 
-            // Handle Text Live update and Autosave 
-            let debounceTimer;
-            editor.getModel().onDidChangeContent(() => {
-                const val = editor.getValue();
-                
-                statChars.innerText = val.length + ' Chars';
-                statSize.innerText = (new Blob([val]).size / 1024).toFixed(2) + ' KB';
-                
-                // Store changes live mapped properly locally
-                localStorage.setItem('html_runner_code', val);
+            loadingTask.onProgress = (p) => {
+                if (p.total > 0) updateLoader((p.loaded / p.total) * 100);
+            };
 
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => {
-                    updatePreview();
-                }, 800);
+            try {
+                const pdfDocument = await loadingTask.promise;
+                AppState.currentDoc = pdfDocument;
+                
+                AppState.pdfViewer.setDocument(pdfDocument);
+                AppState.pdfThumbnailViewer.setDocument(pdfDocument);
+                AppState.linkService.setDocument(pdfDocument, null);
+
+                // UI Updates
+                $('app-title-name').innerText = AppState.fileName;
+                $('app-title-name').title = AppState.fileName;
+                $('status-size').innerText = formatBytes(AppState.fileSize);
+                
+                // Set initial zoom & state
+                AppState.pdfViewer.currentScaleValue = AppState.settings.defaultZoom;
+                if (window.innerWidth <= 768) AppState.pdfViewer.currentScaleValue = 'page-width';
+                
+                // Sidebar
+                if (AppState.settings.sidebarState === 'collapsed' || window.innerWidth <= 768) {
+                    $('sidebar').classList.add('collapsed');
+                } else {
+                    $('sidebar').classList.remove('collapsed');
+                }
+
+                // Outline & Bookmarks
+                loadOutline(pdfDocument);
+                loadBookmarks();
+
+                $('status-msg').innerText = "Document loaded";
+                setTimeout(() => $('status-msg').innerText = "Ready", 3000);
+
+            } catch (err) {
+                console.error(err);
+                if (err.name === 'PasswordException') throw new Error('Password protected PDFs are not supported.');
+                throw new Error('Invalid or corrupted PDF file.');
+            }
+        }
+
+        /* ================= VIEWER EVENTS & LOGIC ================= */
+        function setupViewerEvents() {
+            const eb = AppState.eventBus;
+
+            eb.on('pagesinit', () => {
+                AppState.pdfViewer.currentScaleValue = AppState.settings.defaultZoom;
+                $('page-total').innerText = AppState.pdfViewer.pagesCount;
+                $('page-slider').max = AppState.pdfViewer.pagesCount;
             });
-            
-            // Kickoff first trigger statistics update manually via fake change ping
-            editor.getModel().applyEdits([{range: new monaco.Range(1,1,1,1), text: ''}]);
-        });
 
-        /* --- Click Event Bindings --- */
+            eb.on('pagechanging', (e) => {
+                $('page-input').value = e.pageNumber;
+                $('page-slider').value = e.pageNumber;
+            });
 
-        // 1. Copy Complete Text Function
-        document.getElementById('btn-copy').addEventListener('click', () => {
-            if (!editor) return;
-            navigator.clipboard.writeText(editor.getValue()).then(() => {
-                showToast('Copied Successfully', 'success');
-            }).catch(e => showToast('Failed to copy', 'error'));
-        });
+            eb.on('scalechanging', (e) => {
+                const pct = Math.round(e.scale * 100);
+                $('status-zoom').innerText = pct + '%';
+                // Sync select if match
+                const sel = $('zoom-select');
+                let found = false;
+                for (let i=0; i<sel.options.length; i++) {
+                    if (sel.options[i].value === e.presetValue || Math.abs(parseFloat(sel.options[i].value) - e.scale) < 0.01) {
+                        sel.selectedIndex = i; found = true; break;
+                    }
+                }
+                if(!found) sel.value = "auto";
+            });
 
-        // 2. Download File Trigger Map 
-        document.getElementById('btn-download').addEventListener('click', () => {
-            if (!editor) return;
-            const blob = new Blob([editor.getValue()], { type: 'text/html' });
+            eb.on('updatefindmatchescount', (e) => {
+                const total = e.matchesCount.total;
+                const current = e.matchesCount.current;
+                $('search-counter').innerText = `${current} / ${total}`;
+            });
+
+            eb.on('rotationchanging', (e) => {
+                $('status-rotation').innerText = e.pagesRotation + '°';
+            });
+        }
+
+        /* ================= TOOLBAR ACTIONS ================= */
+        $('btn-close-pdf').onclick = () => {
+            switchView('dashboard');
+            if (AppState.currentDoc) {
+                AppState.currentDoc.destroy();
+                AppState.currentDoc = null;
+                AppState.pdfViewer.setDocument(null);
+                AppState.pdfThumbnailViewer.setDocument(null);
+            }
+            loadRecentFiles();
+        };
+
+        // Navigation
+        $('btn-page-prev').onclick = () => { if(AppState.pdfViewer.currentPageNumber > 1) AppState.pdfViewer.currentPageNumber--; };
+        $('btn-page-next').onclick = () => { if(AppState.pdfViewer.currentPageNumber < AppState.pdfViewer.pagesCount) AppState.pdfViewer.currentPageNumber++; };
+        
+        $('page-input').onchange = (e) => {
+            let p = parseInt(e.target.value);
+            if (p >= 1 && p <= AppState.pdfViewer.pagesCount) AppState.pdfViewer.currentPageNumber = p;
+            else e.target.value = AppState.pdfViewer.currentPageNumber;
+        };
+        $('page-slider').oninput = (e) => { AppState.pdfViewer.currentPageNumber = parseInt(e.target.value); };
+
+        // Zoom
+        $('btn-zoom-in').onclick = () => { AppState.pdfViewer.currentScale *= 1.2; };
+        $('btn-zoom-out').onclick = () => { AppState.pdfViewer.currentScale /= 1.2; };
+        $('btn-zoom-reset').onclick = () => { AppState.pdfViewer.currentScaleValue = 'page-width'; };
+        $('zoom-select').onchange = (e) => { AppState.pdfViewer.currentScaleValue = e.target.value; };
+
+        // Rotate
+        $('btn-rotate').onclick = () => {
+            AppState.pdfViewer.pagesRotation = (AppState.pdfViewer.pagesRotation + 90) % 360;
+        };
+
+        // Fullscreen
+        $('btn-fullscreen').onclick = () => {
+            const el = document.documentElement;
+            if (!document.fullscreenElement) {
+                el.requestFullscreen().catch(err => console.log(err));
+            } else {
+                document.exitFullscreen();
+            }
+        };
+
+        // Scroll Mode
+        let isSinglePage = false;
+        $('btn-scroll-mode').onclick = () => {
+            isSinglePage = !isSinglePage;
+            // 0 = Vertical, 3 = Page
+            AppState.pdfViewer.scrollMode = isSinglePage ? 3 : 0;
+            $('btn-scroll-mode').innerHTML = `<span class="material-symbols-rounded">${isSinglePage ? 'view_stream' : 'splitscreen'}</span>`;
+        };
+
+        // Print
+        $('btn-print').onclick = () => {
+            if (!AppState.arrayBuffer) return;
+            const blob = new Blob([AppState.arrayBuffer], { type: 'application/pdf' });
+            const blobUrl = URL.createObjectURL(blob);
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = blobUrl;
+            document.body.appendChild(iframe);
+            iframe.onload = () => {
+                setTimeout(() => {
+                    try {
+                        iframe.contentWindow.focus();
+                        iframe.contentWindow.print();
+                    } catch (e) {
+                        showError("Printing blocked by browser. Please download and print.");
+                    }
+                    setTimeout(() => { document.body.removeChild(iframe); URL.revokeObjectURL(blobUrl); }, 10000);
+                }, 500);
+            };
+        };
+
+        // Download
+        $('btn-download').onclick = () => {
+            if (!AppState.arrayBuffer) return;
+            const blob = new Blob([AppState.arrayBuffer], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'index.html';
+            a.download = AppState.fileName;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showToast('Downloaded Successfully', 'success');
+        };
+
+        // Search
+        const execSearch = (prev = false) => {
+            const q = $('search-input').value;
+            if (!q) return;
+            AppState.eventBus.dispatch('find', {
+                source: AppState.findController, type: '', query: q,
+                caseSensitive: false, entireWord: false, highlightAll: true, findPrevious: prev
+            });
+        };
+        $('search-input').onkeydown = (e) => { if (e.key === 'Enter') execSearch(e.shiftKey); };
+        $('btn-search-next').onclick = () => execSearch(false);
+        $('btn-search-prev').onclick = () => execSearch(true);
+        $('search-input').oninput = (e) => { if(e.target.value==="") $('search-counter').innerText="0 / 0"; };
+
+        /* ================= SIDEBAR ================= */
+        $('btn-toggle-sidebar').onclick = () => {
+            $('sidebar').classList.toggle('collapsed');
+        };
+        
+        // Mobile Sidebar auto-close logic
+        const autoCloseSidebar = () => {
+            if (window.innerWidth <= 768) $('sidebar').classList.add('collapsed');
+        };
+        $('thumbnail-view').addEventListener('click', autoCloseSidebar);
+
+        document.querySelectorAll('.sidebar-tab').forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.sidebar-pane').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                $(tab.dataset.target).classList.add('active');
+            };
         });
 
-        // 3. System Upload Reader Flow Handle Function 
-        document.getElementById('btn-upload').addEventListener('click', () => { fileInput.click(); });
-        
-        fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            // Security sanitization - block potential script hack uploads disguised traversing map 
-            if (file.name.includes('..')) {
-                showToast('Invalid path upload aborted.', 'error');
+        /* ================= OUTLINE ================= */
+        async function loadOutline(pdfDoc) {
+            const container = $('outline-container');
+            container.innerHTML = '';
+            const outline = await pdfDoc.getOutline();
+            if (!outline || outline.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; margin-top:20px;">No outline available.</p>';
                 return;
             }
-
-            if (file.name.endsWith('.zip')) {
-                showToast('Extracting ZIP Archive...', 'info');
-                
-                // Extract directly reading memory data from ZIP context Object without dependencies
-                try {
-                    const zip = new JSZip();
-                    const contents = await zip.loadAsync(file);
-                    
-                    let htmlFileName = null;
-                    // Scrutinize zip recursively matching the primary mapped html
-                    for (const name in contents.files) {
-                        if (name.endsWith('.html') && !contents.files[name].dir) {
-                            htmlFileName = name;
-                            break;
-                        }
-                    }
-
-                    if (htmlFileName) {
-                        const content = await contents.file(htmlFileName).async("string");
-                        editor.setValue(content);
-                        showToast('ZIP Extracted & Uploaded successfully!', 'success');
-                    } else {
-                        showToast('ZIP file lacks HTML structure core logic.', 'error');
-                    }
-                } catch(err) {
-                    showToast('Failed to read and expand ZIP correctly.', 'error');
-                }
-            } else {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    if (editor) editor.setValue(ev.target.result);
-                    showToast('Upload Completed', 'success');
-                };
-                reader.readAsText(file);
-            }
-            fileInput.value = ''; // Clean buffer 
-        });
-
-        // 4. Dedicated Forced Execution Ping function 
-        document.getElementById('btn-run').addEventListener('click', () => {
-            updatePreview();
-            showToast('Preview Forcibly Triggered & Run Successfully!', 'success');
-        });
-
-        // 5. Restorer Wipe-Out Confirmation Hook Setup Function 
-        document.getElementById('btn-refresh').addEventListener('click', () => {
-            if (confirm('Proceed reset? Unsaved buffer state code mapping will erase.')) {
-                if (editor) editor.setValue(defaultCode);
-                showToast('Live View Editor Erase & Restored Default', 'info');
-            }
-        });
-
-        // 6. External Node LocalHost System Relay
-        // NOTE: Because browser itself cannot deploy a true host locally out the DOM, this targets the pre-written NodeJS express block required by you.
-        document.getElementById('btn-localhost').addEventListener('click', async () => {
-            if (!editor) return;
             
-            showToast('Transferring core node script deployment..', 'info');
-            const html = editor.getValue();
-            const port = document.getElementById('port-input').value || 3000;
-
-            try {
-                // Connecting Node Server running at localhost:3001 via api bridge context mapping
-                const response = await fetch('http://localhost:3001/api/run', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ html: html, port: port })
+            function buildTree(items, parentElement) {
+                const ul = document.createElement('ul');
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item.title;
+                    li.onclick = (e) => {
+                        e.stopPropagation();
+                        AppState.linkService.navigateTo(item.dest);
+                        autoCloseSidebar();
+                    };
+                    ul.appendChild(li);
+                    if (item.items && item.items.length > 0) buildTree(item.items, li);
                 });
+                parentElement.appendChild(ul);
+            }
+            buildTree(outline, container);
+        }
 
-                const data = await response.json();
-                
-                if (data.success) {
-                    showToast('Hosted System Port successfully.', 'success');
-                    window.open(data.url, '_blank');
-                } else {
-                    showToast(data.message || 'Error occurred handling Port routing loop logic map error.', 'error');
+        /* ================= BOOKMARKS ================= */
+        function getBookmarksKey() { return `pdf_bkmk_${AppState.fileId}`; }
+        
+        function loadBookmarks() {
+            const saved = localStorage.getItem(getBookmarksKey());
+            AppState.bookmarks = saved ? JSON.parse(saved) : [];
+            renderBookmarks();
+        }
+
+        function saveBookmarks() {
+            localStorage.setItem(getBookmarksKey(), JSON.stringify(AppState.bookmarks));
+            renderBookmarks();
+        }
+
+        function renderBookmarks() {
+            const list = $('bookmarks-list');
+            list.innerHTML = '';
+            if (AppState.bookmarks.length === 0) {
+                list.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">No bookmarks yet.</p>';
+                return;
+            }
+            AppState.bookmarks.forEach(b => {
+                const item = document.createElement('div');
+                item.className = 'bookmark-item';
+                item.innerHTML = `
+                    <span title="Go to page ${b.page}">${b.name}</span>
+                    <div class="bookmark-actions">
+                        <button class="icon-btn edit-btn" title="Rename"><span class="material-symbols-rounded" style="font-size:16px;">edit</span></button>
+                        <button class="icon-btn del-btn" style="color:#EF4444;" title="Delete"><span class="material-symbols-rounded" style="font-size:16px;">delete</span></button>
+                    </div>
+                `;
+                item.querySelector('span').onclick = () => {
+                    AppState.pdfViewer.currentPageNumber = b.page;
+                    autoCloseSidebar();
+                };
+                item.querySelector('.del-btn').onclick = () => {
+                    AppState.bookmarks = AppState.bookmarks.filter(x => x.id !== b.id);
+                    saveBookmarks();
+                };
+                item.querySelector('.edit-btn').onclick = () => {
+                    const nn = prompt('Rename Bookmark:', b.name);
+                    if (nn && nn.trim() !== '') { b.name = nn.trim(); saveBookmarks(); }
+                };
+                list.appendChild(item);
+            });
+        }
+
+        $('btn-add-bookmark').onclick = () => {
+            const page = AppState.pdfViewer.currentPageNumber;
+            const existing = AppState.bookmarks.find(b => b.page === page);
+            if (existing) { alert('Page already bookmarked.'); return; }
+            
+            const name = prompt('Bookmark Name:', `Page ${page}`);
+            if (name && name.trim() !== '') {
+                AppState.bookmarks.push({ id: Date.now(), page: page, name: name.trim() });
+                AppState.bookmarks.sort((a,b)=>a.page - b.page);
+                saveBookmarks();
+            }
+        };
+
+        /* ================= TOUCH GESTURES (PINCH ZOOM) ================= */
+        const viewerWrapper = $('viewer-wrapper');
+        let initialPinchDist = null;
+        let initialScale = 1;
+
+        viewerWrapper.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2 && AppState.pdfViewer) {
+                initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                initialScale = AppState.pdfViewer.currentScale;
+            }
+        }, { passive: true });
+
+        viewerWrapper.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && initialPinchDist !== null) {
+                e.preventDefault(); // Prevent native zoom
+                const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                const scale = dist / initialPinchDist;
+                // Debounce frequent updates
+                if (Math.abs(scale - 1) > 0.05) {
+                    AppState.pdfViewer.currentScale = initialScale * scale;
+                    initialPinchDist = dist;
+                    initialScale = AppState.pdfViewer.currentScale;
                 }
-            } catch (err) {
-                console.error(err);
-                // System default message when localNode block environment lacks Express connection API active map layer
-                showToast('Action Failed. Did you run the Node server in Terminal on port 3001?', 'error');
             }
+        }, { passive: false });
+
+        viewerWrapper.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) initialPinchDist = null;
         });
 
-        // Layout Preview Interaction Mapping Elements Blocks logic setup: 
-        document.getElementById('btn-reload-prev').addEventListener('click', () => { updatePreview(); });
-        
-        document.getElementById('btn-new-tab').addEventListener('click', () => {
-            if (!editor) return;
-            const blob = new Blob([editor.getValue()], { type: 'text/html' });
-            window.open(URL.createObjectURL(blob), '_blank');
-        });
-        
-        // Context map Fullscreen handling override
-        const previewPanel = document.getElementById('preview-panel');
-        document.getElementById('btn-fullscreen').addEventListener('click', () => {
-            previewPanel.classList.toggle('preview-fullscreen');
-            if(editor) editor.layout(); // Map sizing repair map sequence trigger execution
+        /* ================= KEYBOARD SHORTCUTS ================= */
+        document.addEventListener('keydown', e => {
+            // Ignore if in input
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+
+            if ($('view-viewer').classList.contains('active') && AppState.pdfViewer) {
+                if (e.ctrlKey && e.key === 'f') { e.preventDefault(); $('search-input').focus(); }
+                if (e.ctrlKey && (e.key === '=' || e.key === '+')) { e.preventDefault(); $('btn-zoom-in').click(); }
+                if (e.ctrlKey && e.key === '-') { e.preventDefault(); $('btn-zoom-out').click(); }
+                if (e.ctrlKey && e.key === 'p') { e.preventDefault(); $('btn-print').click(); }
+                if (e.key === 'Home') { e.preventDefault(); AppState.pdfViewer.currentPageNumber = 1; }
+                if (e.key === 'End') { e.preventDefault(); AppState.pdfViewer.currentPageNumber = AppState.pdfViewer.pagesCount; }
+                if (e.key === 'ArrowRight' && isSinglePage) { AppState.pdfViewer.currentPageNumber++; }
+                if (e.key === 'ArrowLeft' && isSinglePage) { AppState.pdfViewer.currentPageNumber--; }
+            }
+            if (e.ctrlKey && e.key === 'o') { e.preventDefault(); $('file-input').click(); }
         });
 
-        // Manual DOM frame execution resize hook override for user interaction view sizes map block: 
-        document.getElementById('btn-zoom-in').addEventListener('click', () => { 
-            zoomLevel += 0.1; 
-            iframe.style.transform = 'scale(' + zoomLevel + ')'; 
-            iframe.style.width = (100 / zoomLevel) + '%'; 
-            iframe.style.height = (100 / zoomLevel) + '%'; 
+        /* ================= BUTTON RIPPLE EFFECT ================= */
+        function createRipple(event) {
+            const button = event.currentTarget;
+            const circle = document.createElement("span");
+            const diameter = Math.max(button.clientWidth, button.clientHeight);
+            const radius = diameter / 2;
+            circle.style.width = circle.style.height = `${diameter}px`;
+            circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+            circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+            circle.classList.add("ripple");
+            const ripple = button.getElementsByClassName("ripple")[0];
+            if (ripple) ripple.remove();
+            button.appendChild(circle);
+        }
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', createRipple);
         });
 
-        document.getElementById('btn-zoom-out').addEventListener('click', () => { 
-            zoomLevel = Math.max(0.5, zoomLevel - 0.1); 
-            iframe.style.transform = 'scale(' + zoomLevel + ')'; 
-            iframe.style.width = (100 / zoomLevel) + '%'; 
-            iframe.style.height = (100 / zoomLevel) + '%'; 
-        });
-
-        // Theme CSS swap manipulation context
-        document.getElementById('theme-btn').addEventListener('click', () => {
-            isLightMode = !isLightMode;
-            document.body.classList.toggle('light-mode', isLightMode);
-            const icon = document.querySelector('#theme-btn i');
-            icon.className = isLightMode ? 'fas fa-moon' : 'fas fa-sun';
-            if (editor) {
-                monaco.editor.setTheme(isLightMode ? 'vs' : 'vs-dark');
+        /* ================= INIT APP ================= */
+        window.onload = async () => {
+            loadSettings();
+            try {
+                await StorageDB.init();
+                await loadRecentFiles();
+            } catch(e) {
+                console.warn("IndexedDB not available, recent files disabled.");
             }
-        });
-
-        // Keyboard Shortcut map system injection listeners hook overriding natively: 
-        window.addEventListener('keydown', (e) => {
-            // Save Overwrite Block (CTRL+S) Context 
-            if (e.ctrlKey && e.key.toLowerCase() === 's') {
-                e.preventDefault();
-                document.getElementById('btn-download').click();
-            }
-            // Trigger Load Box Override Block Context 
-            if (e.ctrlKey && e.key.toLowerCase() === 'o') {
-                e.preventDefault();
-                document.getElementById('btn-upload').click();
-            }
-            // Forced Ping Command Execution Live Overwritten System Trigger Map context block  
-            if (e.ctrlKey && e.key === 'Enter') {
-                e.preventDefault();
-                document.getElementById('btn-run').click();
-            }
-            // System Layout Reset Execution Request Control override
-            if (e.ctrlKey && e.key.toLowerCase() === 'r' && !e.shiftKey) {
-                // If it prevents normal refreshing, user hits standard F5 instead usually. Handled purely for preview maps hook block 
-                e.preventDefault();
-                updatePreview();
-            }
-            // Trigger Forced Map layout bounds System Expand Overwritten
-            if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'f') {
-                e.preventDefault();
-                document.getElementById('btn-fullscreen').click();
-            }
-        });
-
-        // Forced system visual override loop preventing Drop Event Block maps
-        window.addEventListener('dragover', (e) => e.preventDefault());
-        window.addEventListener('drop', (e) => {
-            e.preventDefault();
-            if(e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                fileInput.files = e.dataTransfer.files;
-                const event = new Event('change');
-                fileInput.dispatchEvent(event);
-            }
-        });
+        };
 
     </script>
 </body>
