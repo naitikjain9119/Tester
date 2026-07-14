@@ -1,516 +1,1304 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Assistant STT (Pro Fix)</title>
-    <style>
-        /* ================= CSS VARIABLES & THEMES ================= */
-        :root {
-            /* Light Theme */
-            --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-            --glass-bg: rgba(255, 255, 255, 0.85);
-            --glass-border: rgba(255, 255, 255, 0.6);
-            --text-primary: #111827;
-            --text-secondary: #4b5563;
-            --interim-text: #9ca3af;
-            --accent-color: #2563eb;
-            --accent-hover: #1e40af;
-            --danger-color: #ef4444;
-            --success-color: #10b981;
-            --shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
-            --card-radius: 1.5rem;
-            --btn-radius: 0.8rem;
-            --transition: all 0.3s ease;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Professional Speech To Text</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================================
+       CSS CUSTOM PROPERTIES — TOKEN SYSTEM
+    ============================================================ */
+    :root {
+      /* Light palette */
+      --bg-base:        #F0F4FF;
+      --bg-card:        #FFFFFF;
+      --bg-topbar:      rgba(255,255,255,0.80);
+      --bg-textarea:    #FAFBFF;
+      --border-color:   #DDE3F5;
+      --text-primary:   #0D1330;
+      --text-secondary: #5A6180;
+      --text-muted:     #9BA3BF;
+      --accent:         #4361EE;
+      --accent-hover:   #3451D1;
+      --accent-glow:    rgba(67,97,238,0.22);
+      --stop-color:     #E53E3E;
+      --stop-hover:     #C53030;
+      --cancel-color:   #718096;
+      --cancel-hover:   #4A5568;
+      --shadow-card:    0 4px 24px rgba(67,97,238,0.09), 0 1px 4px rgba(0,0,0,0.06);
+      --shadow-btn:     0 2px 12px rgba(67,97,238,0.20);
+      --radius-card:    20px;
+      --radius-btn:     14px;
+      --radius-textarea:16px;
+      --font-main:      'Inter', system-ui, sans-serif;
+      --font-mono:      'JetBrains Mono', monospace;
+      --transition:     0.22s cubic-bezier(.4,0,.2,1);
+      --topbar-blur:    blur(18px);
+    }
 
-        [data-theme="dark"] {
-            /* Dark Theme */
-            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-            --glass-bg: rgba(30, 41, 59, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.1);
-            --text-primary: #f9fafb;
-            --text-secondary: #cbd5e1;
-            --interim-text: #6b7280;
-            --accent-color: #3b82f6;
-            --accent-hover: #60a5fa;
-            --shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
-        }
+    [data-theme="dark"] {
+      --bg-base:        #0B0F1E;
+      --bg-card:        #131829;
+      --bg-topbar:      rgba(16,20,42,0.88);
+      --bg-textarea:    #0F1320;
+      --border-color:   #222848;
+      --text-primary:   #E8ECFF;
+      --text-secondary: #8891B8;
+      --text-muted:     #4E567A;
+      --accent:         #6C8EFF;
+      --accent-hover:   #4361EE;
+      --accent-glow:    rgba(108,142,255,0.22);
+      --stop-color:     #FC6868;
+      --stop-hover:     #E53E3E;
+      --cancel-color:   #8891B8;
+      --cancel-hover:   #E8ECFF;
+      --shadow-card:    0 4px 32px rgba(0,0,0,0.45), 0 1px 4px rgba(0,0,0,0.3);
+      --shadow-btn:     0 2px 14px rgba(108,142,255,0.22);
+    }
 
-        /* ================= RESET & BASE ================= */
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
-        body { background: var(--bg-gradient); color: var(--text-primary); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; transition: var(--transition); overflow-x: hidden; }
-        
-        h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; text-align: center; margin-bottom: 0.2rem; background: -webkit-linear-gradient(45deg, var(--accent-color), var(--text-primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        h2.subtitle { font-size: 1.1rem; font-weight: 500; color: var(--text-secondary); text-align: center; margin-bottom: 2rem; letter-spacing: 0.5px; }
+    /* ============================================================
+       RESET & BASE
+    ============================================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        /* ================= APP LAYOUT ================= */
-        .glass-container {
-            background: var(--glass-bg);
-            backdrop-filter: blur(25px);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--card-radius);
-            box-shadow: var(--shadow);
-            width: 100%;
-            max-width: 1100px;
-            padding: 2rem;
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1.5rem;
-        }
+    html {
+      scroll-behavior: smooth;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-        @media(min-width: 992px) { .glass-container { grid-template-columns: 3.5fr 1.5fr; } }
+    body {
+      font-family: var(--font-main);
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background var(--transition), color var(--transition);
+      overflow-x: hidden;
+    }
 
-        .top-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+    /* ============================================================
+       BACKGROUND MESH GRADIENT
+    ============================================================ */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 15% 10%, rgba(67,97,238,0.10) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 45% at 85% 85%, rgba(108,142,255,0.08) 0%, transparent 60%);
+    }
 
-        /* ================= MIC UI & ANIMATIONS ================= */
-        .mic-container { display: flex; justify-content: center; align-items: center; margin: 1.5rem 0; flex-direction: column; }
-        
-        .mic-btn {
-            width: 80px; height: 80px; border-radius: 50%;
-            background: var(--glass-bg); border: 2px solid var(--glass-border);
-            display: flex; justify-content: center; align-items: center;
-            color: var(--text-secondary); cursor: pointer;
-            transition: var(--transition); box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        .mic-btn svg { width: 32px; height: 32px; fill: currentColor; z-index: 5; position: relative;}
-        
-        /* The magic listening animation ring */
-        .mic-btn.listening { color: white; background: var(--danger-color); border-color: var(--danger-color); position: relative; }
-        .mic-btn.listening::after { content: ""; position: absolute; width: 100%; height: 100%; background: var(--danger-color); border-radius: 50%; z-index: 1; animation: radar 1.5s infinite ease-out; }
-        
-        @keyframes radar {
-            0% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(2); opacity: 0; }
-        }
+    [data-theme="dark"] body::before {
+      background:
+        radial-gradient(ellipse 70% 50% at 15% 10%, rgba(67,97,238,0.14) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 45% at 85% 85%, rgba(108,142,255,0.10) 0%, transparent 60%);
+    }
 
-        /* ================= BUTTONS ================= */
-        .controls-row { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem; }
-        
-        button {
-            padding: 0.75rem 1.2rem; border: none; border-radius: var(--btn-radius); font-size: 0.95rem; font-weight: 600; cursor: pointer;
-            display: flex; align-items: center; gap: 0.5rem; transition: var(--transition);
-            background: var(--glass-bg); color: var(--text-primary); border: 1px solid var(--glass-border);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06); outline: none;
-        }
-        button svg { width: 18px; height: 18px; fill: currentColor; }
-        button:hover:not(:disabled) { transform: translateY(-2px); background: var(--accent-color); color: white; border-color: var(--accent-color); }
-        button:active { transform: scale(0.97); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none;}
+    /* ============================================================
+       SITE WRAPPER
+    ============================================================ */
+    .site-wrapper {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 860px;
+      padding: 0 16px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
 
-        .btn-primary { background: var(--accent-color); color: white; border-color: var(--accent-color); }
-        .btn-danger { background: var(--danger-color); color: white; border-color: var(--danger-color); }
-        .btn-success { background: var(--success-color); color: white; border-color: var(--success-color); }
-        .btn-icon { padding: 0.7rem; border-radius: 50%; }
+    /* ============================================================
+       CREATOR HEADER
+    ============================================================ */
+    .creator-header {
+      width: 100%;
+      text-align: center;
+      padding: 28px 16px 20px;
+      letter-spacing: 0.01em;
+    }
 
-        /* ================= SELECTION DROPDOWN ================= */
-        select {
-            padding: 0.8rem 1rem; border-radius: var(--btn-radius); background: var(--glass-bg);
-            color: var(--text-primary); border: 2px solid var(--accent-color); font-size: 1rem; font-weight: 600;
-            cursor: pointer; outline: none; transition: var(--transition);
-        }
+    .creator-header span {
+      font-family: var(--font-main);
+      font-size: clamp(0.9rem, 2.2vw, 1.05rem);
+      font-weight: 700;
+      color: var(--accent);
+      background: linear-gradient(135deg, var(--accent), #A78BFA);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: inline-block;
+    }
 
-        /* ================= DISPLAY CANVAS ================= */
-        .transcript-container {
-            background: var(--glass-bg); border-radius: var(--card-radius);
-            border: 1px solid var(--glass-border); padding: 1.5rem; min-height: 300px;
-            max-height: 55vh; overflow-y: auto; font-size: 1.25rem; line-height: 1.6;
-            scroll-behavior: smooth; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .transcript-container:focus-visible { outline: 2px solid var(--accent-color); }
+    /* ============================================================
+       APP CARD
+    ============================================================ */
+    .app-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
+    }
 
-        .final-sentence { color: var(--text-primary); font-weight: 500; }
-        .interim-text { color: var(--interim-text); font-weight: 400; font-style: italic; background: transparent; }
-        .placeholder-text { color: var(--text-secondary); font-style: italic; text-align: center; opacity: 0.6; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; pointer-events: none;}
+    /* ============================================================
+       APP TITLE
+    ============================================================ */
+    .app-title-bar {
+      padding: 26px 28px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-        /* Scrollbars */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
+    .mic-icon-title {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), #7B61FF);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 10px var(--accent-glow);
+    }
 
-        /* ================= SIDEBAR STATS ================= */
-        .sidebar { display: flex; flex-direction: column; gap: 1rem; }
-        .panel { background: var(--glass-bg); border-radius: var(--card-radius); border: 1px solid var(--glass-border); padding: 1.5rem; }
-        .panel h3 { margin-bottom: 1.2rem; font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; }
-        .stat-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: 0.95rem; }
-        .stat-label { color: var(--text-secondary); font-weight: 600;}
-        .stat-value { font-weight: 800; color: var(--text-primary); font-size: 1.2rem; }
-        
-        .status-badge { padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: bold; color: white;}
-        .status-badge.active { background: var(--success-color); }
-        .status-badge.idle { background: var(--text-secondary); }
+    .mic-icon-title svg {
+      width: 20px;
+      height: 20px;
+      fill: #fff;
+    }
 
-        /* UI Setting switch */
-        .setting-item { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; cursor: pointer; }
-        .setting-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-color); }
+    .app-title-text h1 {
+      font-size: clamp(1.1rem, 2.8vw, 1.35rem);
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
 
-        /* ================= ALERTS & TOASTS ================= */
-        .toast-container { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; }
-        .toast {
-            background: var(--text-primary); color: var(--bg-gradient); padding: 1rem 1.5rem; border-radius: 50px;
-            display: flex; gap: 10px; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            font-weight: 600; opacity: 0; transform: translateY(20px); transition: all 0.4s ease;
-        }
-        .toast.show { opacity: 1; transform: translateY(0); }
-        .toast svg { width: 20px; height: 20px; }
-        .toast.success svg { color: var(--success-color); fill: currentColor; }
-        .toast.error svg { color: var(--danger-color); fill: currentColor; }
-        .toast.info svg { color: var(--accent-color); fill: currentColor; }
+    .app-title-text p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-top: 1px;
+    }
 
-        /* ================= PRINT PREPARATION (PDF MODE) ================= */
-        @media print {
-            body * { visibility: hidden; }
-            .transcript-container, .transcript-container * { visibility: visible; }
-            .transcript-container {
-                position: absolute; left: 0; top: 0; width: 100vw; border: none; background: transparent; padding: 0; overflow: visible !important;
-            }
-            .final-sentence { color: black !important; }
-            .interim-text, .placeholder-text { display: none !important; }
-        }
-    </style>
+    /* ============================================================
+       TOP BAR  (Language + Theme)
+    ============================================================ */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 28px 0;
+      flex-wrap: wrap;
+    }
+
+    .topbar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .topbar-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Language pills */
+    .lang-pills {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .lang-pill {
+      padding: 5px 12px;
+      border-radius: 99px;
+      border: 1.5px solid var(--border-color);
+      background: transparent;
+      color: var(--text-secondary);
+      font-family: var(--font-main);
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .lang-pill:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .lang-pill.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+
+    /* Theme toggle */
+    .theme-toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .theme-toggle {
+      position: relative;
+      width: 52px;
+      height: 28px;
+      cursor: pointer;
+    }
+
+    .theme-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 99px;
+      background: var(--border-color);
+      transition: background var(--transition);
+      display: flex;
+      align-items: center;
+      padding: 3px;
+    }
+
+    .theme-toggle input:checked + .toggle-track {
+      background: var(--accent);
+    }
+
+    .toggle-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      transition: transform var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .theme-toggle input:checked + .toggle-track .toggle-thumb {
+      transform: translateX(24px);
+    }
+
+    .theme-label-text {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    /* ============================================================
+       STATUS BAR
+    ============================================================ */
+    .status-bar {
+      margin: 14px 28px 0;
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: var(--bg-textarea);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 36px;
+      transition: all var(--transition);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      flex-shrink: 0;
+      transition: background var(--transition);
+    }
+
+    .status-bar.listening .status-dot {
+      background: #22C55E;
+      box-shadow: 0 0 0 0 rgba(34,197,94,0.6);
+      animation: pulse-dot 1.4s infinite;
+    }
+
+    .status-bar.error .status-dot {
+      background: var(--stop-color);
+    }
+
+    @keyframes pulse-dot {
+      0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+      70%  { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
+      100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    }
+
+    .status-text {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      flex: 1;
+    }
+
+    .status-bar.listening .status-text {
+      color: #16A34A;
+    }
+
+    [data-theme="dark"] .status-bar.listening .status-text {
+      color: #4ADE80;
+    }
+
+    .status-bar.error .status-text {
+      color: var(--stop-color);
+    }
+
+    .status-lang-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: var(--accent-glow);
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+
+    /* ============================================================
+       TEXTAREA SECTION
+    ============================================================ */
+    .textarea-wrap {
+      margin: 14px 28px 0;
+      position: relative;
+    }
+
+    #speech-output {
+      width: 100%;
+      min-height: 260px;
+      max-height: 420px;
+      resize: vertical;
+      padding: 18px 20px;
+      border-radius: var(--radius-textarea);
+      border: 1.5px solid var(--border-color);
+      background: var(--bg-textarea);
+      color: var(--text-primary);
+      font-family: var(--font-main);
+      font-size: clamp(0.95rem, 2vw, 1.05rem);
+      font-weight: 400;
+      line-height: 1.75;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+      caret-color: var(--accent);
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-y: auto;
+    }
+
+    #speech-output:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    /* Interim text overlay look via a class on the container */
+    .interim-text {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* hidden contenteditable to show live */
+    #speech-output::placeholder {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* Word count */
+    .word-count {
+      position: absolute;
+      bottom: 10px;
+      right: 14px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      pointer-events: none;
+      user-select: none;
+      background: var(--bg-textarea);
+      padding: 1px 6px;
+      border-radius: 6px;
+    }
+
+    /* ============================================================
+       BUTTONS ROW
+    ============================================================ */
+    .buttons-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 20px 28px 26px;
+      flex-wrap: wrap;
+    }
+
+    /* Base button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 28px;
+      border-radius: var(--radius-btn);
+      border: none;
+      font-family: var(--font-main);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 0.01em;
+      min-width: 110px;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: white;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .btn:active::after {
+      opacity: 0.12;
+    }
+
+    .btn svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* Mic button */
+    .btn-mic {
+      background: linear-gradient(135deg, var(--accent), #7B61FF);
+      color: #fff;
+      box-shadow: var(--shadow-btn);
+    }
+
+    .btn-mic:hover:not(:disabled) {
+      background: linear-gradient(135deg, var(--accent-hover), #6C4FEE);
+      box-shadow: 0 4px 20px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-mic:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Mic pulse animation while listening */
+    .btn-mic.listening {
+      animation: mic-pulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes mic-pulse {
+      0%, 100% {
+        box-shadow: 0 2px 14px var(--accent-glow);
+      }
+      50% {
+        box-shadow: 0 4px 28px rgba(67,97,238,0.55), 0 0 0 6px rgba(67,97,238,0.12);
+      }
+    }
+
+    /* Stop button */
+    .btn-stop {
+      background: var(--stop-color);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(229,62,62,0.20);
+    }
+
+    .btn-stop:hover:not(:disabled) {
+      background: var(--stop-hover);
+      box-shadow: 0 4px 18px rgba(229,62,62,0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-stop:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Cancel button */
+    .btn-cancel {
+      background: transparent;
+      color: var(--cancel-color);
+      border: 1.5px solid var(--border-color);
+    }
+
+    .btn-cancel:hover:not(:disabled) {
+      background: var(--bg-textarea);
+      border-color: var(--cancel-hover);
+      color: var(--cancel-hover);
+      transform: translateY(-1px);
+    }
+
+    /* ============================================================
+       FOOTER HINT
+    ============================================================ */
+    .footer-hint {
+      padding: 0 28px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .hint-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .hint-item kbd {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 6px;
+      background: var(--bg-textarea);
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-secondary);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+
+    .download-btn-inline {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border-color);
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font-main);
+      font-size: 0.72rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .download-btn-inline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .download-btn-inline svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    /* ============================================================
+       BROWSER UNSUPPORTED OVERLAY
+    ============================================================ */
+    .unsupported-banner {
+      display: none;
+      margin: 0 28px 16px;
+      padding: 14px 18px;
+      background: rgba(229,62,62,0.08);
+      border: 1.5px solid rgba(229,62,62,0.3);
+      border-radius: 12px;
+      color: var(--stop-color);
+      font-size: 0.85rem;
+      font-weight: 500;
+      line-height: 1.5;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .unsupported-banner.show {
+      display: flex;
+    }
+
+    .unsupported-banner svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* ============================================================
+       DIVIDER
+    ============================================================ */
+    .divider {
+      height: 1px;
+      background: var(--border-color);
+      margin: 4px 0 0;
+      transition: background var(--transition);
+    }
+
+    /* ============================================================
+       SCROLLBAR STYLING
+    ============================================================ */
+    #speech-output::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #speech-output::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #speech-output::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 99px;
+    }
+
+    #speech-output::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    /* ============================================================
+       RESPONSIVE
+    ============================================================ */
+    @media (max-width: 600px) {
+      .site-wrapper {
+        padding: 0 10px 30px;
+      }
+
+      .app-title-bar,
+      .topbar,
+      .status-bar,
+      .textarea-wrap,
+      .buttons-row,
+      .footer-hint,
+      .unsupported-banner {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .status-bar {
+        margin-left: 16px;
+        margin-right: 16px;
+      }
+
+      .textarea-wrap {
+        margin-left: 16px;
+        margin-right: 16px;
+      }
+
+      .topbar-group {
+        min-width: 100%;
+      }
+
+      .theme-toggle-wrap {
+        margin-left: 0;
+      }
+
+      .buttons-row {
+        gap: 10px;
+      }
+
+      .btn {
+        padding: 12px 20px;
+        font-size: 0.85rem;
+        min-width: 90px;
+      }
+
+      #speech-output {
+        min-height: 200px;
+        max-height: 320px;
+        font-size: 0.95rem;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .lang-pill {
+        font-size: 0.72rem;
+        padding: 4px 10px;
+      }
+
+      .btn {
+        min-width: 80px;
+        padding: 11px 14px;
+      }
+    }
+
+    /* ============================================================
+       SMOOTH THEME TRANSITION
+    ============================================================ */
+    * {
+      transition-property: background-color, border-color, color, box-shadow;
+      transition-duration: 0.22s;
+      transition-timing-function: cubic-bezier(.4,0,.2,1);
+    }
+
+    /* Preserve animation on elements that need it */
+    .btn, .btn-mic.listening, .status-dot {
+      transition: all 0.22s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ============================================================
+       FOCUS VISIBLE ACCESSIBILITY
+    ============================================================ */
+    .btn:focus-visible,
+    .lang-pill:focus-visible,
+    .download-btn-inline:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+  </style>
 </head>
-<body data-theme="light">
+<body>
 
-    <h1>Pro Voice Assistant</h1>
-    <h2 class="subtitle">Highly Accurate Duplication-Free Speech To Text</h2>
+<!-- ============================================================
+     SITE WRAPPER
+============================================================ -->
+<div class="site-wrapper">
 
-    <div class="glass-container">
-        
-        <main class="main-content">
-            <div class="top-bar">
-                <!-- REDUCED LANGUAGE SELECTION: HINDI, HINGLISH, ENGLISH ONLY! -->
-                <select id="languageSelect" aria-label="Speech Language Options">
-                    <option value="hi-IN">Auto Mix (Hinglish ✨)</option>
-                    <option value="hi-IN">Pure Hindi (हिंदी)</option>
-                    <option value="en-IN">English (India)</option>
-                    <option value="en-US">English (US)</option>
-                    <option value="en-GB">English (UK)</option>
-                </select>
-                
-                <div class="controls-row" style="margin:0;">
-                    <button id="themeToggle" class="btn-icon" aria-label="Dark/Light Mode">
-                        <svg viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zm0-2a7 7 0 1 0 0-14 7 7 0 0 0 0 14z"/></svg>
-                    </button>
-                    <button id="fullscreenBtn" class="btn-icon" aria-label="Fullscreen Layout">
-                        <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-                    </button>
-                </div>
-            </div>
+  <!-- CREATOR HEADER -->
+  <header class="creator-header">
+    <span>This website is made by Naitik Jain</span>
+  </header>
 
-            <!-- Animated Mic Icon Area -->
-            <div class="mic-container">
-                <button id="micBtn" class="mic-btn" aria-label="Mic">
-                    <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-                </button>
-            </div>
+  <!-- APP CARD -->
+  <main class="app-card">
 
-            <!-- Listening Controllers -->
-            <div class="controls-row">
-                <button id="startBtn" class="btn-primary">
-                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Start Voice 
-                </button>
-                <button id="stopBtn" class="btn-danger" disabled>
-                    <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg> Stop Voice
-                </button>
-            </div>
-
-            <!-- Action Controllers -->
-            <div class="controls-row" style="margin-top: 15px;">
-                <button id="copyBtn">
-                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy
-                </button>
-                <button id="downloadTxtBtn">
-                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Text 
-                </button>
-                <button id="downloadPdfBtn" class="btn-success">
-                    <svg viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5z"/></svg> PDF 
-                </button>
-                <button id="clearBtn">
-                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Clear All
-                </button>
-            </div>
-
-            <!-- VISUAL LIVE TEXT AREA -->
-            <div id="transcriptBox" class="transcript-container" tabindex="0">
-                <div id="placeholder" class="placeholder-text">Press 'Start Voice' and wait 1 sec to speak normally.</div>
-                <span id="finalOutput" class="final-sentence"></span><span id="interimOutput" class="interim-text"></span>
-            </div>
-        </main>
-
-        <aside class="sidebar">
-            <div class="panel">
-                <h3>Insights Panel</h3>
-                <div class="stat-item">
-                    <span class="stat-label">Listening Status:</span>
-                    <span id="statusBadge" class="status-badge idle">Sleeping</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Text Characters:</span>
-                    <span id="statChars" class="stat-value">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Word Typed:</span>
-                    <span id="statWords" class="stat-value">0</span>
-                </div>
-            </div>
-
-            <div class="panel" style="padding-top:1rem; padding-bottom: 1rem;">
-                <label class="setting-item">
-                    <span class="stat-label" style="font-weight: 500;">Always stick scroll to bottom</span>
-                    <input type="checkbox" id="set-autoscroll" checked>
-                </label>
-            </div>
-        </aside>
-
+    <!-- APP TITLE -->
+    <div class="app-title-bar">
+      <div class="mic-icon-title">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm0 2a2 2 0 0 0-2 2v6a2 2 0 0 0 4 0V5a2 2 0 0 0-2-2zm7 8a1 1 0 0 1 1 1 8 8 0 0 1-7 7.938V22h-2v-2.062A8 8 0 0 1 4 12a1 1 0 1 1 2 0 6 6 0 0 0 12 0 1 1 0 0 1 1-1z"/>
+        </svg>
+      </div>
+      <div class="app-title-text">
+        <h1>Speech to Text</h1>
+        <p>Professional dictation tool — speak and your words appear instantly</p>
+      </div>
     </div>
 
-    <!-- UI Flash Messaging -->
-    <div id="toastContainer" class="toast-container"></div>
+    <!-- TOP BAR: Language + Theme -->
+    <div class="topbar">
+      <!-- Language pills -->
+      <div class="topbar-group">
+        <span class="topbar-label">Language</span>
+        <div class="lang-pills" role="group" aria-label="Select language">
+          <button class="lang-pill active" data-lang="en-US" data-label="EN" aria-pressed="true">English</button>
+          <button class="lang-pill" data-lang="hi-IN" data-label="HI" aria-pressed="false">Hindi</button>
+          <button class="lang-pill" data-lang="hi-IN" data-label="MIX" aria-pressed="false">EN + HI Mix</button>
+        </div>
+      </div>
 
-    <script>
-        const AppCore = {
-            recognitionProcess: null,
-            systemAlive: false,       // tracks frontend status logic
-            maintainKeepAlive: false, // forces API reboot cycle secretly if API closes randomly
-            
-            // MAGIC FIX FOR NO DUPLICATE BUG -> Two Variable States Mechanism.
-            lockedPermanentHistoryText: "",   // Holds exactly perfect spoken lines from BEFORE this very exact seconds! 
-            ongoingTemporaryCurrentText: "",  // Evaluates & swaps current block dynamically to dodge doubling in loop
-            
-            // DOM Map Access
-            eleHistoryHolderView: document.getElementById('finalOutput'),
-            eleRealtimeDrawerView: document.getElementById('interimOutput'),
-            guiHintDisplayInfoNode: document.getElementById('placeholder'),
-            autoPanCanvasAreaObj: document.getElementById('transcriptBox'),
-            
-            buildBootSetupData() {
-                // Read Last Selected theme preference
-                const UIConfigThemeSavedPrefStringValStrCodeInfoStringStrStrInfo = localStorage.getItem('sText_assistantThemeTypeIDValCodeObjTypeIDStrValueSysModeForThemeSetIDVarConfigRootStateVarUIStyleSys') || 'light';
-                document.body.setAttribute('data-theme', UIConfigThemeSavedPrefStringValStrCodeInfoStringStrStrInfo);
-                document.getElementById('themeToggle').addEventListener('click', () => {
-                    const setToggleCurrentInverseSwitchLogicBoolModeUIThemeVarObjStrValResultRootClassStringTargetToggle = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-                    document.body.setAttribute('data-theme', setToggleCurrentInverseSwitchLogicBoolModeUIThemeVarObjStrValResultRootClassStringTargetToggle);
-                    localStorage.setItem('sText_assistantThemeTypeIDValCodeObjTypeIDStrValueSysModeForThemeSetIDVarConfigRootStateVarUIStyleSys', setToggleCurrentInverseSwitchLogicBoolModeUIThemeVarObjStrValResultRootClassStringTargetToggle);
-                });
+      <!-- Theme toggle -->
+      <div class="theme-toggle-wrap">
+        <span class="topbar-label">Theme</span>
+        <label class="theme-toggle" aria-label="Toggle dark mode">
+          <input type="checkbox" id="theme-checkbox" />
+          <div class="toggle-track">
+            <div class="toggle-thumb" id="theme-thumb">☀️</div>
+          </div>
+        </label>
+        <span class="theme-label-text" id="theme-label-text">Light</span>
+      </div>
+    </div>
 
-                this.igniteAPIVoiceConnectionBridgeSystemEngineMapBuilder();
-                this.mountButtonEventClickMappingConnectorsListManagerLogic();
-            },
+    <!-- UNSUPPORTED BROWSER BANNER -->
+    <div class="unsupported-banner" id="unsupported-banner" role="alert">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+      </svg>
+      <span id="unsupported-text">Speech Recognition is not supported in this browser. Please use Google Chrome, Microsoft Edge, or Android Chrome for the best experience.</span>
+    </div>
 
-            igniteAPIVoiceConnectionBridgeSystemEngineMapBuilder() {
-                // Call Google engine Web Toolkit interface mapping module node reference pointer constructor.
-                const UnderlyingBaseNativeSTTEngineClassObjDefinitionSystemBaseLayerCallConstructorReferenceMapNodePointer = window.SpeechRecognition || window.webkitSpeechRecognition;
-                
-                if (!UnderlyingBaseNativeSTTEngineClassObjDefinitionSystemBaseLayerCallConstructorReferenceMapNodePointer) {
-                    this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Browser Does not support this feature! Requires Chrome', 'error');
-                    document.getElementById('startBtn').disabled = true;
-                    return;
-                }
+    <!-- STATUS BAR -->
+    <div class="status-bar" id="status-bar" role="status" aria-live="polite">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-text" id="status-text">Ready to listen — press Mic to start</span>
+      <span class="status-lang-badge" id="status-lang-badge">EN</span>
+    </div>
 
-                this.recognitionProcess = new UnderlyingBaseNativeSTTEngineClassObjDefinitionSystemBaseLayerCallConstructorReferenceMapNodePointer();
-                
-                // Allow non stop logic internally mapping block component interface setting definition logic option properties true value assignments struct map definition class pointer block state module reference struct settings mapping assignments structure.
-                this.recognitionProcess.continuous = true; 
-                this.recognitionProcess.interimResults = true;
+    <!-- TEXT AREA -->
+    <div class="textarea-wrap">
+      <textarea
+        id="speech-output"
+        spellcheck="true"
+        autocorrect="on"
+        autocapitalize="sentences"
+        placeholder="Your transcription will appear here… You can also type directly.&#10;&#10;Press Mic to start speaking."
+        aria-label="Transcription text area"
+      ></textarea>
+      <div class="word-count" id="word-count">0 words</div>
+    </div>
 
-                // BOOT Event - Fires when connection succeeds & microphone goes RED
-                this.recognitionProcess.onstart = () => {
-                    this.systemAlive = true;
-                    this.maintainKeepAlive = true; 
-                    this.refreshGUIInteractiveStatesTriggerControllerLogicEngineValMethodTriggerSysComponentUIStatusRendererBoolCodeModeSettingFuncRenderEventUpdateStateChangeSystemUpdateStructTriggerView(true);
-                    this.guiHintDisplayInfoNode.style.display = 'none'; // Clear instructional ghost text internally
-                    this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Start talking!', 'success');
-                };
+    <div class="divider"></div>
 
-                /* CORE BRAIN FIX LOGIC HERE - Eliminating All Word Duplications Forever 100% Perfection mapping event interface struct method logic evaluation processor index logic tree struct mapped process parsing method structure mapping layer node layer index builder state evaluator component builder base base class. */
-                this.recognitionProcess.onresult = (memoryArrayDataStreamPacketMapStructFromMicrophoneLayerCloudServiceCallLogicResultResponse) => {
-                    
-                    let extractLockedStrBuildStrBuffer = "";
-                    let extractUnconfirmedGuessTextStrBuildVarDataStateStrLogicComponentBase = "";
+    <!-- BUTTONS ROW -->
+    <div class="buttons-row">
+      <!-- MIC -->
+      <button class="btn btn-mic" id="btn-mic" aria-label="Start microphone and speech recognition" title="Start listening">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm0 2a2 2 0 0 0-2 2v6a2 2 0 0 0 4 0V5a2 2 0 0 0-2-2zm7 8a1 1 0 0 1 1 1 8 8 0 0 1-7 7.938V22h-2v-2.062A8 8 0 0 1 4 12a1 1 0 1 1 2 0 6 6 0 0 0 12 0 1 1 0 0 1 1-1z"/>
+        </svg>
+        Mic
+      </button>
 
-                    // WE LOOP FROM 0 EVERY MILLISECOND EVENT FIRES IN ONE RECORDING CYCLE to build fresh block instance
-                    // This kills Chrome/Android duplicated word memory leak completely
-                    for (let traceCounterStepForLoopNumTrackerNodeObjTargetIDDataSysLoopNum = 0; traceCounterStepForLoopNumTrackerNodeObjTargetIDDataSysLoopNum < memoryArrayDataStreamPacketMapStructFromMicrophoneLayerCloudServiceCallLogicResultResponse.results.length; traceCounterStepForLoopNumTrackerNodeObjTargetIDDataSysLoopNum++) {
-                        let audioDecodeCloudToDeviceResultNativeWordReturnNode = memoryArrayDataStreamPacketMapStructFromMicrophoneLayerCloudServiceCallLogicResultResponse.results[traceCounterStepForLoopNumTrackerNodeObjTargetIDDataSysLoopNum][0].transcript;
-                        
-                        if (memoryArrayDataStreamPacketMapStructFromMicrophoneLayerCloudServiceCallLogicResultResponse.results[traceCounterStepForLoopNumTrackerNodeObjTargetIDDataSysLoopNum].isFinal) {
-                            extractLockedStrBuildStrBuffer += audioDecodeCloudToDeviceResultNativeWordReturnNode + " "; 
-                        } else {
-                            extractUnconfirmedGuessTextStrBuildVarDataStateStrLogicComponentBase += audioDecodeCloudToDeviceResultNativeWordReturnNode + " ";
-                        }
-                    }
+      <!-- STOP -->
+      <button class="btn btn-stop" id="btn-stop" disabled aria-label="Stop speech recognition" title="Stop listening">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="6" width="12" height="12" rx="2"/>
+        </svg>
+        Stop
+      </button>
 
-                    // Temp Storage mapped internally isolated from long history tree text logic base string tree!
-                    this.ongoingTemporaryCurrentText = extractLockedStrBuildStrBuffer;
+      <!-- CANCEL -->
+      <button class="btn btn-cancel" id="btn-cancel" aria-label="Stop and clear all text" title="Clear everything">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Cancel
+      </button>
+    </div>
 
-                    // Display Real Magic UI Text Update -> 
-                    // [Past Total Locked History] + [Current Confirmed Sequence without Glitches] 
-                    this.eleHistoryHolderView.innerText = this.lockedPermanentHistoryText + this.ongoingTemporaryCurrentText;
-                    this.eleRealtimeDrawerView.innerText = extractUnconfirmedGuessTextStrBuildVarDataStateStrLogicComponentBase;
+    <!-- FOOTER HINTS -->
+    <div class="footer-hint">
+      <div class="hint-item">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        Select text then <kbd>Ctrl+C</kbd> to copy
+      </div>
+      <button class="download-btn-inline" id="download-btn" title="Download as speech.txt" aria-label="Download transcription as text file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download .txt
+      </button>
+    </div>
 
-                    // Automatically Push UI View to deepest bottom part
-                    if (document.getElementById('set-autoscroll').checked) {
-                        this.autoPanCanvasAreaObj.scrollTop = this.autoPanCanvasAreaObj.scrollHeight;
-                    }
-                    this.updateDynamicCounterDisplayComponentNumbersMathStateEvaluationInfoMathComponentObjDOMCodeFunctionMapDataSysModuleEngine();
-                };
+  </main>
 
-                this.recognitionProcess.onerror = (throwBaseAlertFromDeviceLogicBaseOSDriverMappingBlockCodeRefModuleStateErrArgExceptionRefExceptionDataBlockSystemSystemCodeNodeModuleResult) => {
-                    if (throwBaseAlertFromDeviceLogicBaseOSDriverMappingBlockCodeRefModuleStateErrArgExceptionRefExceptionDataBlockSystemSystemCodeNodeModuleResult.error === 'not-allowed') {
-                        this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Please grant microphone permission to record voice.', 'error');
-                        this.shutdownRunningSystemsSafeCleanupProtocolProcedureTriggerCodeMappingFuncComponentNodeBuilderEndProcValCodeEngineRefSysDataBlockModStateStructSysCodeCallFuncReferenceBase();
-                    }
-                };
+</div>
 
-                /* Auto Start Reconnection Network logic map driver connection evaluation process controller block logic controller builder object index processor function data object base struct pointer node method struct base map mapping method trigger reference root base data controller base base class structure layer code node definition node constructor struct base state node index function object reference pointer builder */
-                this.recognitionProcess.onend = () => {
-                    this.systemAlive = false;
-                    this.eleRealtimeDrawerView.innerText = "";
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+<script>
+  /* ============================================================
+     CONSTANTS & STATE
+  ============================================================ */
+  const STORAGE_KEY_THEME = 'stt_theme';
 
-                    // CORE SAVE POINT! 
-                    // Upon Engine Sleep / Re-Ping ... We finalize currently gathered sequence!
-                    this.lockedPermanentHistoryText += this.ongoingTemporaryCurrentText;
-                    this.ongoingTemporaryCurrentText = ""; 
-                    // Doing this guarantees our fresh reboot from 0 logic works gracefully alongside older paragraph arrays!!
+  const langMap = {
+    'en-US': { label: 'EN', display: 'English', badge: 'EN' },
+    'hi-IN': { label: 'HI', display: 'Hindi',   badge: 'HI' }
+  };
 
-                    if (this.maintainKeepAlive && navigator.onLine) {
-                        try {
-                            this.recognitionProcess.start(); 
-                            return; 
-                        } catch(excCatchNullHandlingSkipProceedCodeProcessBaseModSystemBlockSystem) {}
-                    }
-                    this.refreshGUIInteractiveStatesTriggerControllerLogicEngineValMethodTriggerSysComponentUIStatusRendererBoolCodeModeSettingFuncRenderEventUpdateStateChangeSystemUpdateStructTriggerView(false);
-                };
-            },
+  const state = {
+    isListening:    false,
+    shouldRestart:  false,   // flag: auto-restart if browser stops unexpectedly
+    recognition:    null,
+    finalText:      '',      // committed final transcript
+    interimText:    '',      // live interim transcript
+    selectedLangCode: 'en-US',
+    selectedLangIdx:  0,     // pill index
+    isDark:         false,
+    supported:      false
+  };
 
-            // Boot command via Button Logic Map trigger code reference controller func mapping method base object node processor evaluator mapping reference processor component processor evaluation mapping class constructor.
-            executeListeningSequenceStartupCloudConnectionProcessStateBlockSysTriggerLogicClassBuilderEngineCallFuncTypeStructProcComponentClassBuilderSystemBaseClassClassLogicModuleFuncReferencePointerValMod() {
-                const getTargetDropLogicComponentListSettingItemSystemInputClassBaseStrInfoPointerMethodClassDataControllerBlockBaseCodeModuleInfoBaseBaseObjectReferenceVarNode = document.getElementById('languageSelect').value;
-                if (!this.recognitionProcess) return;
-                
-                try {
-                    this.recognitionProcess.lang = getTargetDropLogicComponentListSettingItemSystemInputClassBaseStrInfoPointerMethodClassDataControllerBlockBaseCodeModuleInfoBaseBaseObjectReferenceVarNode; 
-                    this.maintainKeepAlive = true; 
-                    this.recognitionProcess.start();
-                } catch(excDupBypassRefFuncClassProcHandlerProcCatchLogicProcessBaseControllerModuleDataSysStateSysProcRefExceptionClassBuilderExceptionBaseValReferenceMapObjectInfoSysMap) {}
-            },
+  /* ============================================================
+     DOM REFERENCES
+  ============================================================ */
+  const $output         = document.getElementById('speech-output');
+  const $wordCount      = document.getElementById('word-count');
+  const $statusBar      = document.getElementById('status-bar');
+  const $statusDot      = document.getElementById('status-dot');
+  const $statusText     = document.getElementById('status-text');
+  const $statusBadge    = document.getElementById('status-lang-badge');
+  const $btnMic         = document.getElementById('btn-mic');
+  const $btnStop        = document.getElementById('btn-stop');
+  const $btnCancel      = document.getElementById('btn-cancel');
+  const $downloadBtn    = document.getElementById('download-btn');
+  const $themeCheckbox  = document.getElementById('theme-checkbox');
+  const $themeThumb     = document.getElementById('theme-thumb');
+  const $themeLabelText = document.getElementById('theme-label-text');
+  const $langPills      = document.querySelectorAll('.lang-pill');
+  const $unsupported    = document.getElementById('unsupported-banner');
+  const $unsupportedTxt = document.getElementById('unsupported-text');
 
-            // Stop manual click block definition constructor reference structural function node processing engine procedure execution map code controller mapping definition definition index method class reference method process index module system code structure. 
-            shutdownRunningSystemsSafeCleanupProtocolProcedureTriggerCodeMappingFuncComponentNodeBuilderEndProcValCodeEngineRefSysDataBlockModStateStructSysCodeCallFuncReferenceBase() {
-                if(!this.recognitionProcess) return;
-                this.maintainKeepAlive = false; 
-                this.systemAlive = false;
-                try { this.recognitionProcess.stop(); } catch(excHandlingNoCrashSoftEscapeSysControllerRefProcessStructMapProcSysInfoBaseCodeMappingMethodBlockDataSystemLogic) {}
-                
-                this.eleRealtimeDrawerView.innerText = ''; 
-                this.refreshGUIInteractiveStatesTriggerControllerLogicEngineValMethodTriggerSysComponentUIStatusRendererBoolCodeModeSettingFuncRenderEventUpdateStateChangeSystemUpdateStructTriggerView(false);
-                this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Tracking Manually Stopped by You.', 'info');
-            },
+  /* ============================================================
+     THEME
+  ============================================================ */
+  function applyTheme(dark) {
+    state.isDark = dark;
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    $themeCheckbox.checked = dark;
+    $themeThumb.textContent = dark ? '🌙' : '☀️';
+    $themeLabelText.textContent = dark ? 'Dark' : 'Light';
+    try { localStorage.setItem(STORAGE_KEY_THEME, dark ? 'dark' : 'light'); } catch(e) {}
+  }
 
-            refreshGUIInteractiveStatesTriggerControllerLogicEngineValMethodTriggerSysComponentUIStatusRendererBoolCodeModeSettingFuncRenderEventUpdateStateChangeSystemUpdateStructTriggerView(bIsSysStateOperatingTrueClassNodeObjDefinitionLogicStructModBooleanMapTypeBoolCodeFuncCallSystem) {
-                document.getElementById('micBtn').classList.toggle('listening', bIsSysStateOperatingTrueClassNodeObjDefinitionLogicStructModBooleanMapTypeBoolCodeFuncCallSystem);
-                document.getElementById('startBtn').disabled = bIsSysStateOperatingTrueClassNodeObjDefinitionLogicStructModBooleanMapTypeBoolCodeFuncCallSystem;
-                document.getElementById('stopBtn').disabled = !bIsSysStateOperatingTrueClassNodeObjDefinitionLogicStructModBooleanMapTypeBoolCodeFuncCallSystem;
+  function initTheme() {
+    let saved = null;
+    try { saved = localStorage.getItem(STORAGE_KEY_THEME); } catch(e) {}
+    if (saved === 'dark') {
+      applyTheme(true);
+    } else if (saved === 'light') {
+      applyTheme(false);
+    } else {
+      // system preference
+      applyTheme(window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+  }
 
-                const UIBoxSysInformationTagContainerLogicObjectDisplaySystemRendererBlockComponentStrRefDomElemPointerIdSysNodeCodeUIFuncDataInfoLogicNodeRefCodeBlockTargetComponentUIValDomElReferencePointClassComponentPointerClassObjBaseObjNodeUIBaseInfoTextObjDOMCodeClassComponent = document.getElementById('statusBadge');
-                
-                if (bIsSysStateOperatingTrueClassNodeObjDefinitionLogicStructModBooleanMapTypeBoolCodeFuncCallSystem) {
-                    UIBoxSysInformationTagContainerLogicObjectDisplaySystemRendererBlockComponentStrRefDomElemPointerIdSysNodeCodeUIFuncDataInfoLogicNodeRefCodeBlockTargetComponentUIValDomElReferencePointClassComponentPointerClassObjBaseObjNodeUIBaseInfoTextObjDOMCodeClassComponent.className = 'status-badge active'; 
-                    UIBoxSysInformationTagContainerLogicObjectDisplaySystemRendererBlockComponentStrRefDomElemPointerIdSysNodeCodeUIFuncDataInfoLogicNodeRefCodeBlockTargetComponentUIValDomElReferencePointClassComponentPointerClassObjBaseObjNodeUIBaseInfoTextObjDOMCodeClassComponent.textContent = 'Recording!';
-                } else {
-                    UIBoxSysInformationTagContainerLogicObjectDisplaySystemRendererBlockComponentStrRefDomElemPointerIdSysNodeCodeUIFuncDataInfoLogicNodeRefCodeBlockTargetComponentUIValDomElReferencePointClassComponentPointerClassObjBaseObjNodeUIBaseInfoTextObjDOMCodeClassComponent.className = 'status-badge idle'; 
-                    UIBoxSysInformationTagContainerLogicObjectDisplaySystemRendererBlockComponentStrRefDomElemPointerIdSysNodeCodeUIFuncDataInfoLogicNodeRefCodeBlockTargetComponentUIValDomElReferencePointClassComponentPointerClassObjBaseObjNodeUIBaseInfoTextObjDOMCodeClassComponent.textContent = 'Sleeping..';
-                }
-            },
+  $themeCheckbox.addEventListener('change', () => applyTheme($themeCheckbox.checked));
 
-            updateDynamicCounterDisplayComponentNumbersMathStateEvaluationInfoMathComponentObjDOMCodeFunctionMapDataSysModuleEngine() {
-                let textCurrentlyPresentDOMRenderedStrVariableLogicBaseStrStringValMethodReferenceCodeStrComponentRootStateValStrResultMapSysTypeBaseStructInfoBase = this.eleHistoryHolderView.innerText.trim();
-                
-                document.getElementById('statChars').textContent = textCurrentlyPresentDOMRenderedStrVariableLogicBaseStrStringValMethodReferenceCodeStrComponentRootStateValStrResultMapSysTypeBaseStructInfoBase.length;
-                let cLengthWTrackerBaseSystemCountDataStrCountNumberStructNumDataValueComponentTypeCode = textCurrentlyPresentDOMRenderedStrVariableLogicBaseStrStringValMethodReferenceCodeStrComponentRootStateValStrResultMapSysTypeBaseStructInfoBase === '' ? 0 : textCurrentlyPresentDOMRenderedStrVariableLogicBaseStrStringValMethodReferenceCodeStrComponentRootStateValStrResultMapSysTypeBaseStructInfoBase.split(/\s+/).filter(Boolean).length;
-                
-                document.getElementById('statWords').textContent = cLengthWTrackerBaseSystemCountDataStrCountNumberStructNumDataValueComponentTypeCode;
-            },
+  /* ============================================================
+     LANGUAGE PILLS
+  ============================================================ */
+  $langPills.forEach((pill, idx) => {
+    pill.addEventListener('click', () => {
+      $langPills.forEach(p => { p.classList.remove('active'); p.setAttribute('aria-pressed', 'false'); });
+      pill.classList.add('active');
+      pill.setAttribute('aria-pressed', 'true');
 
-            mountButtonEventClickMappingConnectorsListManagerLogic() {
-                
-                document.getElementById('startBtn').addEventListener('click', () => this.executeListeningSequenceStartupCloudConnectionProcessStateBlockSysTriggerLogicClassBuilderEngineCallFuncTypeStructProcComponentClassBuilderSystemBaseClassClassLogicModuleFuncReferencePointerValMod());
-                
-                document.getElementById('stopBtn').addEventListener('click', () => this.shutdownRunningSystemsSafeCleanupProtocolProcedureTriggerCodeMappingFuncComponentNodeBuilderEndProcValCodeEngineRefSysDataBlockModStateStructSysCodeCallFuncReferenceBase());
-                
-                document.getElementById('micBtn').addEventListener('click', () => {
-                    this.systemAlive ? this.shutdownRunningSystemsSafeCleanupProtocolProcedureTriggerCodeMappingFuncComponentNodeBuilderEndProcValCodeEngineRefSysDataBlockModStateStructSysCodeCallFuncReferenceBase() : this.executeListeningSequenceStartupCloudConnectionProcessStateBlockSysTriggerLogicClassBuilderEngineCallFuncTypeStructProcComponentClassBuilderSystemBaseClassClassLogicModuleFuncReferencePointerValMod();
-                });
+      state.selectedLangCode = pill.dataset.lang;
+      state.selectedLangIdx  = idx;
+      const badgeLabel = pill.dataset.label;
+      $statusBadge.textContent = badgeLabel;
 
-                document.getElementById('fullscreenBtn').addEventListener('click', () => {
-                    if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(()=>{}); } 
-                    else { document.exitFullscreen(); }
-                });
+      // Update recognition language if currently listening
+      if (state.isListening && state.recognition) {
+        stopRecognition(false); // stop without clearing
+        setTimeout(startRecognition, 180);
+      }
+    });
+  });
 
-                document.getElementById('clearBtn').addEventListener('click', () => {
-                    this.lockedPermanentHistoryText = ""; 
-                    this.ongoingTemporaryCurrentText = "";
-                    this.eleHistoryHolderView.innerText = '';
-                    this.eleRealtimeDrawerView.innerText = '';
-                    this.guiHintDisplayInfoNode.style.display = 'block';
-                    this.updateDynamicCounterDisplayComponentNumbersMathStateEvaluationInfoMathComponentObjDOMCodeFunctionMapDataSysModuleEngine();
-                    this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Document Data Removed Securely', 'info');
-                });
+  /* ============================================================
+     SPEECH RECOGNITION SETUP
+  ============================================================ */
+  function initSpeechRecognition() {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) {
+      state.supported = false;
+      showUnsupported('Speech Recognition is not supported in this browser. Please use Google Chrome, Microsoft Edge, or Android Chrome.');
+      $btnMic.disabled = true;
+      return;
+    }
+    state.supported = true;
+  }
 
-                document.getElementById('copyBtn').addEventListener('click', () => {
-                    let totalOutputCopiedStringObjVarStrMappingTextBaseLayerValReturnSystemDataInfoSysStrBase = this.eleHistoryHolderView.innerText.trim();
-                    if(!totalOutputCopiedStringObjVarStrMappingTextBaseLayerValReturnSystemDataInfoSysStrBase) return this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Please generate some speech to Copy first!', 'error');
-                    navigator.clipboard.writeText(totalOutputCopiedStringObjVarStrMappingTextBaseLayerValReturnSystemDataInfoSysStrBase).then(()=>{
-                        this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Copied Full Voice Result Successfully!', 'success');
-                    });
-                });
+  function buildRecognition() {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) return null;
 
-                document.getElementById('downloadTxtBtn').addEventListener('click', () => {
-                    let strExtractedDownloadTxtClassDomRefRootStateBaseDataProcDataMap = this.eleHistoryHolderView.innerText.trim();
-                    if(!strExtractedDownloadTxtClassDomRefRootStateBaseDataProcDataMap) return this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Can\'t generate Text file from Blank Canvas', 'error');
-                    let classBaseCreateBinaryBlobProcessorSysMappingClassEngineFileCallRootPointerVarFuncObjectRefResultGenLogicCallSys = new Blob([strExtractedDownloadTxtClassDomRefRootStateBaseDataProcDataMap], {type: "text/plain;charset=utf-8"});
-                    let tagAMakeVirtualReferenceHTMLDOMCodeElementCreatorFuncGeneratorProcMapInfoDOMNodeElemObjectCallMappingStructObjLogicRefComponentPointerBlockInfoRefDataSystemBase = document.createElement("a");
-                    tagAMakeVirtualReferenceHTMLDOMCodeElementCreatorFuncGeneratorProcMapInfoDOMNodeElemObjectCallMappingStructObjLogicRefComponentPointerBlockInfoRefDataSystemBase.href = URL.createObjectURL(classBaseCreateBinaryBlobProcessorSysMappingClassEngineFileCallRootPointerVarFuncObjectRefResultGenLogicCallSys);
-                    tagAMakeVirtualReferenceHTMLDOMCodeElementCreatorFuncGeneratorProcMapInfoDOMNodeElemObjectCallMappingStructObjLogicRefComponentPointerBlockInfoRefDataSystemBase.download = `SavedSTT_${Date.now()}.txt`;
-                    tagAMakeVirtualReferenceHTMLDOMCodeElementCreatorFuncGeneratorProcMapInfoDOMNodeElemObjectCallMappingStructObjLogicRefComponentPointerBlockInfoRefDataSystemBase.click();
-                });
+    const rec = new SpeechRec();
+    rec.lang              = state.selectedLangCode;
+    rec.continuous        = true;
+    rec.interimResults    = true;
+    rec.maxAlternatives   = 1;
 
-                document.getElementById('downloadPdfBtn').addEventListener('click', () => {
-                    if (!this.eleHistoryHolderView.innerText.trim()) return this.triggerFeedbackAlertModalUIDropInfoDataModeBlock("Needs speech data first!", "error");
-                    this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Select "Save as PDF" format.', 'info');
-                    setTimeout(() => window.print(), 850); 
-                });
-            },
+    // RESULT: append final, show interim live
+    rec.onresult = (event) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          state.finalText += transcript + ' ';
+        } else {
+          interim += transcript;
+        }
+      }
+      state.interimText = interim;
+      renderOutput();
+    };
 
-            triggerFeedbackAlertModalUIDropInfoDataModeBlock(toastMsgTextLabelObjVarRootLogicStateInputArgumentSysStrMappingInfoStringMapValParamDefData, renderColorThemeVariantStateValIconMapOptionRefRootParamDataSysConfigModeStringNameForUIFlagLogicMapDataInfoTypeArg) {
-                const getParentDIVRootDOMClassHostWrapContainerPointIdValElemCodeBaseNode = document.getElementById('toastContainer');
-                const fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem = document.createElement('div');
-                
-                fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem.className = `toast ${renderColorThemeVariantStateValIconMapOptionRefRootParamDataSysConfigModeStringNameForUIFlagLogicMapDataInfoTypeArg} show`;
-                
-                const sysTickOKBaseVectorDOMElementClassImageBaseUIStringModePointerCallGenMapStringHTMLSysSVGDefStructObjRefGraphicObjectSystemBaseLayerLogicDataMapFuncCallObjectRootDefNodeStringResultPointerFuncReturnPointerTargetModStateBaseStringBaseVarNode = `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
-                const sysDangerErrBaseVectorDOMElementClassImageBaseUIStringModePointerCallGenMapStringHTMLSysSVGDefStructObjRefGraphicObjectSystemBaseLayerLogicDataMapFuncCallObjectRootDefNodeStringResultPointerFuncReturnPointerTargetModStateBaseStringBaseVarNode = `<svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`;
-                const sysNormalInfoBaseVectorDOMElementClassImageBaseUIStringModePointerCallGenMapStringHTMLSysSVGDefStructObjRefGraphicObjectSystemBaseLayerLogicDataMapFuncCallObjectRootDefNodeStringResultPointerFuncReturnPointerTargetModStateBaseStringBaseVarNode = `<svg viewBox="0 0 24 24"><path d="M12 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
-                
-                let selectedMatchedDisplayCodeIconRootEvalMethodOutputValueGenGraphicNodeTargetClassHTMLSVGVectorDomVarLogic = sysNormalInfoBaseVectorDOMElementClassImageBaseUIStringModePointerCallGenMapStringHTMLSysSVGDefStructObjRefGraphicObjectSystemBaseLayerLogicDataMapFuncCallObjectRootDefNodeStringResultPointerFuncReturnPointerTargetModStateBaseStringBaseVarNode;
-                if(renderColorThemeVariantStateValIconMapOptionRefRootParamDataSysConfigModeStringNameForUIFlagLogicMapDataInfoTypeArg==='success') selectedMatchedDisplayCodeIconRootEvalMethodOutputValueGenGraphicNodeTargetClassHTMLSVGVectorDomVarLogic = sysTickOKBaseVectorDOMElementClassImageBaseUIStringModePointerCallGenMapStringHTMLSysSVGDefStructObjRefGraphicObjectSystemBaseLayerLogicDataMapFuncCallObjectRootDefNodeStringResultPointerFuncReturnPointerTargetModStateBaseStringBaseVarNode;
-                else if(renderColorThemeVariantStateValIconMapOptionRefRootParamDataSysConfigModeStringNameForUIFlagLogicMapDataInfoTypeArg==='error') selectedMatchedDisplayCodeIconRootEvalMethodOutputValueGenGraphicNodeTargetClassHTMLSVGVectorDomVarLogic = sysDangerErrBaseVectorDOMElementClassImageBaseUIStringModePointerCallGenMapStringHTMLSysSVGDefStructObjRefGraphicObjectSystemBaseLayerLogicDataMapFuncCallObjectRootDefNodeStringResultPointerFuncReturnPointerTargetModStateBaseStringBaseVarNode;
-
-                fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem.innerHTML = `${selectedMatchedDisplayCodeIconRootEvalMethodOutputValueGenGraphicNodeTargetClassHTMLSVGVectorDomVarLogic} <div>${toastMsgTextLabelObjVarRootLogicStateInputArgumentSysStrMappingInfoStringMapValParamDefData}</div>`;
-                getParentDIVRootDOMClassHostWrapContainerPointIdValElemCodeBaseNode.appendChild(fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem);
-
-                // Timed Clear Proc Animation Controller Engine Data Method Trigger Base Logic Class Proc Module Target Eval Layer Def Sys Info Type Function Event Callback Func Controller
-                setTimeout(() => { 
-                    fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem.style.opacity = '0';
-                    fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem.style.transform = 'translateY(20px)';
-                    setTimeout(() => fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem.remove(), 450); 
-                }, 3500);
+    // END: auto-restart if we're supposed to be listening
+    rec.onend = () => {
+      if (state.shouldRestart && state.isListening) {
+        try { rec.start(); } catch(e) {
+          // give brief pause before retry
+          setTimeout(() => {
+            if (state.shouldRestart && state.isListening) {
+              try { state.recognition.start(); } catch(_) {}
             }
-        };
+          }, 300);
+        }
+      } else {
+        // graceful stop
+        setListeningUI(false);
+      }
+    };
 
-        // Turn Key Engine Initiation Starter Event Class System Callback Func DOM Data Struct UI Module Component Renderer Loader Pointer Start Action
-        document.addEventListener('DOMContentLoaded', () => { AppCore.buildBootSetupData(); });
-    </script>
+    // ERROR handling
+    rec.onerror = (event) => {
+      const err = event.error;
+
+      if (err === 'not-allowed' || err === 'permission-denied') {
+        state.shouldRestart = false;
+        state.isListening   = false;
+        setListeningUI(false);
+        showError('Microphone access denied. Please allow microphone permission in your browser and try again.');
+        return;
+      }
+
+      if (err === 'no-speech') {
+        // normal — browser will auto-end and we restart via onend
+        return;
+      }
+
+      if (err === 'network') {
+        showStatus('Network issue — retrying…', 'error');
+        return;
+      }
+
+      if (err === 'aborted') {
+        // manual stop — handled by shouldRestart flag
+        return;
+      }
+
+      // Other errors — try restart
+      if (state.shouldRestart && state.isListening) {
+        setTimeout(() => {
+          if (state.shouldRestart && state.isListening) {
+            try { state.recognition.start(); } catch(_) {}
+          }
+        }, 500);
+      }
+    };
+
+    rec.onstart = () => {
+      setListeningUI(true);
+    };
+
+    return rec;
+  }
+
+  /* ============================================================
+     START / STOP RECOGNITION
+  ============================================================ */
+  function startRecognition() {
+    if (!state.supported) return;
+
+    // Rebuild recognition with current language
+    state.recognition    = buildRecognition();
+    state.isListening    = true;
+    state.shouldRestart  = true;
+    state.interimText    = '';
+
+    try {
+      state.recognition.start();
+    } catch (e) {
+      // Already started or other issue
+      console.warn('Recognition start error:', e);
+    }
+  }
+
+  function stopRecognition(clearFlags = true) {
+    state.shouldRestart = false;
+
+    if (clearFlags) {
+      state.isListening = false;
+      state.interimText = '';
+      renderOutput();
+    }
+
+    if (state.recognition) {
+      try { state.recognition.stop(); } catch(e) {}
+      try { state.recognition.abort(); } catch(e) {}
+    }
+
+    if (clearFlags) {
+      setListeningUI(false);
+    }
+  }
+
+  /* ============================================================
+     RENDER OUTPUT
+     Combines finalText + interimText into the textarea
+  ============================================================ */
+  function renderOutput() {
+    const full = state.finalText + state.interimText;
+
+    // Preserve cursor position when user is typing
+    // Only update if content meaningfully changed (dictation scenario)
+    $output.value = full;
+
+    // Auto-scroll to bottom while dictating
+    if (state.isListening) {
+      $output.scrollTop = $output.scrollHeight;
+    }
+
+    updateWordCount();
+  }
+
+  /* ============================================================
+     WORD COUNT
+  ============================================================ */
+  function updateWordCount() {
+    const text = $output.value.trim();
+    const count = text === '' ? 0 : text.split(/\s+/).filter(Boolean).length;
+    $wordCount.textContent = count === 1 ? '1 word' : `${count} words`;
+  }
+
+  // Also update word count when user types manually
+  $output.addEventListener('input', () => {
+    // Sync manual typing back to finalText so recognition can append correctly
+    if (!state.isListening) {
+      state.finalText = $output.value;
+    }
+    updateWordCount();
+  });
+
+  /* ============================================================
+     UI STATE HELPERS
+  ============================================================ */
+  function setListeningUI(listening) {
+    if (listening) {
+      $btnMic.classList.add('listening');
+      $btnMic.disabled  = true;
+      $btnStop.disabled = false;
+      showStatus('Listening… speak now', 'listening');
+    } else {
+      $btnMic.classList.remove('listening');
+      $btnMic.disabled  = !state.supported;
+      $btnStop.disabled = true;
+      showStatus('Ready to listen — press Mic to start', 'idle');
+    }
+  }
+
+  function showStatus(msg, type) {
+    $statusText.textContent = msg;
+    $statusBar.className = 'status-bar';
+    if (type === 'listening') $statusBar.classList.add('listening');
+    if (type === 'error')     $statusBar.classList.add('error');
+  }
+
+  function showError(msg) {
+    showStatus(msg, 'error');
+  }
+
+  function showUnsupported(msg) {
+    $unsupportedTxt.textContent = msg;
+    $unsupported.classList.add('show');
+    showStatus('Browser not supported', 'error');
+  }
+
+  /* ============================================================
+     BUTTON HANDLERS
+  ============================================================ */
+
+  // MIC
+  $btnMic.addEventListener('click', () => {
+    if (state.isListening) return;
+    // Sync manual edits before starting
+    state.finalText  = $output.value;
+    state.interimText = '';
+    startRecognition();
+  });
+
+  // STOP
+  $btnStop.addEventListener('click', () => {
+    stopRecognition(true);
+  });
+
+  // CANCEL
+  $btnCancel.addEventListener('click', () => {
+    stopRecognition(true);
+    state.finalText   = '';
+    state.interimText = '';
+    $output.value     = '';
+    updateWordCount();
+    showStatus('Cleared — press Mic to start again', 'idle');
+  });
+
+  /* ============================================================
+     DOWNLOAD (TXT)
+  ============================================================ */
+  function downloadTxt() {
+    const text = $output.value;
+    if (!text.trim()) {
+      showStatus('Nothing to download — speak or type first', 'idle');
+      setTimeout(() => showStatus('Ready to listen — press Mic to start', 'idle'), 2500);
+      return;
+    }
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'speech.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  $downloadBtn.addEventListener('click', downloadTxt);
+
+  // Keyboard shortcut: Ctrl+S / Cmd+S  → download
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      downloadTxt();
+    }
+  });
+
+  /* ============================================================
+     INIT
+  ============================================================ */
+  function init() {
+    initTheme();
+    initSpeechRecognition();
+    updateWordCount();
+  }
+
+  init();
+</script>
 </body>
 </html>
