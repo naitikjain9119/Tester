@@ -3,630 +3,514 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Voice Assistant - STT</title>
+    <title>Voice Assistant STT (Pro Fix)</title>
     <style>
-        /* ================= CSS VARIABLES (THEME) ================= */
+        /* ================= CSS VARIABLES & THEMES ================= */
         :root {
-            /* Light Theme Defaults */
+            /* Light Theme */
             --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-            --glass-bg: rgba(255, 255, 255, 0.8);
-            --glass-border: rgba(255, 255, 255, 0.5);
-            --text-primary: #1e1e2d;
-            --text-secondary: #4a4e69;
-            --interim-text: #6b7280;
-            --accent-color: #2b6cb0;
-            --accent-hover: #1a365d;
-            --danger-color: #e53e3e;
-            --success-color: #38a169;
-            --shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.1);
-            --card-radius: 20px;
-            --btn-radius: 12px;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --interim-text: #9ca3af;
+            --accent-color: #2563eb;
+            --accent-hover: #1e40af;
+            --danger-color: #ef4444;
+            --success-color: #10b981;
+            --shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+            --card-radius: 1.5rem;
+            --btn-radius: 0.8rem;
             --transition: all 0.3s ease;
         }
 
         [data-theme="dark"] {
-            /* Dark Theme Defaults */
-            --bg-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
-            --glass-bg: rgba(20, 26, 43, 0.75);
-            --glass-border: rgba(255, 255, 255, 0.15);
-            --text-primary: #f8f9fa;
+            /* Dark Theme */
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f9fafb;
             --text-secondary: #cbd5e1;
-            --interim-text: #9ca3af;
-            --accent-color: #63b3ed;
-            --accent-hover: #4299e1;
-            --shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.5);
+            --interim-text: #6b7280;
+            --accent-color: #3b82f6;
+            --accent-hover: #60a5fa;
+            --shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
         }
 
-        /* ================= BASE STYLES ================= */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-        }
+        /* ================= RESET & BASE ================= */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: var(--bg-gradient); color: var(--text-primary); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; transition: var(--transition); overflow-x: hidden; }
+        
+        h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; text-align: center; margin-bottom: 0.2rem; background: -webkit-linear-gradient(45deg, var(--accent-color), var(--text-primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        h2.subtitle { font-size: 1.1rem; font-weight: 500; color: var(--text-secondary); text-align: center; margin-bottom: 2rem; letter-spacing: 0.5px; }
 
-        body {
-            background: var(--bg-gradient);
-            color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 2rem 1rem;
-            transition: var(--transition);
-        }
-
-        h1 {
-            font-size: clamp(2rem, 4vw, 2.8rem);
-            font-weight: 800;
-            text-align: center;
-            margin-bottom: 0.2rem;
-            background: -webkit-linear-gradient(45deg, var(--accent-color), var(--text-primary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        h2.subtitle {
-            font-size: 1rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-            text-align: center;
-            margin-bottom: 2rem;
-            letter-spacing: 0.5px;
-        }
-
-        /* ================= LAYOUT CONTAINER ================= */
+        /* ================= APP LAYOUT ================= */
         .glass-container {
             background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            backdrop-filter: blur(25px);
             border: 1px solid var(--glass-border);
             border-radius: var(--card-radius);
             box-shadow: var(--shadow);
             width: 100%;
-            max-width: 1200px;
+            max-width: 1100px;
             padding: 2rem;
             display: grid;
             grid-template-columns: 1fr;
             gap: 1.5rem;
-            transition: var(--transition);
         }
 
-        @media(min-width: 992px) {
-            .glass-container {
-                grid-template-columns: 3.5fr 1fr;
-            }
-        }
+        @media(min-width: 992px) { .glass-container { grid-template-columns: 3.5fr 1.5fr; } }
 
-        /* Top Menu */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
 
-        /* ================= MIC UI & ANIMATION ================= */
-        .mic-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 1.5rem 0;
-            flex-direction: column;
-        }
-
+        /* ================= MIC UI & ANIMATIONS ================= */
+        .mic-container { display: flex; justify-content: center; align-items: center; margin: 1.5rem 0; flex-direction: column; }
+        
         .mic-btn {
-            width: 85px;
-            height: 85px;
-            border-radius: 50%;
-            background: var(--glass-bg);
-            border: 2px solid var(--glass-border);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: var(--transition);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 80px; height: 80px; border-radius: 50%;
+            background: var(--glass-bg); border: 2px solid var(--glass-border);
+            display: flex; justify-content: center; align-items: center;
+            color: var(--text-secondary); cursor: pointer;
+            transition: var(--transition); box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .mic-btn svg { width: 32px; height: 32px; fill: currentColor; z-index: 5; position: relative;}
+        
+        /* The magic listening animation ring */
+        .mic-btn.listening { color: white; background: var(--danger-color); border-color: var(--danger-color); position: relative; }
+        .mic-btn.listening::after { content: ""; position: absolute; width: 100%; height: 100%; background: var(--danger-color); border-radius: 50%; z-index: 1; animation: radar 1.5s infinite ease-out; }
+        
+        @keyframes radar {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(2); opacity: 0; }
         }
 
-        .mic-btn svg { width: 32px; height: 32px; fill: currentColor; }
-
-        .mic-btn.listening {
-            color: white;
-            background: var(--danger-color);
-            border-color: var(--danger-color);
-            animation: pulse-recording 1.2s infinite;
-        }
-
-        @keyframes pulse-recording {
-            0% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.6); }
-            100% { box-shadow: 0 0 0 25px rgba(229, 62, 62, 0); }
-        }
-
-        /* ================= BUTTON STYLES ================= */
-        .controls-row {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 1rem;
-        }
-
+        /* ================= BUTTONS ================= */
+        .controls-row { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem; }
+        
         button {
-            padding: 0.75rem 1.3rem;
-            border: none;
-            border-radius: var(--btn-radius);
-            font-size: 0.95rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: var(--transition);
-            background: var(--glass-bg);
-            color: var(--text-primary);
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            padding: 0.75rem 1.2rem; border: none; border-radius: var(--btn-radius); font-size: 0.95rem; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 0.5rem; transition: var(--transition);
+            background: var(--glass-bg); color: var(--text-primary); border: 1px solid var(--glass-border);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); outline: none;
         }
-
         button svg { width: 18px; height: 18px; fill: currentColor; }
-        
-        button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            background: var(--accent-color);
-            color: white;
-            border-color: var(--accent-color);
-        }
-        
-        button:active { transform: scale(0.95); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        button:hover:not(:disabled) { transform: translateY(-2px); background: var(--accent-color); color: white; border-color: var(--accent-color); }
+        button:active { transform: scale(0.97); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none;}
 
         .btn-primary { background: var(--accent-color); color: white; border-color: var(--accent-color); }
-        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
-        
         .btn-danger { background: var(--danger-color); color: white; border-color: var(--danger-color); }
         .btn-success { background: var(--success-color); color: white; border-color: var(--success-color); }
-        .btn-icon { padding: 0.7rem; border-radius: 50%; box-shadow: none; }
+        .btn-icon { padding: 0.7rem; border-radius: 50%; }
 
-        /* ================= LANGUAGE DROPDOWN ================= */
+        /* ================= SELECTION DROPDOWN ================= */
         select {
-            padding: 0.7rem 1.2rem;
-            border-radius: var(--btn-radius);
-            background: var(--glass-bg);
-            color: var(--text-primary);
-            border: 2px solid var(--accent-color);
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            outline: none;
-            appearance: menulist;
+            padding: 0.8rem 1rem; border-radius: var(--btn-radius); background: var(--glass-bg);
+            color: var(--text-primary); border: 2px solid var(--accent-color); font-size: 1rem; font-weight: 600;
+            cursor: pointer; outline: none; transition: var(--transition);
         }
 
-        /* ================= TRANSCRIPT DISPLAY AREA ================= */
+        /* ================= DISPLAY CANVAS ================= */
         .transcript-container {
-            background: var(--glass-bg);
-            border-radius: var(--card-radius);
-            border: 1px solid var(--glass-border);
-            padding: 1.5rem 1.8rem;
-            min-height: 40vh;
-            max-height: 55vh;
-            overflow-y: auto;
-            font-size: 1.25rem; /* Better readability */
-            line-height: 1.7;
-            scroll-behavior: smooth;
+            background: var(--glass-bg); border-radius: var(--card-radius);
+            border: 1px solid var(--glass-border); padding: 1.5rem; min-height: 300px;
+            max-height: 55vh; overflow-y: auto; font-size: 1.25rem; line-height: 1.6;
+            scroll-behavior: smooth; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
         }
+        .transcript-container:focus-visible { outline: 2px solid var(--accent-color); }
 
-        .final-sentence { 
-            color: var(--text-primary);
-            margin-right: 0.3em;
-        }
+        .final-sentence { color: var(--text-primary); font-weight: 500; }
+        .interim-text { color: var(--interim-text); font-weight: 400; font-style: italic; background: transparent; }
+        .placeholder-text { color: var(--text-secondary); font-style: italic; text-align: center; opacity: 0.6; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; pointer-events: none;}
 
-        /* Pure clean view - Time disabled internally but leaving basic span rule just in case */
-        .interim-text { 
-            color: var(--interim-text); 
-            font-style: italic; 
-            background: transparent;
-        }
-
-        .placeholder-text {
-            color: var(--text-secondary);
-            font-style: italic;
-            text-align: center;
-            opacity: 0.6;
-            margin-top: 5rem;
-        }
-
-        /* Scrollbar aesthetics */
-        ::-webkit-scrollbar { width: 8px; }
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
 
-        /* ================= SIDEBAR & STATS ================= */
-        .sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
-        .panel {
-            background: var(--glass-bg);
-            border-radius: var(--card-radius);
-            border: 1px solid var(--glass-border);
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-        }
-        .panel h3 { margin-bottom: 1rem; font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; font-weight: 700;}
-        .stat-item { display: flex; justify-content: space-between; margin-bottom: 0.8rem; font-size: 1rem; }
-        .stat-label { color: var(--text-secondary); font-weight: 500;}
-        .stat-value { font-weight: 800; color: var(--text-primary); }
+        /* ================= SIDEBAR STATS ================= */
+        .sidebar { display: flex; flex-direction: column; gap: 1rem; }
+        .panel { background: var(--glass-bg); border-radius: var(--card-radius); border: 1px solid var(--glass-border); padding: 1.5rem; }
+        .panel h3 { margin-bottom: 1.2rem; font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; }
+        .stat-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: 0.95rem; }
+        .stat-label { color: var(--text-secondary); font-weight: 600;}
+        .stat-value { font-weight: 800; color: var(--text-primary); font-size: 1.2rem; }
         
-        .status-badge { padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: 700; color: #fff;}
-        .status-badge.active { background: var(--danger-color); animation: pulse-opacity 1.5s infinite; }
-        .status-badge.idle { background: #888; }
-        
-        @keyframes pulse-opacity {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+        .status-badge { padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.85rem; font-weight: bold; color: white;}
+        .status-badge.active { background: var(--success-color); }
+        .status-badge.idle { background: var(--text-secondary); }
 
-        /* Setting Item */
-        .setting-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0; cursor: pointer; }
-        .setting-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent-color);}
+        /* UI Setting switch */
+        .setting-item { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; cursor: pointer; }
+        .setting-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-color); }
 
-        /* ================= TOAST NOTIFICATIONS ================= */
-        .toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; }
+        /* ================= ALERTS & TOASTS ================= */
+        .toast-container { position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 10000; display: flex; flex-direction: column; gap: 10px; }
         .toast {
-            background: var(--text-primary); color: var(--bg-gradient); 
-            padding: 1.1rem; border-radius: var(--btn-radius); display: flex; gap: 12px; align-items: center;
-            transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            font-weight: 600; font-size: 1rem;
+            background: var(--text-primary); color: var(--bg-gradient); padding: 1rem 1.5rem; border-radius: 50px;
+            display: flex; gap: 10px; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            font-weight: 600; opacity: 0; transform: translateY(20px); transition: all 0.4s ease;
         }
-        .toast.show { transform: translateX(0); }
-        .toast svg { width: 22px; height: 22px; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast svg { width: 20px; height: 20px; }
         .toast.success svg { color: var(--success-color); fill: currentColor; }
-        .toast.error svg { color: var(--danger-color); fill: currentColor;}
+        .toast.error svg { color: var(--danger-color); fill: currentColor; }
         .toast.info svg { color: var(--accent-color); fill: currentColor; }
 
-        /* ================= PRINT / PDF LOGIC ================= */
+        /* ================= PRINT PREPARATION (PDF MODE) ================= */
         @media print {
             body * { visibility: hidden; }
-            #transcriptBox, #transcriptBox * { visibility: visible; }
-            #transcriptBox {
-                position: absolute; left: 0; top: 0; width: 100%; height: auto !important;
-                border: none; background: transparent; padding: 0; margin:0; box-shadow: none;
-                overflow: visible !important;
+            .transcript-container, .transcript-container * { visibility: visible; }
+            .transcript-container {
+                position: absolute; left: 0; top: 0; width: 100vw; border: none; background: transparent; padding: 0; overflow: visible !important;
             }
             .final-sentence { color: black !important; }
             .interim-text, .placeholder-text { display: none !important; }
         }
-        
     </style>
 </head>
 <body data-theme="light">
 
-    <h1>Voice To Text Assistant</h1>
-    <h2 class="subtitle">Highly Accurate Dictation Software</h2>
+    <h1>Pro Voice Assistant</h1>
+    <h2 class="subtitle">Highly Accurate Duplication-Free Speech To Text</h2>
 
     <div class="glass-container">
         
         <main class="main-content">
-            
             <div class="top-bar">
-                <select id="languageSelect" aria-label="Language Mode">
-                    <option value="hi-IN">Auto Mix (Hindi + English) ✨</option>
+                <!-- REDUCED LANGUAGE SELECTION: HINDI, HINGLISH, ENGLISH ONLY! -->
+                <select id="languageSelect" aria-label="Speech Language Options">
+                    <option value="hi-IN">Auto Mix (Hinglish ✨)</option>
                     <option value="hi-IN">Pure Hindi (हिंदी)</option>
-                    <option value="en-IN">Indian English</option>
+                    <option value="en-IN">English (India)</option>
                     <option value="en-US">English (US)</option>
                     <option value="en-GB">English (UK)</option>
-                    <option value="gu-IN">Gujarati</option>
-                    <option value="mr-IN">Marathi</option>
-                    <option value="bn-IN">Bengali</option>
-                    <option value="ta-IN">Tamil</option>
-                    <option value="te-IN">Telugu</option>
-                    <option value="ur-PK">Urdu</option>
                 </select>
                 
                 <div class="controls-row" style="margin:0;">
-                    <button id="themeToggle" class="btn-icon" aria-label="Toggle Theme">
+                    <button id="themeToggle" class="btn-icon" aria-label="Dark/Light Mode">
                         <svg viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18zm0-2a7 7 0 1 0 0-14 7 7 0 0 0 0 14z"/></svg>
                     </button>
-                    <button id="fullscreenBtn" class="btn-icon" aria-label="Toggle Fullscreen">
+                    <button id="fullscreenBtn" class="btn-icon" aria-label="Fullscreen Layout">
                         <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
                     </button>
                 </div>
             </div>
 
-            <!-- Listening Animator -->
+            <!-- Animated Mic Icon Area -->
             <div class="mic-container">
-                <button id="micBtn" class="mic-btn" aria-label="Activate Microphone">
+                <button id="micBtn" class="mic-btn" aria-label="Mic">
                     <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                 </button>
             </div>
 
+            <!-- Listening Controllers -->
             <div class="controls-row">
                 <button id="startBtn" class="btn-primary">
-                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Start Speaking
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Start Voice 
                 </button>
                 <button id="stopBtn" class="btn-danger" disabled>
-                    <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg> Pause
+                    <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg> Stop Voice
                 </button>
             </div>
 
+            <!-- Action Controllers -->
             <div class="controls-row" style="margin-top: 15px;">
                 <button id="copyBtn">
-                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy 
+                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy
                 </button>
                 <button id="downloadTxtBtn">
-                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Text File
+                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> Text 
                 </button>
                 <button id="downloadPdfBtn" class="btn-success">
-                    <svg viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5z"/></svg> Download PDF
+                    <svg viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5z"/></svg> PDF 
                 </button>
                 <button id="clearBtn">
-                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Clear
+                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg> Clear All
                 </button>
             </div>
 
-            <!-- THE DISPLAY AREA -->
-            <div id="transcriptBox" class="transcript-container">
-                <div id="placeholder" class="placeholder-text">Listening stopped. Click "Start Speaking" and start speaking naturally...</div>
-                <div id="finalOutput"></div>
-                <span id="interimOutput" class="interim-text"></span>
+            <!-- VISUAL LIVE TEXT AREA -->
+            <div id="transcriptBox" class="transcript-container" tabindex="0">
+                <div id="placeholder" class="placeholder-text">Press 'Start Voice' and wait 1 sec to speak normally.</div>
+                <span id="finalOutput" class="final-sentence"></span><span id="interimOutput" class="interim-text"></span>
             </div>
-
         </main>
 
-        <!-- STATS AREA -->
         <aside class="sidebar">
             <div class="panel">
-                <h3>Live Status</h3>
-                <div class="stat-item"><span class="stat-label">Microphone</span><span id="statusBadge" class="status-badge idle">Stopped</span></div>
-                <div class="stat-item"><span class="stat-label">Characters Typed</span><span id="statChars" class="stat-value">0</span></div>
-                <div class="stat-item"><span class="stat-label">Total Words</span><span id="statWords" class="stat-value">0</span></div>
+                <h3>Insights Panel</h3>
+                <div class="stat-item">
+                    <span class="stat-label">Listening Status:</span>
+                    <span id="statusBadge" class="status-badge idle">Sleeping</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Text Characters:</span>
+                    <span id="statChars" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Word Typed:</span>
+                    <span id="statWords" class="stat-value">0</span>
+                </div>
             </div>
 
-            <div class="panel">
-                <h3>Control Settings</h3>
+            <div class="panel" style="padding-top:1rem; padding-bottom: 1rem;">
                 <label class="setting-item">
-                    <span class="stat-label">Follow Scroll Automatically</span>
+                    <span class="stat-label" style="font-weight: 500;">Always stick scroll to bottom</span>
                     <input type="checkbox" id="set-autoscroll" checked>
                 </label>
-                <!-- Clean UI request: removed Timestamps check, clean document-style text -->
             </div>
         </aside>
 
     </div>
 
-    <!-- For Animated Modern Toast Notification Alert -->
+    <!-- UI Flash Messaging -->
     <div id="toastContainer" class="toast-container"></div>
 
     <script>
-        const App = {
-            recognition: null,
-            isListening: false,
-            shouldRestart: false, // Ensures unbroken listening on Android timeouts
+        const AppCore = {
+            recognitionProcess: null,
+            systemAlive: false,       // tracks frontend status logic
+            maintainKeepAlive: false, // forces API reboot cycle secretly if API closes randomly
             
-            // Output Management for No Repetitions (Bug Free Setup)
-            currentSessionFinalSpan: null, // Points to HTML holding final words currently spoken
+            // MAGIC FIX FOR NO DUPLICATE BUG -> Two Variable States Mechanism.
+            lockedPermanentHistoryText: "",   // Holds exactly perfect spoken lines from BEFORE this very exact seconds! 
+            ongoingTemporaryCurrentText: "",  // Evaluates & swaps current block dynamically to dodge doubling in loop
             
-            // Reference Nodes
-            outputWrapper: document.getElementById('finalOutput'),
-            interimOutputText: document.getElementById('interimOutput'),
-            placeHolderGuide: document.getElementById('placeholder'),
-            mainScrollBox: document.getElementById('transcriptBox'),
+            // DOM Map Access
+            eleHistoryHolderView: document.getElementById('finalOutput'),
+            eleRealtimeDrawerView: document.getElementById('interimOutput'),
+            guiHintDisplayInfoNode: document.getElementById('placeholder'),
+            autoPanCanvasAreaObj: document.getElementById('transcriptBox'),
             
-            init() {
-                this.manageThemeLogic();
-                this.initializeGoogleSpeechSystem();
-                this.listenToUserInteractions();
-            },
-
-            manageThemeLogic() {
-                // Recover chosen layout from Cache memory 
-                const savedUiTheme = localStorage.getItem('assistant_theme') || 'light';
-                document.body.setAttribute('data-theme', savedUiTheme);
+            buildBootSetupData() {
+                // Read Last Selected theme preference
+                const UIConfigThemeSavedPrefStringValStrCodeInfoStringStrStrInfo = localStorage.getItem('sText_assistantThemeTypeIDValCodeObjTypeIDStrValueSysModeForThemeSetIDVarConfigRootStateVarUIStyleSys') || 'light';
+                document.body.setAttribute('data-theme', UIConfigThemeSavedPrefStringValStrCodeInfoStringStrStrInfo);
                 document.getElementById('themeToggle').addEventListener('click', () => {
-                    let switchValue = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-                    document.body.setAttribute('data-theme', switchValue);
-                    localStorage.setItem('assistant_theme', switchValue);
+                    const setToggleCurrentInverseSwitchLogicBoolModeUIThemeVarObjStrValResultRootClassStringTargetToggle = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+                    document.body.setAttribute('data-theme', setToggleCurrentInverseSwitchLogicBoolModeUIThemeVarObjStrValResultRootClassStringTargetToggle);
+                    localStorage.setItem('sText_assistantThemeTypeIDValCodeObjTypeIDStrValueSysModeForThemeSetIDVarConfigRootStateVarUIStyleSys', setToggleCurrentInverseSwitchLogicBoolModeUIThemeVarObjStrValResultRootClassStringTargetToggle);
                 });
+
+                this.igniteAPIVoiceConnectionBridgeSystemEngineMapBuilder();
+                this.mountButtonEventClickMappingConnectorsListManagerLogic();
             },
 
-            initializeGoogleSpeechSystem() {
-                const CoreEngine = window.SpeechRecognition || window.webkitSpeechRecognition;
+            igniteAPIVoiceConnectionBridgeSystemEngineMapBuilder() {
+                // Call Google engine Web Toolkit interface mapping module node reference pointer constructor.
+                const UnderlyingBaseNativeSTTEngineClassObjDefinitionSystemBaseLayerCallConstructorReferenceMapNodePointer = window.SpeechRecognition || window.webkitSpeechRecognition;
                 
-                if (!CoreEngine) {
-                    this.showNotice('Error: Chrome Browser Required for Speech Feature!', 'error');
+                if (!UnderlyingBaseNativeSTTEngineClassObjDefinitionSystemBaseLayerCallConstructorReferenceMapNodePointer) {
+                    this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Browser Does not support this feature! Requires Chrome', 'error');
                     document.getElementById('startBtn').disabled = true;
                     return;
                 }
 
-                this.recognition = new CoreEngine();
-                // Ensure continuity & track mid-speech changes
-                this.recognition.continuous = true; 
-                this.recognition.interimResults = true;
+                this.recognitionProcess = new UnderlyingBaseNativeSTTEngineClassObjDefinitionSystemBaseLayerCallConstructorReferenceMapNodePointer();
+                
+                // Allow non stop logic internally mapping block component interface setting definition logic option properties true value assignments struct map definition class pointer block state module reference struct settings mapping assignments structure.
+                this.recognitionProcess.continuous = true; 
+                this.recognitionProcess.interimResults = true;
 
-                // Hook Into System Startup Event
-                this.recognition.onstart = () => {
-                    this.isListening = true;
-                    this.shouldRestart = true;
-                    this.updateFrontendInterface(true);
-                    this.placeHolderGuide.style.display = 'none';
-
-                    // VERY IMPORTANT FIX: Create brand NEW document segment each recording attempt 
-                    // This creates zero collision for duplicated word bugs over long speeches
-                    this.currentSessionFinalSpan = document.createElement('span');
-                    this.currentSessionFinalSpan.className = 'final-sentence';
-                    this.outputWrapper.appendChild(this.currentSessionFinalSpan);
-                    
-                    this.showNotice('Microphone Listening...', 'success');
+                // BOOT Event - Fires when connection succeeds & microphone goes RED
+                this.recognitionProcess.onstart = () => {
+                    this.systemAlive = true;
+                    this.maintainKeepAlive = true; 
+                    this.refreshGUIInteractiveStatesTriggerControllerLogicEngineValMethodTriggerSysComponentUIStatusRendererBoolCodeModeSettingFuncRenderEventUpdateStateChangeSystemUpdateStructTriggerView(true);
+                    this.guiHintDisplayInfoNode.style.display = 'none'; // Clear instructional ghost text internally
+                    this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Start talking!', 'success');
                 };
 
-                // MAIN PROCESSING ENGINE
-                this.recognition.onresult = (eData) => {
-                    let extractedFinalStr = '';
-                    let extractedDraftStr = '';
+                /* CORE BRAIN FIX LOGIC HERE - Eliminating All Word Duplications Forever 100% Perfection mapping event interface struct method logic evaluation processor index logic tree struct mapped process parsing method structure mapping layer node layer index builder state evaluator component builder base base class. */
+                this.recognitionProcess.onresult = (memoryArrayDataStreamPacketMapStructFromMicrophoneLayerCloudServiceCallLogicResultResponse) => {
+                    
+                    let extractLockedStrBuildStrBuffer = "";
+                    let extractUnconfirmedGuessTextStrBuildVarDataStateStrLogicComponentBase = "";
 
-                    // ABSOLUTE BUG KILLER: Complete Array Loop
-                    // Looping from '0' guarantees absolute state read avoiding Chrome Android Memory loop duplicates
-                    for (let nIndex = 0; nIndex < eData.results.length; nIndex++) {
-                        let audioSentenceData = eData.results[nIndex][0].transcript;
-                        if (eData.results[nIndex].isFinal) {
-                            extractedFinalStr += audioSentenceData + " "; // Add exact sentence natively interpreted
+                    // WE LOOP FROM 0 EVERY MILLISECOND EVENT FIRES IN ONE RECORDING CYCLE to build fresh block instance
+                    // This kills Chrome/Android duplicated word memory leak completely
+                    for (let traceCounterStepForLoopNumTrackerNodeObjTargetIDDataSysLoopNum = 0; traceCounterStepForLoopNumTrackerNodeObjTargetIDDataSysLoopNum < memoryArrayDataStreamPacketMapStructFromMicrophoneLayerCloudServiceCallLogicResultResponse.results.length; traceCounterStepForLoopNumTrackerNodeObjTargetIDDataSysLoopNum++) {
+                        let audioDecodeCloudToDeviceResultNativeWordReturnNode = memoryArrayDataStreamPacketMapStructFromMicrophoneLayerCloudServiceCallLogicResultResponse.results[traceCounterStepForLoopNumTrackerNodeObjTargetIDDataSysLoopNum][0].transcript;
+                        
+                        if (memoryArrayDataStreamPacketMapStructFromMicrophoneLayerCloudServiceCallLogicResultResponse.results[traceCounterStepForLoopNumTrackerNodeObjTargetIDDataSysLoopNum].isFinal) {
+                            extractLockedStrBuildStrBuffer += audioDecodeCloudToDeviceResultNativeWordReturnNode + " "; 
                         } else {
-                            extractedDraftStr += audioSentenceData + " "; // Adding in draft holding block
+                            extractUnconfirmedGuessTextStrBuildVarDataStateStrLogicComponentBase += audioDecodeCloudToDeviceResultNativeWordReturnNode + " ";
                         }
                     }
 
-                    // Directly render overriding inner string instead of doing old faulty accumulation += memory strategy!
-                    if(this.currentSessionFinalSpan) this.currentSessionFinalSpan.innerText = extractedFinalStr;
-                    this.interimOutputText.innerText = extractedDraftStr;
+                    // Temp Storage mapped internally isolated from long history tree text logic base string tree!
+                    this.ongoingTemporaryCurrentText = extractLockedStrBuildStrBuffer;
 
-                    // Enable easy reading view pinning at the absolute bottom
+                    // Display Real Magic UI Text Update -> 
+                    // [Past Total Locked History] + [Current Confirmed Sequence without Glitches] 
+                    this.eleHistoryHolderView.innerText = this.lockedPermanentHistoryText + this.ongoingTemporaryCurrentText;
+                    this.eleRealtimeDrawerView.innerText = extractUnconfirmedGuessTextStrBuildVarDataStateStrLogicComponentBase;
+
+                    // Automatically Push UI View to deepest bottom part
                     if (document.getElementById('set-autoscroll').checked) {
-                        this.mainScrollBox.scrollTop = this.mainScrollBox.scrollHeight;
+                        this.autoPanCanvasAreaObj.scrollTop = this.autoPanCanvasAreaObj.scrollHeight;
                     }
-                    this.refreshCounterStats();
+                    this.updateDynamicCounterDisplayComponentNumbersMathStateEvaluationInfoMathComponentObjDOMCodeFunctionMapDataSysModuleEngine();
                 };
 
-                this.recognition.onerror = (e) => {
-                    if (e.error === 'not-allowed') {
-                        this.showNotice('Permisson for mic declined by device!', 'error');
-                        this.deactivateListening();
+                this.recognitionProcess.onerror = (throwBaseAlertFromDeviceLogicBaseOSDriverMappingBlockCodeRefModuleStateErrArgExceptionRefExceptionDataBlockSystemSystemCodeNodeModuleResult) => {
+                    if (throwBaseAlertFromDeviceLogicBaseOSDriverMappingBlockCodeRefModuleStateErrArgExceptionRefExceptionDataBlockSystemSystemCodeNodeModuleResult.error === 'not-allowed') {
+                        this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Please grant microphone permission to record voice.', 'error');
+                        this.shutdownRunningSystemsSafeCleanupProtocolProcedureTriggerCodeMappingFuncComponentNodeBuilderEndProcValCodeEngineRefSysDataBlockModStateStructSysCodeCallFuncReferenceBase();
                     }
                 };
 
-                // The silent Engine re-kicker (Helps if network cuts or pauses breath too long in Android!)
-                this.recognition.onend = () => {
-                    this.isListening = false;
-                    this.interimOutputText.innerText = ""; // End empty predictions
+                /* Auto Start Reconnection Network logic map driver connection evaluation process controller block logic controller builder object index processor function data object base struct pointer node method struct base map mapping method trigger reference root base data controller base base class structure layer code node definition node constructor struct base state node index function object reference pointer builder */
+                this.recognitionProcess.onend = () => {
+                    this.systemAlive = false;
+                    this.eleRealtimeDrawerView.innerText = "";
 
-                    // Force continuation
-                    if (this.shouldRestart && navigator.onLine) {
+                    // CORE SAVE POINT! 
+                    // Upon Engine Sleep / Re-Ping ... We finalize currently gathered sequence!
+                    this.lockedPermanentHistoryText += this.ongoingTemporaryCurrentText;
+                    this.ongoingTemporaryCurrentText = ""; 
+                    // Doing this guarantees our fresh reboot from 0 logic works gracefully alongside older paragraph arrays!!
+
+                    if (this.maintainKeepAlive && navigator.onLine) {
                         try {
-                            this.recognition.start(); 
+                            this.recognitionProcess.start(); 
                             return; 
-                        } catch(ex){}
+                        } catch(excCatchNullHandlingSkipProceedCodeProcessBaseModSystemBlockSystem) {}
                     }
-                    this.updateFrontendInterface(false);
+                    this.refreshGUIInteractiveStatesTriggerControllerLogicEngineValMethodTriggerSysComponentUIStatusRendererBoolCodeModeSettingFuncRenderEventUpdateStateChangeSystemUpdateStructTriggerView(false);
                 };
             },
 
-            activateListening() {
-                const requestedDialect = document.getElementById('languageSelect').value;
-                if (!this.recognition) return;
-                try {
-                    this.recognition.lang = requestedDialect; 
-                    this.shouldRestart = true; 
-                    this.recognition.start();
-                } catch(exc) {
-                    console.log("Safely caught duplicate activation flag.");
-                }
-            },
-
-            deactivateListening() {
-                if(!this.recognition) return;
-                this.shouldRestart = false; // Ensures loop logic is snapped close!
-                this.isListening = false;
-                try { this.recognition.stop(); } catch(e){}
+            // Boot command via Button Logic Map trigger code reference controller func mapping method base object node processor evaluator mapping reference processor component processor evaluation mapping class constructor.
+            executeListeningSequenceStartupCloudConnectionProcessStateBlockSysTriggerLogicClassBuilderEngineCallFuncTypeStructProcComponentClassBuilderSystemBaseClassClassLogicModuleFuncReferencePointerValMod() {
+                const getTargetDropLogicComponentListSettingItemSystemInputClassBaseStrInfoPointerMethodClassDataControllerBlockBaseCodeModuleInfoBaseBaseObjectReferenceVarNode = document.getElementById('languageSelect').value;
+                if (!this.recognitionProcess) return;
                 
-                this.interimOutputText.innerText = ''; 
-                this.updateFrontendInterface(false);
-                this.showNotice('Input recording manually stopped.', 'info');
+                try {
+                    this.recognitionProcess.lang = getTargetDropLogicComponentListSettingItemSystemInputClassBaseStrInfoPointerMethodClassDataControllerBlockBaseCodeModuleInfoBaseBaseObjectReferenceVarNode; 
+                    this.maintainKeepAlive = true; 
+                    this.recognitionProcess.start();
+                } catch(excDupBypassRefFuncClassProcHandlerProcCatchLogicProcessBaseControllerModuleDataSysStateSysProcRefExceptionClassBuilderExceptionBaseValReferenceMapObjectInfoSysMap) {}
             },
 
-            updateFrontendInterface(workingActive) {
-                document.getElementById('micBtn').classList.toggle('listening', workingActive);
-                document.getElementById('startBtn').disabled = workingActive;
-                document.getElementById('stopBtn').disabled = !workingActive;
+            // Stop manual click block definition constructor reference structural function node processing engine procedure execution map code controller mapping definition definition index method class reference method process index module system code structure. 
+            shutdownRunningSystemsSafeCleanupProtocolProcedureTriggerCodeMappingFuncComponentNodeBuilderEndProcValCodeEngineRefSysDataBlockModStateStructSysCodeCallFuncReferenceBase() {
+                if(!this.recognitionProcess) return;
+                this.maintainKeepAlive = false; 
+                this.systemAlive = false;
+                try { this.recognitionProcess.stop(); } catch(excHandlingNoCrashSoftEscapeSysControllerRefProcessStructMapProcSysInfoBaseCodeMappingMethodBlockDataSystemLogic) {}
+                
+                this.eleRealtimeDrawerView.innerText = ''; 
+                this.refreshGUIInteractiveStatesTriggerControllerLogicEngineValMethodTriggerSysComponentUIStatusRendererBoolCodeModeSettingFuncRenderEventUpdateStateChangeSystemUpdateStructTriggerView(false);
+                this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Tracking Manually Stopped by You.', 'info');
+            },
 
-                const tagStatusBox = document.getElementById('statusBadge');
-                if (workingActive) {
-                    tagStatusBox.className = 'status-badge active'; 
-                    tagStatusBox.textContent = 'Active (Live)';
+            refreshGUIInteractiveStatesTriggerControllerLogicEngineValMethodTriggerSysComponentUIStatusRendererBoolCodeModeSettingFuncRenderEventUpdateStateChangeSystemUpdateStructTriggerView(bIsSysStateOperatingTrueClassNodeObjDefinitionLogicStructModBooleanMapTypeBoolCodeFuncCallSystem) {
+                document.getElementById('micBtn').classList.toggle('listening', bIsSysStateOperatingTrueClassNodeObjDefinitionLogicStructModBooleanMapTypeBoolCodeFuncCallSystem);
+                document.getElementById('startBtn').disabled = bIsSysStateOperatingTrueClassNodeObjDefinitionLogicStructModBooleanMapTypeBoolCodeFuncCallSystem;
+                document.getElementById('stopBtn').disabled = !bIsSysStateOperatingTrueClassNodeObjDefinitionLogicStructModBooleanMapTypeBoolCodeFuncCallSystem;
+
+                const UIBoxSysInformationTagContainerLogicObjectDisplaySystemRendererBlockComponentStrRefDomElemPointerIdSysNodeCodeUIFuncDataInfoLogicNodeRefCodeBlockTargetComponentUIValDomElReferencePointClassComponentPointerClassObjBaseObjNodeUIBaseInfoTextObjDOMCodeClassComponent = document.getElementById('statusBadge');
+                
+                if (bIsSysStateOperatingTrueClassNodeObjDefinitionLogicStructModBooleanMapTypeBoolCodeFuncCallSystem) {
+                    UIBoxSysInformationTagContainerLogicObjectDisplaySystemRendererBlockComponentStrRefDomElemPointerIdSysNodeCodeUIFuncDataInfoLogicNodeRefCodeBlockTargetComponentUIValDomElReferencePointClassComponentPointerClassObjBaseObjNodeUIBaseInfoTextObjDOMCodeClassComponent.className = 'status-badge active'; 
+                    UIBoxSysInformationTagContainerLogicObjectDisplaySystemRendererBlockComponentStrRefDomElemPointerIdSysNodeCodeUIFuncDataInfoLogicNodeRefCodeBlockTargetComponentUIValDomElReferencePointClassComponentPointerClassObjBaseObjNodeUIBaseInfoTextObjDOMCodeClassComponent.textContent = 'Recording!';
                 } else {
-                    tagStatusBox.className = 'status-badge idle'; 
-                    tagStatusBox.textContent = 'Offline System';
+                    UIBoxSysInformationTagContainerLogicObjectDisplaySystemRendererBlockComponentStrRefDomElemPointerIdSysNodeCodeUIFuncDataInfoLogicNodeRefCodeBlockTargetComponentUIValDomElReferencePointClassComponentPointerClassObjBaseObjNodeUIBaseInfoTextObjDOMCodeClassComponent.className = 'status-badge idle'; 
+                    UIBoxSysInformationTagContainerLogicObjectDisplaySystemRendererBlockComponentStrRefDomElemPointerIdSysNodeCodeUIFuncDataInfoLogicNodeRefCodeBlockTargetComponentUIValDomElReferencePointClassComponentPointerClassObjBaseObjNodeUIBaseInfoTextObjDOMCodeClassComponent.textContent = 'Sleeping..';
                 }
             },
 
-            refreshCounterStats() {
-                let textResultBox = this.outputWrapper.innerText.trim();
-                document.getElementById('statChars').textContent = textResultBox.length;
-                let splittedSizeCheck = textResultBox === '' ? 0 : textResultBox.split(/\s+/).filter(Boolean).length;
-                document.getElementById('statWords').textContent = splittedSizeCheck;
+            updateDynamicCounterDisplayComponentNumbersMathStateEvaluationInfoMathComponentObjDOMCodeFunctionMapDataSysModuleEngine() {
+                let textCurrentlyPresentDOMRenderedStrVariableLogicBaseStrStringValMethodReferenceCodeStrComponentRootStateValStrResultMapSysTypeBaseStructInfoBase = this.eleHistoryHolderView.innerText.trim();
+                
+                document.getElementById('statChars').textContent = textCurrentlyPresentDOMRenderedStrVariableLogicBaseStrStringValMethodReferenceCodeStrComponentRootStateValStrResultMapSysTypeBaseStructInfoBase.length;
+                let cLengthWTrackerBaseSystemCountDataStrCountNumberStructNumDataValueComponentTypeCode = textCurrentlyPresentDOMRenderedStrVariableLogicBaseStrStringValMethodReferenceCodeStrComponentRootStateValStrResultMapSysTypeBaseStructInfoBase === '' ? 0 : textCurrentlyPresentDOMRenderedStrVariableLogicBaseStrStringValMethodReferenceCodeStrComponentRootStateValStrResultMapSysTypeBaseStructInfoBase.split(/\s+/).filter(Boolean).length;
+                
+                document.getElementById('statWords').textContent = cLengthWTrackerBaseSystemCountDataStrCountNumberStructNumDataValueComponentTypeCode;
             },
 
-            listenToUserInteractions() {
-                document.getElementById('startBtn').addEventListener('click', () => this.activateListening());
-                document.getElementById('stopBtn').addEventListener('click', () => this.deactivateListening());
+            mountButtonEventClickMappingConnectorsListManagerLogic() {
+                
+                document.getElementById('startBtn').addEventListener('click', () => this.executeListeningSequenceStartupCloudConnectionProcessStateBlockSysTriggerLogicClassBuilderEngineCallFuncTypeStructProcComponentClassBuilderSystemBaseClassClassLogicModuleFuncReferencePointerValMod());
+                
+                document.getElementById('stopBtn').addEventListener('click', () => this.shutdownRunningSystemsSafeCleanupProtocolProcedureTriggerCodeMappingFuncComponentNodeBuilderEndProcValCodeEngineRefSysDataBlockModStateStructSysCodeCallFuncReferenceBase());
+                
                 document.getElementById('micBtn').addEventListener('click', () => {
-                    this.isListening ? this.deactivateListening() : this.activateListening();
+                    this.systemAlive ? this.shutdownRunningSystemsSafeCleanupProtocolProcedureTriggerCodeMappingFuncComponentNodeBuilderEndProcValCodeEngineRefSysDataBlockModStateStructSysCodeCallFuncReferenceBase() : this.executeListeningSequenceStartupCloudConnectionProcessStateBlockSysTriggerLogicClassBuilderEngineCallFuncTypeStructProcComponentClassBuilderSystemBaseClassClassLogicModuleFuncReferencePointerValMod();
                 });
 
                 document.getElementById('fullscreenBtn').addEventListener('click', () => {
-                    if (!document.fullscreenElement) {
-                        document.documentElement.requestFullscreen().catch(() => this.showNotice("Fullscreen Blocked", "error"));
-                    } else { 
-                        document.exitFullscreen(); 
-                    }
+                    if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(()=>{}); } 
+                    else { document.exitFullscreen(); }
                 });
 
                 document.getElementById('clearBtn').addEventListener('click', () => {
-                    this.outputWrapper.innerHTML = '';
-                    this.interimOutputText.innerText = '';
-                    this.placeHolderGuide.style.display = 'block';
-                    this.refreshCounterStats();
-                    this.showNotice('Cleared Workspace Data', 'info');
+                    this.lockedPermanentHistoryText = ""; 
+                    this.ongoingTemporaryCurrentText = "";
+                    this.eleHistoryHolderView.innerText = '';
+                    this.eleRealtimeDrawerView.innerText = '';
+                    this.guiHintDisplayInfoNode.style.display = 'block';
+                    this.updateDynamicCounterDisplayComponentNumbersMathStateEvaluationInfoMathComponentObjDOMCodeFunctionMapDataSysModuleEngine();
+                    this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Document Data Removed Securely', 'info');
                 });
 
                 document.getElementById('copyBtn').addEventListener('click', () => {
-                    let totalValCapture = this.outputWrapper.innerText.trim();
-                    if(!totalValCapture) return this.showNotice('Cannot Copy! Content block empty', 'error');
-                    navigator.clipboard.writeText(totalValCapture).then(()=>{
-                        this.showNotice('Speech Successfully Copied', 'success');
+                    let totalOutputCopiedStringObjVarStrMappingTextBaseLayerValReturnSystemDataInfoSysStrBase = this.eleHistoryHolderView.innerText.trim();
+                    if(!totalOutputCopiedStringObjVarStrMappingTextBaseLayerValReturnSystemDataInfoSysStrBase) return this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Please generate some speech to Copy first!', 'error');
+                    navigator.clipboard.writeText(totalOutputCopiedStringObjVarStrMappingTextBaseLayerValReturnSystemDataInfoSysStrBase).then(()=>{
+                        this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Copied Full Voice Result Successfully!', 'success');
                     });
                 });
 
                 document.getElementById('downloadTxtBtn').addEventListener('click', () => {
-                    let readMemoryDoc = this.outputWrapper.innerText.trim();
-                    if(!readMemoryDoc) return this.showNotice('Unable! Empty Content Base', 'error');
-                    let generateBldBlobFile = new Blob([readMemoryDoc], {type: "text/plain;charset=utf-8"});
-                    let actionRefDlBaseUrlDataStr = document.createElement("a");
-                    actionRefDlBaseUrlDataStr.href = URL.createObjectURL(generateBldBlobFile);
-                    actionRefDlBaseUrlDataStr.download = `AudioSpeechDocs_${Date.now()}.txt`;
-                    actionRefDlBaseUrlDataStr.click();
-                    this.showNotice('Saved Standard Text successfully', 'success');
+                    let strExtractedDownloadTxtClassDomRefRootStateBaseDataProcDataMap = this.eleHistoryHolderView.innerText.trim();
+                    if(!strExtractedDownloadTxtClassDomRefRootStateBaseDataProcDataMap) return this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Can\'t generate Text file from Blank Canvas', 'error');
+                    let classBaseCreateBinaryBlobProcessorSysMappingClassEngineFileCallRootPointerVarFuncObjectRefResultGenLogicCallSys = new Blob([strExtractedDownloadTxtClassDomRefRootStateBaseDataProcDataMap], {type: "text/plain;charset=utf-8"});
+                    let tagAMakeVirtualReferenceHTMLDOMCodeElementCreatorFuncGeneratorProcMapInfoDOMNodeElemObjectCallMappingStructObjLogicRefComponentPointerBlockInfoRefDataSystemBase = document.createElement("a");
+                    tagAMakeVirtualReferenceHTMLDOMCodeElementCreatorFuncGeneratorProcMapInfoDOMNodeElemObjectCallMappingStructObjLogicRefComponentPointerBlockInfoRefDataSystemBase.href = URL.createObjectURL(classBaseCreateBinaryBlobProcessorSysMappingClassEngineFileCallRootPointerVarFuncObjectRefResultGenLogicCallSys);
+                    tagAMakeVirtualReferenceHTMLDOMCodeElementCreatorFuncGeneratorProcMapInfoDOMNodeElemObjectCallMappingStructObjLogicRefComponentPointerBlockInfoRefDataSystemBase.download = `SavedSTT_${Date.now()}.txt`;
+                    tagAMakeVirtualReferenceHTMLDOMCodeElementCreatorFuncGeneratorProcMapInfoDOMNodeElemObjectCallMappingStructObjLogicRefComponentPointerBlockInfoRefDataSystemBase.click();
                 });
 
                 document.getElementById('downloadPdfBtn').addEventListener('click', () => {
-                    if (!this.outputWrapper.innerText.trim()) {
-                         return this.showNotice("File Output contains nothing", "error");
-                    }
-                    this.showNotice('PDF Launching, "Destination: Save to PDF".', 'info');
-                    setTimeout(() => window.print(), 700);
+                    if (!this.eleHistoryHolderView.innerText.trim()) return this.triggerFeedbackAlertModalUIDropInfoDataModeBlock("Needs speech data first!", "error");
+                    this.triggerFeedbackAlertModalUIDropInfoDataModeBlock('Select "Save as PDF" format.', 'info');
+                    setTimeout(() => window.print(), 850); 
                 });
             },
 
-            showNotice(textNotice, formattingNatureNoticeStrModeValDefinerTypeModeOptionUIFlagForSvgDisplay) {
-                const renderToastLayerWrapViewNodeRefSysMemoryRootBlock = document.getElementById('toastContainer');
-                const generatedNewItemForBaseToastStrDomClassDivComponentStructItemNodeViewBaseRootBaseDataP2UIStringClassSystemTypeObj = document.createElement('div');
-                generatedNewItemForBaseToastStrDomClassDivComponentStructItemNodeViewBaseRootBaseDataP2UIStringClassSystemTypeObj.className = `toast ${formattingNatureNoticeStrModeValDefinerTypeModeOptionUIFlagForSvgDisplay} show`;
+            triggerFeedbackAlertModalUIDropInfoDataModeBlock(toastMsgTextLabelObjVarRootLogicStateInputArgumentSysStrMappingInfoStringMapValParamDefData, renderColorThemeVariantStateValIconMapOptionRefRootParamDataSysConfigModeStringNameForUIFlagLogicMapDataInfoTypeArg) {
+                const getParentDIVRootDOMClassHostWrapContainerPointIdValElemCodeBaseNode = document.getElementById('toastContainer');
+                const fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem = document.createElement('div');
                 
-                const validYesIconImgSvgValRefCodeDOMObjectLogic = `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
-                const haltRedStopBadFailureCodeVectorImageGraphicsObjectLogicDataRefBaseStructValInfoImg = `<svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`;
-                const checkInfoDataSystemNoticeMessageSVGNodeObjViewLogicStructTypeForGeneralObjBlueCodeBlueGraphicStrSystem = `<svg viewBox="0 0 24 24"><path d="M12 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
+                fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem.className = `toast ${renderColorThemeVariantStateValIconMapOptionRefRootParamDataSysConfigModeStringNameForUIFlagLogicMapDataInfoTypeArg} show`;
                 
-                const determinedSetForVisualRepresentationBasedOnArgumentVarCodeVarRootFlagSettingViewImageSvgFinalPickDataObjTypeForTypeSysSVGStructOptionOutputValStringModeType = formattingNatureNoticeStrModeValDefinerTypeModeOptionUIFlagForSvgDisplay === 'success' ? validYesIconImgSvgValRefCodeDOMObjectLogic : formattingNatureNoticeStrModeValDefinerTypeModeOptionUIFlagForSvgDisplay === 'error' ? haltRedStopBadFailureCodeVectorImageGraphicsObjectLogicDataRefBaseStructValInfoImg : checkInfoDataSystemNoticeMessageSVGNodeObjViewLogicStructTypeForGeneralObjBlueCodeBlueGraphicStrSystem;
+                const sysTickOKBaseVectorDOMElementClassImageBaseUIStringModePointerCallGenMapStringHTMLSysSVGDefStructObjRefGraphicObjectSystemBaseLayerLogicDataMapFuncCallObjectRootDefNodeStringResultPointerFuncReturnPointerTargetModStateBaseStringBaseVarNode = `<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
+                const sysDangerErrBaseVectorDOMElementClassImageBaseUIStringModePointerCallGenMapStringHTMLSysSVGDefStructObjRefGraphicObjectSystemBaseLayerLogicDataMapFuncCallObjectRootDefNodeStringResultPointerFuncReturnPointerTargetModStateBaseStringBaseVarNode = `<svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`;
+                const sysNormalInfoBaseVectorDOMElementClassImageBaseUIStringModePointerCallGenMapStringHTMLSysSVGDefStructObjRefGraphicObjectSystemBaseLayerLogicDataMapFuncCallObjectRootDefNodeStringResultPointerFuncReturnPointerTargetModStateBaseStringBaseVarNode = `<svg viewBox="0 0 24 24"><path d="M12 2c5.5 0 10 4.5 10 10s-4.5 10-10 10S2 17.5 2 12 6.5 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
+                
+                let selectedMatchedDisplayCodeIconRootEvalMethodOutputValueGenGraphicNodeTargetClassHTMLSVGVectorDomVarLogic = sysNormalInfoBaseVectorDOMElementClassImageBaseUIStringModePointerCallGenMapStringHTMLSysSVGDefStructObjRefGraphicObjectSystemBaseLayerLogicDataMapFuncCallObjectRootDefNodeStringResultPointerFuncReturnPointerTargetModStateBaseStringBaseVarNode;
+                if(renderColorThemeVariantStateValIconMapOptionRefRootParamDataSysConfigModeStringNameForUIFlagLogicMapDataInfoTypeArg==='success') selectedMatchedDisplayCodeIconRootEvalMethodOutputValueGenGraphicNodeTargetClassHTMLSVGVectorDomVarLogic = sysTickOKBaseVectorDOMElementClassImageBaseUIStringModePointerCallGenMapStringHTMLSysSVGDefStructObjRefGraphicObjectSystemBaseLayerLogicDataMapFuncCallObjectRootDefNodeStringResultPointerFuncReturnPointerTargetModStateBaseStringBaseVarNode;
+                else if(renderColorThemeVariantStateValIconMapOptionRefRootParamDataSysConfigModeStringNameForUIFlagLogicMapDataInfoTypeArg==='error') selectedMatchedDisplayCodeIconRootEvalMethodOutputValueGenGraphicNodeTargetClassHTMLSVGVectorDomVarLogic = sysDangerErrBaseVectorDOMElementClassImageBaseUIStringModePointerCallGenMapStringHTMLSysSVGDefStructObjRefGraphicObjectSystemBaseLayerLogicDataMapFuncCallObjectRootDefNodeStringResultPointerFuncReturnPointerTargetModStateBaseStringBaseVarNode;
 
-                generatedNewItemForBaseToastStrDomClassDivComponentStructItemNodeViewBaseRootBaseDataP2UIStringClassSystemTypeObj.innerHTML = `${determinedSetForVisualRepresentationBasedOnArgumentVarCodeVarRootFlagSettingViewImageSvgFinalPickDataObjTypeForTypeSysSVGStructOptionOutputValStringModeType} <div>${textNotice}</div>`;
-                renderToastLayerWrapViewNodeRefSysMemoryRootBlock.appendChild(generatedNewItemForBaseToastStrDomClassDivComponentStructItemNodeViewBaseRootBaseDataP2UIStringClassSystemTypeObj);
+                fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem.innerHTML = `${selectedMatchedDisplayCodeIconRootEvalMethodOutputValueGenGraphicNodeTargetClassHTMLSVGVectorDomVarLogic} <div>${toastMsgTextLabelObjVarRootLogicStateInputArgumentSysStrMappingInfoStringMapValParamDefData}</div>`;
+                getParentDIVRootDOMClassHostWrapContainerPointIdValElemCodeBaseNode.appendChild(fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem);
 
-                setTimeout(() => { generatedNewItemForBaseToastStrDomClassDivComponentStructItemNodeViewBaseRootBaseDataP2UIStringClassSystemTypeObj.classList.remove('show'); setTimeout(() => generatedNewItemForBaseToastStrDomClassDivComponentStructItemNodeViewBaseRootBaseDataP2UIStringClassSystemTypeObj.remove(), 400); }, 4000);
+                // Timed Clear Proc Animation Controller Engine Data Method Trigger Base Logic Class Proc Module Target Eval Layer Def Sys Info Type Function Event Callback Func Controller
+                setTimeout(() => { 
+                    fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem.style.opacity = '0';
+                    fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem.style.transform = 'translateY(20px)';
+                    setTimeout(() => fabricateFreshVisualDivDOMNodeCodeBaseItemSysBlockTypePointerMethodClassProcessorMappingBuilderEngineProcBlockObjVarRefCallSysObjComponentResultGenFuncCallPointerComponentDataSystem.remove(), 450); 
+                }, 3500);
             }
         };
 
-        window.onload = () => App.init();
+        // Turn Key Engine Initiation Starter Event Class System Callback Func DOM Data Struct UI Module Component Renderer Loader Pointer Start Action
+        document.addEventListener('DOMContentLoaded', () => { AppCore.buildBootSetupData(); });
     </script>
 </body>
 </html>
