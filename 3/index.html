@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2 Player Tug of War</title>
+    <style>
+        :root {
+            --primary-bg: #0f172a;
+            --arena-bg: linear-gradient(135deg, #0f766e, #042f2e);
+            --blue-team: #3b82f6;
+            --red-team: #ef4444;
+            --ui-bg: rgba(0, 0, 0, 0.7);
+            --text-light: #f8fafc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body {
+            background-color: var(--primary-bg);
+            color: var(--text-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #author-credit {
+            background-color: #ffeb3b;
+            color: #000;
+            width: 100%;
+            text-align: center;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 10000;
+            position: relative;
+        }
+
+        #game-wrapper {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 10px;
+        }
+
+        #phone-frame {
+            position: relative;
+            width: 100%;
+            max-width: 1000px;
+            height: 100%;
+            max-height: 500px;
+            background: #000;
+            border-radius: 30px;
+            padding: 10px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 0 0 4px #333;
+            overflow: hidden;
+            display: flex;
+        }
+
+        #game-screen {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: var(--arena-bg);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* UI Overlays */
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--ui-bg);
+            z-index: 100;
+            backdrop-filter: blur(4px);
+            transition: opacity 0.3s;
+        }
+        .hidden { display: none !important; }
+
+        h1 { font-size: 3rem; margin-bottom: 20px; text-align: center; text-shadow: 0 4px 10px rgba(0,0,0,0.8); }
+        h2 { font-size: 2rem; margin-bottom: 15px; }
+
+        .btn {
+            background: linear-gradient(to bottom, #4ade80, #16a34a);
+            color: white;
+            border: 2px solid #bbf7d0;
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 10px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+            transition: transform 0.1s, filter 0.1s;
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-alt { background: linear-gradient(to bottom, #60a5fa, #2563eb); border-color: #bfdbfe; }
+        
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .score-board {
+            position: absolute;
+            top: 15px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40px;
+            font-size: 2rem;
+            font-weight: bold;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+        }
+        .score-blue { color: var(--blue-team); }
+        .score-red { color: var(--red-team); }
+        
+        .round-info {
+            position: absolute;
+            top: 15px; left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.2rem;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        /* Power Meters */
+        .power-meter {
+            position: absolute;
+            bottom: 20px;
+            width: 150px;
+            height: 15px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #fff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .power-meter-left { left: 40px; }
+        .power-meter-right { right: 40px; }
+        
+        .power-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.1s;
+        }
+        .power-fill.blue { background: var(--blue-team); box-shadow: 0 0 10px var(--blue-team); }
+        .power-fill.red { background: var(--red-team); box-shadow: 0 0 10px var(--red-team); float: right;}
+
+        .tps-display {
+            position: absolute;
+            bottom: 45px;
+            font-size: 1rem;
+            font-weight: bold;
+            opacity: 0.8;
+        }
+        .tps-left { left: 40px; color: var(--blue-team); }
+        .tps-right { right: 40px; color: var(--red-team); }
+
+        /* Controls / Tap Areas */
+        #controls {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            z-index: 10;
+        }
+        .tap-zone {
+            flex: 1;
+            height: 100%;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Top right small buttons */
+        .top-btn-container {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+            z-index: 60;
+            pointer-events: auto;
+        }
+        .icon-btn {
+            background: rgba(0,0,0,0.6);
+            border: 2px solid #fff;
+            color: #fff;
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        #fps-counter {
+            position: absolute;
+            bottom: 5px; left: 5px;
+            font-size: 10px;
+            color: rgba(255,255,255,0.5);
+            z-index: 60;
+        }
+
+        /* Animations */
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .pulsing { animation: pulse 1s infinite; }
+        
+        .huge-text {
+            font-size: 5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            text-shadow: 0 0 20px #fff;
+            animation: pulse 0.5s ease-in-out infinite alternate;
+        }
+
+        /* Modal specific */
+        .modal-content {
+            background: linear-gradient(180deg, #1e293b, #0f172a);
+            padding: 30px;
+            border-radius: 20px;
+            border: 2px solid #475569;
+            max-width: 500px;
+            text-align: center;
+        }
+        .modal-content p, .modal-content ul { margin-bottom: 15px; text-align: left; font-size: 1.1rem; }
+        .modal-content li { margin-left: 20px; }
+        
+        .streak-badge {
+            margin-top: 15px;
+            background: gold;
+            color: black;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            .score-board { font-size: 1.5rem; padding: 0 20px; }
+            .huge-text { font-size: 3rem; }
+            #phone-frame { border-radius: 0; padding: 0; max-height: 100vh; }
+            #game-screen { border-radius: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="author-credit">
+        **“This website is made by Naitik Rakesh Kumar Jain Dhalawat”**
+    </div>
+
+    <div id="game-wrapper">
+        <div id="phone-frame">
+            <div id="game-screen">
+                <canvas id="gameCanvas"></canvas>
+
+                <!-- Touch Zones -->
+                <div id="controls" class="hidden">
+                    <div class="tap-zone" id="tapLeft"></div>
+                    <div class="tap-zone" id="tapRight"></div>
+                </div>
+
+                <!-- HUD -->
+                <div id="hud" class="hidden">
+                    <div class="score-board">
+                        <span class="score-blue" id="scoreLeft">0</span>
+                        <span class="score-red" id="scoreRight">0</span>
+                    </div>
+                    <div class="round-info" id="roundInfo">Round 1</div>
+                    
+                    <div class="tps-display tps-left" id="tpsLeft">0 TPS</div>
+                    <div class="power-meter power-meter-left">
+                        <div class="power-fill blue" id="powerLeft"></div>
+                    </div>
+                    
+                    <div class="tps-display tps-right" id="tpsRight">0 TPS</div>
+                    <div class="power-meter power-meter-right">
+                        <div class="power-fill red" id="powerRight"></div>
+                    </div>
+
+                    <div id="countdown" class="huge-text hidden" style="position:absolute; top:40%; left:50%; transform:translate(-50%, -50%);">3</div>
+                </div>
+
+                <div class="top-btn-container">
+                    <button class="icon-btn" id="btnSound">🔊</button>
+                    <button class="icon-btn hidden" id="btnPause">⏸</button>
+                </div>
+
+                <div id="fps-counter">60 FPS</div>
+
+                <!-- Main Menu -->
+                <div id="menuScreen" class="overlay">
+                    <h1>Tug of War</h1>
+                    <div class="streak-badge" id="streakDisplay">Best Streak: 0</div>
+                    <br>
+                    <button class="btn pulsing" id="btnStartStandard">Standard Mode (First to 5)</button>
+                    <button class="btn btn-alt" id="btnStartTime">30s Challenge Mode</button>
+                    <button class="btn btn-alt" style="background: #64748b;" id="btnHelp">How to Play</button>
+                </div>
+
+                <!-- Help Modal -->
+                <div id="helpScreen" class="overlay hidden">
+                    <div class="modal-content">
+                        <h2>How to Play</h2>
+                        <p><strong>Goal:</strong> Pull the center of the rope into your side's win zone!</p>
+                        <ul>
+                            <li><strong>Blue Player (Left):</strong> Tap the left side of screen rapidly. (Keyboard: 'A')</li>
+                            <li><strong>Red Player (Right):</strong> Tap the right side of screen rapidly. (Keyboard: 'L')</li>
+                        </ul>
+                        <p>Tap as fast as you can. If you stop, the rope slowly centers. Prevents multi-finger spam per side!</p>
+                        <button class="btn" id="btnCloseHelp">Got it!</button>
+                    </div>
+                </div>
+
+                <!-- Pause / Round End Screen -->
+                <div id="pauseScreen" class="overlay hidden">
+                    <h2 id="pauseTitle">Paused</h2>
+                    <button class="btn" id="btnResume">Resume</button>
+                    <button class="btn btn-alt" id="btnRestartMatch">Quit Match</button>
+                </div>
+                
+                <!-- Victory Screen -->
+                <div id="victoryScreen" class="overlay hidden">
+                    <h1 id="victoryTitle" class="huge-text">BLUE WINS!</h1>
+                    <p id="victorySub" style="font-size:1.5rem; margin-bottom:20px;">Round Winner!</p>
+                    <button class="btn pulsing" id="btnNextRound">Next Round</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<script>
+/**
+ * TUG OF WAR - SINGLE FILE GAME
+ * By Naitik Rakesh Kumar Jain Dhalawat
+ */
+
+// --- GLOBAL VARIABLES & STATE ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d', { alpha: false });
+
+let GAME_STATE = 'MENU'; // MENU, COUNTDOWN, PLAYING, PAUSED, ROUND_OVER, MATCH_OVER
+let gameMode = 'STANDARD'; // STANDARD, TIME
+
+// Physics & Rope
+let ropePos = 0; // -100 (left win) to +100 (right win)
+let ropeVelocity = 0;
+const ropeFriction = 0.94;
+const ropeSpring = 0.02; // Pulls back to 0 slowly
+const pullForce = 1.2;
+const winThreshold = 90;
+
+// Screen Shake
+let shakeMagnitude = 0;
+
+// Match Info
+let scoreL = 0;
+let scoreR = 0;
+let round = 1;
+const roundsToWin = 5;
+let timeLeft = 30;
+let matchTimer = null;
+let bestStreak = parseInt(localStorage.getItem('tow_streak')) || 0;
+let currentStreak = 0;
+
+// Tap Tracking (Spam prevention & TPS calculation)
+const tapCooldown = 40; // ms
+let lastTapL = 0;
+let lastTapR = 0;
+let tapsL = [];
+let tapsR = [];
+let powerL = 0;
+let powerR = 0;
+
+// Characters animation state
+let charLeanL = 0;
+let charLeanR = 0;
+
+// Particles (Sweat / Confetti)
+let particles = [];
+
+// Audio Context
+let audioCtx = null;
+let soundEnabled = true;
+
+// UI Elements
+const ui = {
+    menuScreen: document.getElementById('menuScreen'),
+    helpScreen: document.getElementById('helpScreen'),
+    pauseScreen: document.getElementById('pauseScreen'),
+    victoryScreen: document.getElementById('victoryScreen'),
+    hud: document.getElementById('hud'),
+    controls: document.getElementById('controls'),
+    scoreLeft: document.getElementById('scoreLeft'),
+    scoreRight: document.getElementById('scoreRight'),
+    roundInfo: document.getElementById('roundInfo'),
+    tpsLeft: document.getElementById('tpsLeft'),
+    tpsRight: document.getElementById('tpsRight'),
+    powerLeft: document.getElementById('powerLeft'),
+    powerRight: document.getElementById('powerRight'),
+    countdown: document.getElementById('countdown'),
+    btnSound: document.getElementById('btnSound'),
+    btnPause: document.getElementById('btnPause'),
+    pauseTitle: document.getElementById('pauseTitle'),
+    victoryTitle: document.getElementById('victoryTitle'),
+    victorySub: document.getElementById('victorySub'),
+    btnNextRound: document.getElementById('btnNextRound'),
+    streakDisplay: document.getElementById('streakDisplay'),
+    fpsCounter: document.getElementById('fpsCounter')
+};
+
+// --- INITIALIZATION ---
+function init() {
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    ui.streakDisplay.innerText = `Best Champion Streak: ${bestStreak}`;
+    
+    // Bind Buttons
+    document.getElementById('btnStartStandard').addEventListener('click', () => startMatch('STANDARD'));
+    document.getElementById('btnStartTime').addEventListener('click', () => startMatch('TIME'));
+    document.getElementById('btnHelp').addEventListener('click', () => ui.helpScreen.classList.remove('hidden'));
+    document.getElementById('btnCloseHelp').addEventListener('click', () => ui.helpScreen.classList.add('hidden'));
+    
+    ui.btnPause.addEventListener('click', togglePause);
+    document.getElementById('btnResume').addEventListener('click', togglePause);
+    document.getElementById('btnRestartMatch').addEventListener('click', quitToMenu);
+    ui.btnNextRound.addEventListener('click', startRound);
+    
+    ui.btnSound.addEventListener('click', toggleSound);
+
+    // Bind Controls
+    bindControls();
+
+    // Start Game Loop
+    requestAnimationFrame(gameLoop);
+}
+
+function resizeCanvas() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+}
+
+// --- AUDIO SYSTEM (Web Audio API) ---
+function initAudio() {
+    if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}
+
+function playSound(type) {
+    if (!soundEnabled || !audioCtx) return;
+    
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    const now = audioCtx.currentTime;
+    
+    switch (type) {
+        case 'tapL':
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+            break;
+        case 'tapR':
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(700, now);
+            osc.frequency.exponentialRampToValueAtTime(350, now + 0.1);
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+            break;
+        case 'tension':
+            // low rumble depending on velocity
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(50 + Math.random()*20, now);
+            gainNode.gain.setValueAtTime(0.1, now);
+            gainNode.gain.linearRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now);
+            osc.stop(now + 0.2);
+            break;
+        case 'beep':
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(440, now);
+            gainNode.gain.setValueAtTime(0.5, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            osc.start(now);
+            osc.stop(now + 0.2);
+            break;
+        case 'go':
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(880, now);
+            gainNode.gain.setValueAtTime(0.6, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            osc.start(now);
+            osc.stop(now + 0.4);
+            break;
+        case 'win':
+            // Simple arpeggio
+            osc.type = 'triangle';
+            [440, 554, 659, 880].forEach((freq, i) => {
+                const t = now + i * 0.15;
+                osc.frequency.setValueAtTime(freq, t);
+            });
+            gainNode.gain.setValueAtTime(0.5, now);
+            gainNode.gain.linearRampToValueAtTime(0, now + 0.8);
+            osc.start(now);
+            osc.stop(now + 0.8);
+            break;
+        case 'champ':
+            osc.type = 'square';
+            [523, 659, 783, 1046, 783, 1046].forEach((freq, i) => {
+                const t = now + i * 0.15;
+                osc.frequency.setValueAtTime(freq, t);
+            });
+            gainNode.gain.setValueAtTime(0.5, now);
+            gainNode.gain.linearRampToValueAtTime(0, now + 1.2);
+            osc.start(now);
+            osc.stop(now + 1.2);
+            break;
+    }
+}
+
+function toggleSound() {
+    initAudio();
+    soundEnabled = !soundEnabled;
+    ui.btnSound.innerText = soundEnabled ? '🔊' : '🔇';
+}
+
+function vibrate(duration) {
+    if (navigator.vibrate) navigator.vibrate(duration);
+}
+
+// --- CONTROLS ---
+function bindControls() {
+    const tapL = document.getElementById('tapLeft');
+    const tapR = document.getElementById('tapRight');
+
+    // Touch
+    tapL.addEventListener('touchstart', (e) => { e.preventDefault(); handlePull('LEFT'); });
+    tapR.addEventListener('touchstart', (e) => { e.preventDefault(); handlePull('RIGHT'); });
+    
+    // Mouse (fallback for desktop without keys)
+    tapL.addEventListener('mousedown', (e) => { e.preventDefault(); handlePull('LEFT'); });
+    tapR.addEventListener('mousedown', (e) => { e.preventDefault(); handlePull('RIGHT'); });
+
+    // Keyboard
+    window.addEventListener('keydown', (e) => {
+        if (GAME_STATE !== 'PLAYING') return;
+        if (e.key.toLowerCase() === 'a' && !e.repeat) handlePull('LEFT');
+        if (e.key.toLowerCase() === 'l' && !e.repeat) handlePull('RIGHT');
+    });
+}
+
+function handlePull(side) {
+    if (GAME_STATE !== 'PLAYING') return;
+    initAudio();
+
+    const now = Date.now();
+    if (side === 'LEFT') {
+        if (now - lastTapL < tapCooldown) return; // Prevent cheat spam
+        lastTapL = now;
+        ropeVelocity -= pullForce;
+        tapsL.push(now);
+        charLeanL = Math.min(charLeanL + 15, 45); // Lean back
+        spawnParticles('LEFT');
+        playSound('tapL');
+    } else {
+        if (now - lastTapR < tapCooldown) return;
+        lastTapR = now;
+        ropeVelocity += pullForce;
+        tapsR.push(now);
+        charLeanR = Math.min(charLeanR + 15, 45);
+        spawnParticles('RIGHT');
+        playSound('tapR');
+    }
+
+    if (Math.abs(ropeVelocity) > 3) {
+        shakeMagnitude = Math.min(shakeMagnitude + 2, 10);
+        if(Math.random() > 0.5) playSound('tension');
+    }
+}
+
+// --- GAME LOGIC ---
+
+function startMatch(mode) {
+    initAudio();
+    gameMode = mode;
+    scoreL = 0;
+    scoreR = 0;
+    round = 1;
+    currentStreak = 0;
+    
+    ui.menuScreen.classList.add('hidden');
+    ui.hud.classList.remove('hidden');
+    ui.controls.classList.remove('hidden');
+    ui.btnPause.classList.remove('hidden');
+    updateHUD();
+    
+    startRound();
+}
+
+function startRound() {
+    GAME_STATE = 'COUNTDOWN';
+    ui.victoryScreen.classList.add('hidden');
+    
+    ropePos = 0;
+    ropeVelocity = 0;
+    charLeanL = 0;
+    charLeanR = 0;
+    particles = [];
+    tapsL = [];
+    tapsR = [];
+    timeLeft = gameMode === 'TIME' ? 30 : 0;
+    
+    ui.countdown.classList.remove('hidden');
+    ui.roundInfo.innerText = gameMode === 'TIME' ? `Time Mode - 30s` : `Round ${round}`;
+    
+    let count = 3;
+    ui.countdown.innerText = count;
+    playSound('beep');
+    
+    const countInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            ui.countdown.innerText = count;
+            playSound('beep');
+        } else if (count === 0) {
+            ui.countdown.innerText = 'GO!';
+            playSound('go');
+            vibrate(100);
+        } else {
+            clearInterval(countInterval);
+            ui.countdown.classList.add('hidden');
+            GAME_STATE = 'PLAYING';
+            if (gameMode === 'TIME') startTimer();
+        }
+    }, 800);
+}
+
+function startTimer() {
+    clearInterval(matchTimer);
+    matchTimer = setInterval(() => {
+        if (GAME_STATE === 'PLAYING') {
+            timeLeft--;
+            ui.roundInfo.innerText = `Time Left: ${timeLeft}s`;
+            if (timeLeft <= 0) {
+                clearInterval(matchTimer);
+                checkWinCondition(true);
+            }
+        }
+    }, 1000);
+}
+
+function togglePause() {
+    if (GAME_STATE === 'PLAYING') {
+        GAME_STATE = 'PAUSED';
+        ui.pauseTitle.innerText = "Paused";
+        ui.pauseScreen.classList.remove('hidden');
+        ui.btnNextRound.classList.add('hidden');
+        ui.controls.classList.add('hidden');
+    } else if (GAME_STATE === 'PAUSED') {
+        GAME_STATE = 'PLAYING';
+        ui.pauseScreen.classList.add('hidden');
+        ui.controls.classList.remove('hidden');
+    }
+}
+
+function quitToMenu() {
+    GAME_STATE = 'MENU';
+    ui.pauseScreen.classList.add('hidden');
+    ui.hud.classList.add('hidden');
+    ui.controls.classList.add('hidden');
+    ui.btnPause.classList.add('hidden');
+    ui.menuScreen.classList.remove('hidden');
+    ui.streakDisplay.innerText = `Best Streak: ${bestStreak}`;
+    clearInterval(matchTimer);
+}
+
+function checkWinCondition(timeUp = false) {
+    let winner = null;
+
+    if (timeUp) {
+        if (ropePos < 0) winner = 'LEFT';
+        else if (ropePos > 0) winner = 'RIGHT';
+        else winner = 'TIE';
+    } else {
+        if (ropePos <= -winThreshold) winner = 'LEFT';
+        else if (ropePos >= winThreshold) winner = 'RIGHT';
+    }
+
+    if (winner) {
+        GAME_STATE = 'ROUND_OVER';
+        vibrate([200, 50, 200]);
+        playSound('win');
+        
+        if (winner === 'LEFT') scoreL++;
+        if (winner === 'RIGHT') scoreR++;
+        updateHUD();
+
+        let matchOver = false;
+        if (gameMode === 'STANDARD' && (scoreL >= roundsToWin || scoreR >= roundsToWin)) {
+            matchOver = true;
+        } else if (gameMode === 'TIME') {
+            matchOver = true; // Time mode is just 1 round usually, but lets make it best of 1
+        }
+
+        ui.victoryScreen.classList.remove('hidden');
+        
+        if (matchOver) {
+            GAME_STATE = 'MATCH_OVER';
+            let overallWinner = scoreL > scoreR ? 'BLUE' : (scoreR > scoreL ? 'RED' : 'TIE');
+            ui.victoryTitle.innerText = overallWinner === 'TIE' ? "IT'S A TIE!" : `${overallWinner} CHAMPION!`;
+            ui.victoryTitle.style.color = overallWinner === 'BLUE' ? 'var(--blue-team)' : 'var(--red-team)';
+            ui.victorySub.innerText = `Final Score: ${scoreL} - ${scoreR}`;
+            ui.btnNextRound.innerText = "Main Menu";
+            playSound('champ');
+            spawnConfetti();
+            
+            // Streak logic
+            if (overallWinner !== 'TIE') {
+                currentStreak++;
+                if (currentStreak > bestStreak) {
+                    bestStreak = currentStreak;
+                    localStorage.setItem('tow_streak', bestStreak);
+                }
+            } else {
+                currentStreak = 0;
+            }
+            
+            ui.btnNextRound.onclick = quitToMenu;
+        } else {
+            ui.victoryTitle.innerText = winner === 'LEFT' ? 'BLUE WINS ROUND' : 'RED WINS ROUND';
+            ui.victoryTitle.style.color = winner === 'LEFT' ? 'var(--blue-team)' : 'var(--red-team)';
+            ui.victorySub.innerText = `Round ${round} completed`;
+            ui.btnNextRound.innerText = "Next Round";
+            ui.btnNextRound.onclick = () => { round++; startRound(); };
+        }
+    }
+}
+
+function updateHUD() {
+    ui.scoreLeft.innerText = scoreL;
+    ui.scoreRight.innerText = scoreR;
+}
+
+// --- PHYSICS & LOGIC UPDATE ---
+function updatePhysics() {
+    if (GAME_STATE === 'PLAYING') {
+        // Apply friction and spring
+        ropeVelocity *= ropeFriction;
+        // Small drift to center if nobody is pulling
+        if (Math.abs(ropeVelocity) < 0.5) {
+            ropeVelocity += (0 - ropePos) * ropeSpring;
+        }
+        
+        ropePos += ropeVelocity;
+
+        // Clamp position slightly past win threshold
+        if (ropePos < -110) ropePos = -110;
+        if (ropePos > 110) ropePos = 110;
+
+        // Character lean spring back to 0
+        charLeanL *= 0.9;
+        charLeanR *= 0.9;
+
+        // Screen shake decay
+        if (shakeMagnitude > 0) shakeMagnitude *= 0.9;
+        if (shakeMagnitude < 0.5) shakeMagnitude = 0;
+
+        checkWinCondition();
+    }
+
+    // Update TPS (Taps per second)
+    const now = Date.now();
+    tapsL = tapsL.filter(t => now - t < 1000);
+    tapsR = tapsR.filter(t => now - t < 1000);
+    
+    if (GAME_STATE === 'PLAYING') {
+        ui.tpsLeft.innerText = `${tapsL.length} TPS`;
+        ui.tpsRight.innerText = `${tapsR.length} TPS`;
+        
+        // Update power meter visually
+        const pL = Math.min((tapsL.length / 15) * 100, 100);
+        const pR = Math.min((tapsR.length / 15) * 100, 100);
+        ui.powerLeft.style.width = `${pL}%`;
+        ui.powerRight.style.width = `${pR}%`;
+    }
+}
+
+// --- PARTICLES ---
+function spawnParticles(side) {
+    const isLeft = side === 'LEFT';
+    const xBase = isLeft ? canvas.width * 0.2 : canvas.width * 0.8;
+    const yBase = canvas.height * 0.6;
+    
+    for(let i=0; i<3; i++){
+        particles.push({
+            x: xBase + (Math.random()*40-20),
+            y: yBase + (Math.random()*40-20),
+            vx: (Math.random() - 0.5) * 4,
+            vy: -Math.random() * 5 - 2,
+            life: 1,
+            decay: Math.random() * 0.03 + 0.02,
+            color: 'rgba(255,255,255,0.7)',
+            size: Math.random() * 3 + 2,
+            type: 'sweat'
+        });
+    }
+}
+
+function spawnConfetti() {
+    for(let i=0; i<100; i++){
+        particles.push({
+            x: canvas.width / 2,
+            y: canvas.height + 10,
+            vx: (Math.random() - 0.5) * 20,
+            vy: -Math.random() * 20 - 10,
+            life: 1,
+            decay: Math.random() * 0.01 + 0.005,
+            color: `hsl(${Math.random()*360}, 100%, 50%)`,
+            size: Math.random() * 6 + 4,
+            type: 'confetti'
+        });
+    }
+}
+
+function updateAndDrawParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.2; // Gravity
+        p.life -= p.decay;
+
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+            continue;
+        }
+
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        if (p.type === 'confetti') {
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+        } else {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    ctx.globalAlpha = 1.0;
+}
+
+// --- RENDERING ---
+
+function drawArena() {
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Background is handled by CSS, but let's draw a nice floor gradient
+    const floorGrad = ctx.createLinearGradient(0, h*0.7, 0, h);
+    floorGrad.addColorStop(0, 'rgba(0,0,0,0.2)');
+    floorGrad.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = floorGrad;
+    ctx.fillRect(0, h*0.7, w, h*0.3);
+
+    // Center Line
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([10, 10]);
+    ctx.beginPath();
+    ctx.moveTo(w/2, h*0.2);
+    ctx.lineTo(w/2, h*0.9);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Win Zones
+    const drawZone = (x, color) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x, h*0.75);
+        ctx.lineTo(x + (x < w/2 ? -30 : 30), h*0.75);
+        ctx.lineTo(x + (x < w/2 ? -10 : 10), h*0.85);
+        ctx.lineTo(x, h*0.85);
+        ctx.fill();
+        
+        // Vertical dashed line
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(x, h*0.4);
+        ctx.lineTo(x, h*0.9);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // Win thresholds mapped to screen coordinates
+    // ropePos is -100 to 100. Let's map 100 to w*0.3 from center.
+    const maxOffset = w * 0.35;
+    const leftWinX = w/2 - (winThreshold/100) * maxOffset;
+    const rightWinX = w/2 + (winThreshold/100) * maxOffset;
+
+    drawZone(leftWinX, 'rgba(59, 130, 246, 0.6)'); // Blue
+    drawZone(rightWinX, 'rgba(239, 68, 68, 0.6)'); // Red
+    
+    return { w, h, maxOffset };
+}
+
+function drawRopeAndCharacters(w, h, maxOffset) {
+    // Current rope center pixel
+    const ropeCenterPx = w/2 + (ropePos / 100) * maxOffset;
+    
+    // Character base positions
+    const p1BaseX = w * 0.15;
+    const p2BaseX = w * 0.85;
+    const charY = h * 0.75;
+    
+    // Calculate hand positions holding the rope
+    // Left char holds rope at 1/4 length, Right at 3/4 length approximately
+    const ropeLen = w * 0.8; 
+    const handL_X = ropeCenterPx - ropeLen/3;
+    const handR_X = ropeCenterPx + ropeLen/3;
+    const handY = h * 0.55;
+
+    // Draw Rope Base
+    ctx.lineCap = 'round';
+    
+    // Rope Shadow
+    ctx.beginPath();
+    ctx.moveTo(0, handY + 10);
+    ctx.lineTo(w, handY + 10);
+    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx.lineWidth = 14;
+    ctx.stroke();
+
+    // Main Rope (Thick brown line)
+    ctx.beginPath();
+    ctx.moveTo(-50, handY);
+    ctx.lineTo(w + 50, handY);
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 16;
+    ctx.stroke();
+
+    // Rope Braiding details (sine wave over it)
+    ctx.beginPath();
+    for (let x = -50; x < w+50; x += 10) {
+        ctx.lineTo(x, handY + Math.sin(x*0.5)*4);
+    }
+    ctx.strokeStyle = '#D2B48C';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Center Marker (Flag)
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(ropeCenterPx - 8, handY - 25, 16, 50);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(ropeCenterPx - 4, handY - 20, 8, 40);
+
+    // Draw Characters
+    drawStickman(p1BaseX, charY, handL_X, handY, '#3b82f6', true, charLeanL);
+    drawStickman(p2BaseX, charY, handR_X, handY, '#ef4444', false, charLeanR);
+}
+
+function drawStickman(baseX, baseY, handX, handY, color, isLeft, leanAngle) {
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 12;
+
+    const dir = isLeft ? -1 : 1;
+    
+    // Convert lean angle to radians
+    const leanRad = (leanAngle * Math.PI / 180) * dir;
+
+    // Body specs
+    const legLength = 60;
+    const bodyLength = 70;
+    const headRadius = 25;
+
+    // Hips stay relatively stable, slight move back based on lean
+    const hipX = baseX + Math.sin(leanRad) * 20;
+    const hipY = baseY - legLength;
+
+    // Shoulders pivot from hips
+    const shoulderX = hipX + Math.sin(leanRad) * bodyLength;
+    const shoulderY = hipY - Math.cos(leanRad) * bodyLength;
+
+    // Head
+    const headX = shoulderX + Math.sin(leanRad) * headRadius;
+    const headY = shoulderY - Math.cos(leanRad) * headRadius;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath();
+    ctx.ellipse(baseX, baseY + 10, 30, 10, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Legs (Bent, struggling)
+    ctx.beginPath();
+    ctx.moveTo(hipX, hipY);
+    // Back leg
+    ctx.lineTo(baseX + 20*dir, baseY);
+    ctx.moveTo(hipX, hipY);
+    // Front leg
+    ctx.lineTo(baseX - 30*dir, baseY - 10);
+    ctx.lineTo(baseX - 40*dir, baseY);
+    ctx.stroke();
+
+    // Body
+    ctx.beginPath();
+    ctx.moveTo(hipX, hipY);
+    ctx.lineTo(shoulderX, shoulderY);
+    ctx.stroke();
+
+    // Head
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(headX, headY, headRadius, 0, Math.PI*2);
+    ctx.fill();
+
+    // Face details
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(headX + 10*dir, headY - 5, 5, 0, Math.PI*2);
+    ctx.fill();
+    // Strain mouth
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(headX + 5*dir, headY + 10);
+    ctx.lineTo(headX + 15*dir, headY + 12);
+    ctx.stroke();
+    
+    // Sweat drops if leaning
+    if (Math.abs(leanAngle) > 20) {
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.beginPath();
+        ctx.arc(headX - 15*dir, headY - 10, 3, 0, Math.PI*2);
+        ctx.arc(headX - 10*dir, headY - 20, 2, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    // Arms stretching to rope hand pos
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(shoulderX, shoulderY);
+    ctx.lineTo(handX, handY);
+    ctx.stroke();
+}
+
+// --- MAIN LOOP ---
+let lastTime = 0;
+let frames = 0;
+let fps = 0;
+
+function gameLoop(timestamp) {
+    // FPS Calc
+    if (timestamp - lastTime >= 1000) {
+        fps = frames;
+        frames = 0;
+        lastTime = timestamp;
+        ui.fpsCounter.innerText = `${fps} FPS`;
+    }
+    frames++;
+
+    // Update
+    updatePhysics();
+
+    // Render
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    
+    // Screen Shake Apply
+    if (shakeMagnitude > 0) {
+        const dx = (Math.random() - 0.5) * shakeMagnitude;
+        const dy = (Math.random() - 0.5) * shakeMagnitude;
+        ctx.translate(dx, dy);
+    }
+
+    // Draw world
+    const { w, h, maxOffset } = drawArena();
+    drawRopeAndCharacters(w, h, maxOffset);
+    updateAndDrawParticles();
+
+    ctx.restore();
+
+    requestAnimationFrame(gameLoop);
+}
+
+// Start
+window.onload = init;
+
+</script>
+</body>
+</html>
