@@ -1,3 +1,5 @@
+--- START OF FILE Paste July 26, 2026 - 5:51PM ---
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -117,6 +119,16 @@ body{background:var(--user-bg);color:var(--user-text);font-size:var(--user-fonts
 .det-footer{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;}
 .det-footer .btn-go,.det-footer .btn-more{padding:11px 30px;font-size:15px;border-radius:11px;}
 
+/* AD TERRA OVERLAY */
+.ad-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px 16px;}
+.ad-overlay.open{display:flex;}
+.ad-card{background:var(--user-surface);border:1px solid var(--user-border);border-radius:20px;padding:30px;width:100%;max-width:420px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.5);animation:slideUp .28s cubic-bezier(.4,0,.2,1) forwards;}
+.ad-title{font-size:18px;font-weight:700;color:var(--user-text);margin-bottom:10px;}
+.ad-subtitle{font-size:13px;color:var(--user-text-muted);margin-bottom:20px;}
+.ad-timer{font-size:42px;font-weight:800;color:var(--user-accent3);margin:10px 0 20px;}
+.ad-cancel-btn{padding:10px 24px;background:var(--user-accent);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:none;margin:0 auto;}
+.ad-cancel-btn:hover{background:var(--user-accent2);box-shadow:0 0 14px rgba(109,40,217,.4);}
+
 /* LOADING / EMPTY */
 .loading-w{text-align:center;padding:60px 20px;color:var(--user-text-muted);}
 .spinner{width:38px;height:38px;border:3px solid var(--user-border);border-top-color:var(--user-accent2);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 14px;}
@@ -193,6 +205,16 @@ body{background:var(--user-bg);color:var(--user-text);font-size:var(--user-fonts
   </div>
 </div>
 
+<!-- AD TERRA OVERLAY -->
+<div class="ad-overlay" id="adOverlay">
+  <div class="ad-card">
+    <div class="ad-title">Sponsored Content</div>
+    <div class="ad-subtitle">Please wait 10 seconds to access your link...</div>
+    <div class="ad-timer" id="adTimer">10</div>
+    <button class="ad-cancel-btn" id="adCancelBtn" onclick="closeAdAndProceed()">Cancel / Continue</button>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -208,6 +230,50 @@ const firebaseConfig={
 };
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
+
+// ---- ADS TERRA CONFIG ----
+const AD_URL = "https://www.effectivecpmnetwork.com/j7rdu6e6ny?key=2d47f1c8e409cf5a62298c5d301da71a";
+let pendingAdAction = null;
+let adTimerInterval = null;
+
+function triggerAdWithAction(actionCallback) {
+  // 1. Open Ad Terra Smart Link in new tab
+  window.open(AD_URL, '_blank');
+
+  // 2. Setup Action & Timer
+  pendingAdAction = actionCallback;
+  const overlay = document.getElementById('adOverlay');
+  const timerEl = document.getElementById('adTimer');
+  const cancelBtn = document.getElementById('adCancelBtn');
+
+  let timeLeft = 10;
+  timerEl.textContent = timeLeft;
+  cancelBtn.style.display = 'none';
+  overlay.classList.add('open');
+
+  if(adTimerInterval) clearInterval(adTimerInterval);
+
+  adTimerInterval = setInterval(() => {
+    timeLeft--;
+    if (timeLeft > 0) {
+      timerEl.textContent = timeLeft;
+    } else {
+      clearInterval(adTimerInterval);
+      timerEl.textContent = "Ready!";
+      cancelBtn.style.display = 'block';
+    }
+  }, 1000);
+}
+
+window.closeAdAndProceed = function() {
+  const overlay = document.getElementById('adOverlay');
+  overlay.classList.remove('open');
+  if(adTimerInterval) clearInterval(adTimerInterval);
+  if (typeof pendingAdAction === 'function') {
+    pendingAdAction();
+    pendingAdAction = null;
+  }
+};
 
 // ---- THEME ----
 let isLight=localStorage.getItem('userTheme')==='light';
@@ -515,17 +581,21 @@ document.getElementById('detOverlay').addEventListener('click',function(e){if(e.
 window.handleGo=function(id){
   const item=curItems.find(i=>i.id===id);if(!item) return;
   closeDet();
-  if(item.actionType==='link'||item.actionType==='directory'){
-    window.open(item.actionValue,'_blank','noopener,noreferrer');
-  }
+  triggerAdWithAction(() => {
+    if(item.actionType==='link'||item.actionType==='directory'){
+      window.open(item.actionValue,'_blank','noopener,noreferrer');
+    }
+  });
 };
 
 // ---- MORE ----
 window.handleMore=function(id,name){
   closeDet();
-  targetHighlightId = null; // Clear highlight when clicking more
-  navStack.push({id,name});
-  loadDir(id);
+  triggerAdWithAction(() => {
+    targetHighlightId = null; // Clear highlight when clicking more
+    navStack.push({id,name});
+    loadDir(id);
+  });
 };
 
 // ---- NAV ----
