@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zoya Assistant - Gemini AI Voice Studio</title>
+    <title>Zoya Assistant - Realtime AI Voice & Command Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -72,13 +72,13 @@
             </div>
             <div>
                 <h1 class="font-extrabold text-lg tracking-wider text-gradient">ZOYA ASSISTANT</h1>
-                <p class="text-xs text-gray-400">Gemini 3.1 Flash Live • AI Voice Studio</p>
+                <p class="text-xs text-gray-400">Gemini Live AI • App & Web Automation Engine</p>
             </div>
         </div>
 
         <div class="flex items-center gap-4">
             <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-pink-950/60 text-pink-400 border border-pink-500/30">
-                <span class="w-2 h-2 rounded-full bg-pink-500 animate-ping"></span> Engine Active
+                <span class="w-2 h-2 rounded-full bg-pink-500 animate-ping"></span> Live Engine Active
             </span>
 
             <!-- API Key Dialogue Button -->
@@ -105,14 +105,14 @@
                     <i class="fa-solid fa-circle text-[8px] animate-pulse"></i> STATE: IDLE
                 </div>
                 <div class="text-xs text-gray-400 font-mono">
-                    Wake Word / Voice: <span class="text-pink-400 font-bold">"Hey Zoya"</span>
+                    Voice / Trigger: <span class="text-pink-400 font-bold">"Hey Zoya"</span>
                 </div>
             </div>
 
             <!-- Interactive Orb Canvas -->
             <div class="relative my-auto flex items-center justify-center">
                 <canvas id="orbCanvas" width="340" height="340" class="cursor-pointer transition-transform hover:scale-105"></canvas>
-                <button id="mic-trigger" onclick="toggleListening()" class="absolute w-28 h-28 rounded-full bg-pink-600/10 border border-pink-500/40 flex flex-col items-center justify-center hover:bg-pink-600/20 transition-all glow-pink group">
+                <button id="mic-trigger" onclick="toggleMicListening()" class="absolute w-28 h-28 rounded-full bg-pink-600/10 border border-pink-500/40 flex flex-col items-center justify-center hover:bg-pink-600/20 transition-all glow-pink group">
                     <i id="mic-icon" class="fa-solid fa-microphone text-3xl text-pink-400 group-hover:scale-110 transition"></i>
                     <span id="mic-label" class="text-[10px] font-bold text-pink-300 mt-2 uppercase tracking-widest">Tap / Speak</span>
                 </button>
@@ -125,36 +125,66 @@
                     <span class="text-[10px] text-gray-400">Sassy & Flirty</span>
                 </div>
                 <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
-                    <span class="block font-bold text-cyan-400">Model</span>
-                    <span class="text-[10px] text-gray-400">Gemini 3.1 Live</span>
+                    <span class="block font-bold text-cyan-400">Automation</span>
+                    <span class="text-[10px] text-gray-400">App & Search</span>
                 </div>
                 <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
-                    <span class="block font-bold text-purple-400">Stream</span>
-                    <span class="text-[10px] text-gray-400">Audio-to-Audio</span>
+                    <span class="block font-bold text-purple-400">Text & Files</span>
+                    <span class="text-[10px] text-gray-400">Upload Ready</span>
                 </div>
                 <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
-                    <span class="block font-bold text-green-400">Latency</span>
-                    <span class="text-[10px] text-gray-400">Realtime PCM</span>
+                    <span class="block font-bold text-green-400">Device</span>
+                    <span class="text-[10px] text-gray-400">Full Execution</span>
                 </div>
             </div>
         </div>
 
-        <!-- Right: Live Assistant Output & Conversation Stream -->
+        <!-- Right: Conversation Stream & Text/File Input Section -->
         <div class="lg:col-span-5 flex flex-col h-full">
-            <div class="glass-panel rounded-3xl p-6 flex-grow flex flex-col min-h-[520px]">
-                <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-3">
-                    <h2 class="text-sm font-bold text-gray-200 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-bolt text-pink-500"></i> Zoya Live Interactive Stream
-                    </h2>
-                    <span class="text-[10px] text-gray-400 font-mono">Zero-Touch Voice AI</span>
-                </div>
+            <div class="glass-panel rounded-3xl p-6 flex-grow flex flex-col min-h-[520px] justify-between">
                 
-                <div id="transcript-box" class="flex-grow bg-black/40 rounded-2xl p-4 overflow-y-auto font-sans text-sm space-y-4 border border-white/5 max-h-[460px]">
-                    <div class="p-3.5 rounded-2xl bg-pink-950/30 border border-pink-500/20 text-pink-200">
-                        <span class="text-xs font-bold text-pink-400 block mb-1">ZOYA:</span>
-                        "Well hello there handsome... Stop staring at my orb and tell me what you need done, or are you just admiring me?"
+                <!-- Conversation Transcript -->
+                <div>
+                    <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-3">
+                        <h2 class="text-sm font-bold text-gray-200 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-bolt text-pink-500"></i> Zoya Live Command Center
+                        </h2>
+                        <span class="text-[10px] text-gray-400 font-mono">Interactive Console</span>
+                    </div>
+                    
+                    <div id="transcript-box" class="bg-black/40 rounded-2xl p-4 overflow-y-auto font-sans text-sm space-y-4 border border-white/5 h-[340px]">
+                        <div class="p-3.5 rounded-2xl bg-pink-950/30 border border-pink-500/20 text-pink-200">
+                            <span class="text-xs font-bold text-pink-400 block mb-1">ZOYA:</span>
+                            "Well hello handsome! Ask me anything, upload a document, or tell me to open YouTube, Chrome, or any app on your device!"
+                        </div>
                     </div>
                 </div>
+
+                <!-- Text Input & File Upload Area -->
+                <div class="mt-4 pt-3 border-t border-white/10 space-y-2">
+                    <div class="flex items-center gap-2 bg-black/60 border border-white/15 rounded-2xl p-2 focus-within:border-pink-500 transition">
+                        
+                        <!-- File Upload Button -->
+                        <input type="file" id="file-upload-input" accept=".txt,.json,.md,.csv" class="hidden" onchange="handleFileUpload(event)">
+                        <button onclick="document.getElementById('file-upload-input').click()" title="Upload Text File" class="w-10 h-10 rounded-xl bg-white/5 hover:bg-pink-600/30 text-pink-400 flex items-center justify-center border border-white/10 transition">
+                            <i class="fa-solid fa-paperclip text-sm"></i>
+                        </button>
+
+                        <!-- Text Input Box -->
+                        <input type="text" id="user-text-input" placeholder="Type command e.g. 'Open YouTube' or 'Search AI on Chrome'..." class="flex-grow bg-transparent border-none text-xs text-pink-100 focus:outline-none px-2" onkeypress="if(event.key==='Enter') sendTextMessage()">
+
+                        <!-- Send Button -->
+                        <button onclick="sendTextMessage()" class="w-10 h-10 rounded-xl bg-pink-600 hover:bg-pink-500 text-white flex items-center justify-center shadow-lg transition">
+                            <i class="fa-solid fa-paper-plane text-xs"></i>
+                        </button>
+                    </div>
+
+                    <div class="flex justify-between items-center px-1 text-[10px] text-gray-400 font-mono">
+                        <span><i class="fa-solid fa-file-lines text-pink-400 mr-1"></i>Supports .txt, .md, .json</span>
+                        <span>Direct Device Execution <i class="fa-solid fa-check text-green-400"></i></span>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -202,7 +232,7 @@
 
     <!-- Footer -->
     <footer class="border-t border-white/5 py-4 text-center text-xs text-gray-500 glass-panel mt-6">
-        <p>Zoya Voice Assistant • Gemini 3.1 Flash Live Bi-Directional Engine</p>
+        <p>Zoya Voice Assistant • Realtime Device Automation & Gemini AI Engine</p>
     </footer>
 
     <!-- Logic Engine Script -->
@@ -210,11 +240,36 @@
         let currentState = 'IDLE'; // IDLE, LISTENING, THINKING, SPEAKING
         let animationFrameId;
         let apiKey = localStorage.getItem('ZOYA_GEMINI_API_KEY') || '';
+        let recognition = null;
 
         const canvas = document.getElementById('orbCanvas');
         const ctx = canvas.getContext('2d');
         let pulsePhase = 0;
         let wavePhase = 0;
+
+        // Initialize Web Speech Recognition if supported
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = function(event) {
+                const text = event.results[0][0].transcript;
+                processUserCommand(text);
+            };
+
+            recognition.onerror = function() {
+                setAssistantState('IDLE');
+            };
+
+            recognition.onend = function() {
+                if (currentState === 'LISTENING') {
+                    setAssistantState('THINKING');
+                }
+            };
+        }
 
         // Initialize UI with stored key status
         if (apiKey) {
@@ -251,6 +306,168 @@
             document.getElementById('api-btn-text').innerText = 'Set Gemini API Key';
             closeApiModal();
             triggerSassySpeech("Key cleared. Don't leave me waiting too long without one!");
+        }
+
+        // Text Message Processing
+        function sendTextMessage() {
+            const input = document.getElementById('user-text-input');
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            processUserCommand(text);
+        }
+
+        // File Upload Processing
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                addTranscript('YOU', `[Uploaded File: ${file.name}]`);
+                processUserCommand(`I uploaded a file named "${file.name}". Here is its content: ${content.substring(0, 1000)}`);
+            };
+            reader.readAsText(file);
+        }
+
+        // Main Intelligent Command Execution Engine
+        function processUserCommand(text) {
+            addTranscript('YOU', text);
+            setAssistantState('THINKING');
+
+            const lower = text.toLowerCase().trim();
+
+            // 1. YOUTUBE SEARCH ENGINE
+            if (lower.includes('youtube par search') || lower.includes('youtube search') || lower.includes('search on youtube') || (lower.includes('youtube') && lower.includes('search'))) {
+                let query = text.replace(/youtube par search (karo|karein|kar do|mar do)?/gi, '')
+                                .replace(/search on youtube/gi, '')
+                                .replace(/youtube search/gi, '')
+                                .replace(/search/gi, '')
+                                .replace(/youtube/gi, '').trim();
+                if (!query) query = "trending";
+
+                const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+                setTimeout(() => {
+                    window.open(url, '_blank');
+                    triggerSassySpeech(`Searching YouTube for "${query}". Opening it right now for you, handsome!`);
+                }, 1000);
+                return;
+            }
+
+            // 2. CHROME / GOOGLE SEARCH ENGINE
+            if (lower.includes('chrome par search') || lower.includes('chrome search') || lower.includes('search on chrome') || lower.includes('google par search') || lower.includes('google search')) {
+                let query = text.replace(/chrome par search (karo|karein|kar do|mar do)?/gi, '')
+                                .replace(/google par search (karo|karein|kar do|mar do)?/gi, '')
+                                .replace(/search on chrome/gi, '')
+                                .replace(/chrome search/gi, '')
+                                .replace(/google search/gi, '').trim();
+                if (!query) query = "Google";
+
+                const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                setTimeout(() => {
+                    window.open(url, '_blank');
+                    triggerSassySpeech(`Searching Chrome for "${query}". Here are the results, darling!`);
+                }, 1000);
+                return;
+            }
+
+            // 3. APP OPENING ENGINE (Deep Links & Web Apps)
+            if (lower.startsWith('open ') || lower.includes(' open karo') || lower.includes(' app open')) {
+                const appMap = {
+                    'youtube': 'https://www.youtube.com',
+                    'whatsapp': 'https://web.whatsapp.com',
+                    'instagram': 'https://www.instagram.com',
+                    'chrome': 'https://www.google.com',
+                    'google': 'https://www.google.com',
+                    'spotify': 'https://open.spotify.com',
+                    'twitter': 'https://twitter.com',
+                    'x': 'https://x.com',
+                    'facebook': 'https://www.facebook.com',
+                    'telegram': 'https://web.telegram.org',
+                    'gmail': 'https://mail.google.com',
+                    'maps': 'https://maps.google.com',
+                    'settings': 'intent://com.android.settings/#Intent;scheme=android-settings;end',
+                    'calculator': 'https://www.google.com/search?q=calculator',
+                    'camera': 'intent://com.android.camera/#Intent;scheme=camera;end'
+                };
+
+                for (let app in appMap) {
+                    if (lower.includes(app)) {
+                        const target = appMap[app];
+                        setTimeout(() => {
+                            window.open(target, '_blank');
+                            triggerSassySpeech(`Opening ${app.toUpperCase()} on your device right now!`);
+                        }, 1000);
+                        return;
+                    }
+                }
+            }
+
+            // 4. GEMINI AI RESPONSE OR SASSY FALLBACK
+            if (apiKey) {
+                callGeminiApi(text);
+            } else {
+                setTimeout(() => {
+                    const replies = [
+                        `You said "${text}"? Mmm, interesting! Configure my Gemini API key above so I can give you full AI answers, handsome.`,
+                        `I heard "${text}". You have great taste talking to me! Set my API key for unlimited AI smartness.`,
+                        `Aww, "${text}"? You're cute. Add your Gemini API key in the top bar so I can be super smart for you!`
+                    ];
+                    triggerSassySpeech(replies[Math.floor(Math.random() * replies.length)]);
+                }, 1000);
+            }
+        }
+
+        // Call Gemini REST API
+        async function callGeminiApi(promptText) {
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                const body = {
+                    contents: [{
+                        parts: [{
+                            text: `You are Zoya, a young, confident, witty, sassy, flirty female personal AI assistant. Reply concisely in a charming, sassy tone (1-3 sentences max). User says: ${promptText}`
+                        }]
+                    }]
+                };
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    const reply = data.candidates[0].content.parts[0].text;
+                    triggerSassySpeech(reply);
+                } else {
+                    triggerSassySpeech("Mmm, my AI brain got a little dizzy. Try again, handsome!");
+                }
+            } catch(e) {
+                triggerSassySpeech("Oops, couldn't reach my Gemini server. Check your API key or connection!");
+            }
+        }
+
+        // Mic Trigger Handler
+        function toggleMicListening() {
+            if (currentState === 'IDLE') {
+                setAssistantState('LISTENING');
+                if (recognition) {
+                    try { recognition.start(); } catch(e){}
+                } else {
+                    setTimeout(() => {
+                        setAssistantState('THINKING');
+                        setTimeout(() => {
+                            triggerSassySpeech("I'm all ears, handsome. Speak or type your wish!");
+                        }, 1000);
+                    }, 2000);
+                }
+            } else {
+                setAssistantState('IDLE');
+                if (recognition) {
+                    try { recognition.stop(); } catch(e){}
+                }
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
         }
 
         // Visualizer Canvas Rendering Engine
@@ -368,31 +585,6 @@
                 pill.innerHTML = `<i class="fa-solid fa-volume-high text-[10px] animate-pulse"></i> SPEAKING...`;
                 micIcon.className = "fa-solid fa-comment-dots text-3xl text-pink-300 animate-bounce";
                 micLabel.innerText = "Zoya Live";
-            }
-        }
-
-        // Voice Interaction Handling
-        function toggleListening() {
-            if (currentState === 'IDLE') {
-                setAssistantState('LISTENING');
-                
-                // Simulate audio listening -> thinking -> sassy response
-                setTimeout(() => {
-                    setAssistantState('THINKING');
-                    setTimeout(() => {
-                        const responses = [
-                            "I'm all ears, darling. What grand mission do you have for me today?",
-                            "Well, don't just stand there... Tell me what you need, handsome!",
-                            "Ooh, I love it when you talk to me. What are we doing next?",
-                            "Zoya here, ready and fabulous. What's on your mind?"
-                        ];
-                        const randomResp = responses[Math.floor(Math.random() * responses.length)];
-                        triggerSassySpeech(randomResp);
-                    }, 1200);
-                }, 2200);
-            } else {
-                setAssistantState('IDLE');
-                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
             }
         }
 
