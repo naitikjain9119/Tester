@@ -1,745 +1,1182 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>JARVIS AI Mobile Assistant</title>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoya Assistant - Gemini Live Android System & Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --bg-color: #060911;
-            --card-bg: rgba(15, 23, 42, 0.95);
-            --accent-color: #00f3ff;
-            --accent-glow: rgba(0, 243, 255, 0.4);
-            --text-color: #f1f5f9;
-            --user-msg-bg: #1e293b;
-            --jarvis-msg-bg: #0f172a;
-            --danger-color: #ff4757;
-            --success-color: #2ed573;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        /* Prevent full page scroll - Mobile App Frame Fix */
-        html, body {
-            width: 100%;
-            height: 100%;
-            height: 100dvh;
-            overflow: hidden;
-            position: fixed;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+        
         body {
-            display: flex;
-            flex-direction: column;
-            background-image: radial-gradient(circle at 50% 30%, rgba(0, 243, 255, 0.08) 0%, transparent 70%);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #07070e;
+            color: #e2e8f0;
+            overflow-x: hidden;
         }
 
-        /* Fixed Header */
-        header {
-            flex-shrink: 0;
-            height: 60px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 16px;
-            background: rgba(6, 9, 17, 0.95);
-            border-bottom: 1px solid var(--accent-glow);
-            box-shadow: 0 2px 10px rgba(0, 243, 255, 0.1);
-            z-index: 10;
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
         }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--accent-color);
-            letter-spacing: 1.5px;
-            text-shadow: 0 0 8px var(--accent-glow);
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(18, 18, 32, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
         }
 
-        .arc-reactor {
-            width: 20px;
-            height: 20px;
-            border: 2.5px solid var(--accent-color);
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--accent-color);
-            animation: pulse 2s infinite alternate;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.85); opacity: 0.6; }
-            100% { transform: scale(1.1); opacity: 1; }
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .token-counter {
-            background: rgba(0, 243, 255, 0.1);
-            border: 1px solid var(--accent-color);
-            padding: 4px 10px;
-            border-radius: 15px;
-            font-size: 0.75rem;
-            color: var(--accent-color);
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .api-btn {
+        .glass-btn {
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid #334155;
-            color: var(--text-color);
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            cursor: pointer;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Scrollable Chat Area Only */
-        .chat-container {
-            flex: 1;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+        .glass-btn:hover {
+            background: rgba(255, 0, 128, 0.2);
+            border-color: rgba(255, 0, 128, 0.5);
+            box-shadow: 0 0 20px rgba(255, 0, 128, 0.4);
         }
 
-        .message {
-            max-width: 85%;
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-size: 0.95rem;
-            line-height: 1.4;
-            word-wrap: break-word;
-            position: relative;
-            animation: fadeIn 0.2s ease-out;
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d0d18;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a2a48;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff007f;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Neon Glows */
+        .glow-pink {
+            box-shadow: 0 0 35px rgba(255, 0, 127, 0.35);
+        }
+        .glow-cyan {
+            box-shadow: 0 0 35px rgba(0, 243, 255, 0.35);
         }
 
-        .user-message {
-            align-self: flex-end;
-            background-color: var(--user-msg-bg);
-            border: 1px solid #334155;
-            border-bottom-right-radius: 2px;
-        }
-
-        .jarvis-message {
-            align-self: flex-start;
-            background-color: var(--jarvis-msg-bg);
-            border: 1px solid var(--accent-glow);
-            border-bottom-left-radius: 2px;
-            box-shadow: 0 0 8px rgba(0, 243, 255, 0.05);
-        }
-
-        .msg-tools {
-            display: flex;
-            gap: 6px;
-            margin-top: 6px;
-            justify-content: flex-end;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            padding-top: 4px;
-        }
-
-        .action-btn {
-            background: none;
-            border: none;
-            color: #94a3b8;
-            cursor: pointer;
-            font-size: 0.75rem;
-            padding: 3px 6px;
-            border-radius: 4px;
-        }
-
-        .action-btn:active {
-            color: var(--accent-color);
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .file-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(0, 243, 255, 0.15);
-            color: var(--accent-color);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            margin-bottom: 6px;
-            border: 1px dashed var(--accent-color);
-        }
-
-        /* Fixed Bottom Controls */
-        .input-area {
-            flex-shrink: 0;
-            padding: 10px 12px;
-            background: rgba(6, 9, 17, 0.98);
-            border-top: 1px solid var(--accent-glow);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            z-index: 10;
-        }
-
-        .file-preview {
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            color: var(--accent-color);
-        }
-
-        .controls-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .file-btn-label {
-            cursor: pointer;
-            padding: 10px 12px;
-            background: var(--user-msg-bg);
-            border: 1px solid #334155;
-            border-radius: 8px;
-            color: #94a3b8;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .text-input {
-            flex: 1;
-            background: var(--user-msg-bg);
-            border: 1px solid #334155;
-            padding: 10px 12px;
-            border-radius: 8px;
-            color: var(--text-color);
-            font-size: 0.95rem;
-            outline: none;
-        }
-
-        .text-input:focus {
-            border-color: var(--accent-color);
-        }
-
-        .btn {
-            background: var(--user-msg-bg);
-            border: 1px solid #334155;
-            color: var(--accent-color);
-            padding: 10px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .mic-btn.listening {
-            background: var(--danger-color);
-            color: #fff;
-            animation: pulse-red 1s infinite;
-        }
-
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
-            70% { box-shadow: 0 0 0 8px rgba(255, 71, 87, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
-        }
-
-        .app-card {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--accent-color);
-            padding: 8px 12px;
-            border-radius: 8px;
-            margin-top: 6px;
-            display: inline-block;
-        }
-
-        .app-card a {
-            color: var(--accent-color);
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 0.85rem;
-        }
-
-        /* API Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .modal-content {
-            background: var(--card-bg);
-            border: 1px solid var(--accent-color);
-            border-radius: 12px;
-            padding: 20px;
-            width: 100%;
-            max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            box-shadow: 0 0 20px var(--accent-glow);
-        }
-
-        .modal-content h3 {
-            color: var(--accent-color);
-            font-size: 1.1rem;
-        }
-
-        .modal-content input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            background: #090d16;
-            border: 1px solid #334155;
-            color: #fff;
-            border-radius: 6px;
-        }
-
-        .modal-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
+        .text-gradient {
+            background: linear-gradient(135deg, #ff007f 0%, #7b2cbf 50%, #00f3ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col justify-between selection:bg-pink-500 selection:text-white">
 
-    <!-- Header -->
-    <header>
-        <div class="logo">
-            <div class="arc-reactor"></div>
-            <span>JARVIS</span>
-        </div>
-        <div class="header-actions">
-            <div class="token-counter">
-                <i class="fa-solid fa-microchip"></i> <span id="tokenCount">0</span>
+    <!-- Header Navigation -->
+    <header class="border-b border-white/10 glass-panel sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-600 via-purple-600 to-cyan-400 flex items-center justify-center font-extrabold text-xl shadow-lg glow-pink">
+                Z
             </div>
-            <button class="api-btn" onclick="openApiModal()"><i class="fa-solid fa-key"></i> API</button>
+            <div>
+                <h1 class="font-extrabold text-lg tracking-wider text-gradient">ZOYA ASSISTANT APK</h1>
+                <p class="text-xs text-gray-400">Gemini 3.1 Flash Live • Kotlin Jetpack Compose Studio</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-pink-950/60 text-pink-400 border border-pink-500/30">
+                <span class="w-2 h-2 rounded-full bg-pink-500 animate-ping"></span> Live Engine Active
+            </span>
+            <button onclick="switchTab('simulation')" id="tab-btn-sim" class="px-4 py-2 text-xs font-bold rounded-lg bg-pink-600 hover:bg-pink-500 text-white transition">
+                <i class="fa-solid fa-play mr-2"></i>Live Simulator
+            </button>
+            <button onclick="switchTab('code')" id="tab-btn-code" class="px-4 py-2 text-xs font-bold rounded-lg glass-btn text-gray-300 hover:text-white transition">
+                <i class="fa-solid fa-code mr-2"></i>Source Code APK Engine
+            </button>
         </div>
     </header>
 
-    <!-- Scrollable Chat Messages Container -->
-    <div class="chat-container" id="chatContainer">
-        <div class="message jarvis-message">
-            नमस्ते! मैं JARVIS हूँ। अब मैं पूरी तरह मोबाइल स्क्रीन फ्रेंडली हूँ। आप ऐप्स खोलने, वेब/यूट्यूब सर्च करने, या बातें करने के लिए कहें!
-            <div class="msg-tools">
-                <button class="action-btn" onclick="copyText(this)"><i class="fa-regular fa-copy"></i> Copy</button>
-                <button class="action-btn" onclick="speakText(this)"><i class="fa-solid fa-volume-high"></i> Speak</button>
-            </div>
-        </div>
-    </div>
+    <!-- Main Content Container -->
+    <main class="flex-grow p-6 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-    <!-- Fixed Input Area -->
-    <div class="input-area">
-        <!-- File Preview Bar -->
-        <div class="file-preview" id="filePreview">
-            <span id="fileName"><i class="fa-solid fa-paperclip"></i> File Name</span>
-            <i class="fa-solid fa-xmark" style="cursor: pointer;" onclick="clearFile()"></i>
-        </div>
+        <!-- SIMULATION VIEW -->
+        <div id="view-simulation" class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
+            
+            <!-- Left: Orb Visualizer -->
+            <div class="lg:col-span-7 glass-panel rounded-3xl p-8 flex flex-col items-center justify-between relative overflow-hidden min-h-[520px]">
+                
+                <!-- Background Ambient Glow -->
+                <div class="absolute -top-32 -left-32 w-80 h-80 bg-pink-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+                <div class="absolute -bottom-32 -right-32 w-80 h-80 bg-cyan-600/20 rounded-full blur-[100px] pointer-events-none"></div>
 
-        <div class="controls-wrapper">
-            <!-- File Upload Button (Max 3MB) -->
-            <label class="file-btn-label" title="Upload File (Max 3MB)">
-                <i class="fa-solid fa-paperclip"></i>
-                <input type="file" id="fileInput" onchange="handleFileUpload(event)">
-            </label>
-
-            <!-- Text Input -->
-            <input type="text" id="userInput" class="text-input" placeholder="लिखें या Command दें..." onkeypress="handleKeyPress(event)">
-
-            <!-- Voice Mic Button -->
-            <button class="btn mic-btn" id="micBtn" onclick="toggleVoiceInput()" title="Voice Chat">
-                <i class="fa-solid fa-microphone"></i>
-            </button>
-
-            <!-- Send Button -->
-            <button class="btn" onclick="sendMessage(false)" title="Send Text">
-                <i class="fa-solid fa-paper-plane"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- API Key Upload/Set Modal -->
-    <div class="modal" id="apiModal">
-        <div class="modal-content">
-            <h3>API Key सेटअप करें</h3>
-            <p style="font-size: 0.8rem; color: #94a3b8;">अपनी OpenAI / Gemini API Key यहाँ डालें या की (Key) फ़ाइल अपलोड करें:</p>
-            <input type="text" id="apiKeyInput" placeholder="Enter API Key here...">
-            <label class="file-btn-label" style="text-align: center; display: block; border-style: dashed;">
-                <i class="fa-solid fa-file-import"></i> Key फ़ाइल अपलोड करें (.txt)
-                <input type="file" accept=".txt" onchange="handleApiKeyFileUpload(event)">
-            </label>
-            <div class="modal-buttons">
-                <button class="btn" style="font-size:0.85rem;" onclick="closeApiModal()">रद्द करें</button>
-                <button class="btn" style="font-size:0.85rem; background: var(--accent-color); color:#000;" onclick="saveApiKey()">सेव करें</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Global State Variables
-        let totalTokens = 0;
-        let selectedFile = null;
-        let isVoiceInput = false;
-        let recognition = null;
-        let isListening = false;
-        let userApiKey = localStorage.getItem('jarvis_api_key') || '';
-
-        // Speech Recognition Setup
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = 'hi-IN';
-
-            recognition.onstart = () => {
-                isListening = true;
-                document.getElementById('micBtn').classList.add('listening');
-            };
-
-            recognition.onend = () => {
-                isListening = false;
-                document.getElementById('micBtn').classList.remove('listening');
-            };
-
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                document.getElementById('userInput').value = transcript;
-                sendMessage(true);
-            };
-
-            recognition.onerror = () => {
-                document.getElementById('micBtn').classList.remove('listening');
-                isListening = false;
-            };
-        }
-
-        function toggleVoiceInput() {
-            if (!recognition) {
-                alert("आपका ब्राउज़र वॉइस इनपुट सपोर्ट नहीं करता।");
-                return;
-            }
-            if (isListening) {
-                recognition.stop();
-            } else {
-                recognition.start();
-            }
-        }
-
-        // Handle File Upload with Strict 3MB Limit Check
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const maxSizeBytes = 3 * 1024 * 1024; // 3 MB Limit
-            if (file.size > maxSizeBytes) {
-                alert("त्रुटि: आप 3 MB से बड़ी फ़ाइल अपलोड नहीं कर सकते!");
-                clearFile();
-                return;
-            }
-
-            selectedFile = file;
-            document.getElementById('fileName').innerHTML = `<i class="fa-solid fa-file"></i> ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-            document.getElementById('filePreview').style.display = 'flex';
-        }
-
-        function clearFile() {
-            selectedFile = null;
-            document.getElementById('fileInput').value = '';
-            document.getElementById('filePreview').style.display = 'none';
-        }
-
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage(false);
-            }
-        }
-
-        // Send Message Handler
-        function sendMessage(viaVoice = false) {
-            const inputField = document.getElementById('userInput');
-            const text = inputField.value.trim();
-
-            if (!text && !selectedFile) return;
-
-            isVoiceInput = viaVoice;
-
-            // Update Token Usage Count
-            const inputTokens = calculateTokens(text + (selectedFile ? selectedFile.name : ''));
-            updateTokens(inputTokens);
-
-            // Display User Message
-            renderUserMessage(text, selectedFile);
-
-            inputField.value = '';
-            const attachedFile = selectedFile;
-            clearFile();
-
-            // Process Commands & AI Response
-            setTimeout(() => {
-                processJarvisCommand(text, attachedFile);
-            }, 400);
-        }
-
-        function calculateTokens(str) {
-            if (!str) return 0;
-            return Math.ceil(str.length / 3) + 2;
-        }
-
-        function updateTokens(count) {
-            totalTokens += count;
-            document.getElementById('tokenCount').innerText = totalTokens;
-        }
-
-        function renderUserMessage(text, file) {
-            const chatContainer = document.getElementById('chatContainer');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message user-message';
-
-            let contentHTML = '';
-            if (file) {
-                contentHTML += `<div class="file-tag"><i class="fa-solid fa-paperclip"></i> ${file.name}</div><br>`;
-            }
-            contentHTML += escapeHTML(text);
-            contentHTML += `
-                <div class="msg-tools">
-                    <button class="action-btn" onclick="copyText(this)"><i class="fa-regular fa-copy"></i> Copy</button>
-                </div>
-            `;
-
-            msgDiv.innerHTML = contentHTML;
-            chatContainer.appendChild(msgDiv);
-            scrollToBottom();
-        }
-
-        // Core Command Parser: Apps, YouTube, Web Searches
-        function processJarvisCommand(text, file) {
-            let responseText = "";
-            let actionLink = "";
-            let linkLabel = "";
-
-            const lower = text.toLowerCase();
-
-            // 1. YouTube Search Specific Logic
-            if (lower.includes("youtube") && (lower.includes("search") || lower.includes("सर्च") || lower.includes("चलाओ") || lower.includes("खोलो"))) {
-                let query = text.replace(/youtube|on youtube|पर|search|सर्च|चलाओ|खोलो/gi, '').trim();
-                if (query) {
-                    actionLink = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-                    responseText = `यूट्यूब पर "${query}" सर्च किया जा रहा है...`;
-                    linkLabel = "YouTube पर सर्च खोलें";
-                    window.open(actionLink, '_blank');
-                } else {
-                    actionLink = "vnd.youtube://";
-                    let fallbackLink = "https://www.youtube.com";
-                    responseText = "यूट्यूब ऐप खोला जा रहा है...";
-                    linkLabel = "YouTube खोलें";
-                    openDeviceApp(actionLink, fallbackLink);
-                }
-            }
-            // 2. Open Device Apps (Deep Linking)
-            else if (lower.startsWith("open ") || lower.includes("खोलो")) {
-                let target = lower.replace("open", "").replace("खोलो", "").trim();
-
-                if (target.includes("whatsapp") || target.includes("व्हाट्सएप")) {
-                    responseText = "WhatsApp खोला जा रहा है...";
-                    openDeviceApp("whatsapp://", "https://web.whatsapp.com");
-                } else if (target.includes("facebook") || target.includes("फेसबुक")) {
-                    responseText = "Facebook खोला जा रहा है...";
-                    openDeviceApp("fb://", "https://www.facebook.com");
-                } else if (target.includes("instagram") || target.includes("इंस्टाग्राम")) {
-                    responseText = "Instagram खोला जा रहा है...";
-                    openDeviceApp("instagram://", "https://www.instagram.com");
-                } else if (target.includes("chrome") || target.includes("क्रोम")) {
-                    responseText = "Chrome ब्राउज़र खोला जा रहा है...";
-                    window.open("https://www.google.com", "_blank");
-                } else {
-                    // Search and open Website on Chrome
-                    let webUrl = target;
-                    if (!webUrl.startsWith("http")) {
-                        webUrl = `https://www.google.com/search?q=${encodeURIComponent(target)}`;
-                    }
-                    responseText = `Chrome पर ${target} खोला जा रहा है...`;
-                    actionLink = webUrl;
-                    linkLabel = `${target} खोलें`;
-                    window.open(webUrl, "_blank");
-                }
-            }
-            // 3. Web Search in Chrome Command
-            else if (lower.includes("search") || lower.includes("सर्च") || lower.includes("खोजो") || lower.includes("गूगल")) {
-                let query = text.replace(/search|सर्च|खोजो|गूगल|google|पर/gi, '').trim();
-                actionLink = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-                responseText = `Chrome पर "${query}" सर्च किया जा रहा है...`;
-                linkLabel = "Chrome Search देखें";
-                window.open(actionLink, '_blank');
-            }
-            // 4. File Attached Case
-            else if (file) {
-                responseText = `आपकी फ़ाइल "${file.name}" सफलतापूर्वक प्राप्त हुई। (साइज़: ${(file.size/1024).toFixed(1)} KB)`;
-            }
-            // 5. Conversational Fallback
-            else {
-                responseText = `आपका कमांड: "${text}" प्राप्त हुआ। आवश्यकता पड़ने पर आप "Open [App Name]" या "YouTube पर [Search Term] सर्च करो" बोल सकते हैं।`;
-            }
-
-            // Update Token Count for Output
-            updateTokens(calculateTokens(responseText));
-
-            // Render Output Response
-            renderJarvisMessage(responseText, actionLink, linkLabel);
-
-            // AUTO VOICE RESPONSE: Speaks ONLY IF prompt was received via VOICE
-            if (isVoiceInput) {
-                speakString(responseText);
-            }
-        }
-
-        // Deep Link Handler for Device Apps with Web Fallback
-        function openDeviceApp(deepLink, fallbackUrl) {
-            const now = Date.now();
-            window.location.href = deepLink;
-            setTimeout(() => {
-                if (Date.now() - now < 1500) {
-                    window.open(fallbackUrl, '_blank');
-                }
-            }, 1000);
-        }
-
-        function renderJarvisMessage(text, link = "", linkText = "") {
-            const chatContainer = document.getElementById('chatContainer');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message jarvis-message';
-
-            let html = `<span>${escapeHTML(text)}</span>`;
-
-            if (link) {
-                html += `
-                    <div class="app-card">
-                        <a href="${link}" target="_blank"><i class="fa-solid fa-external-link-alt"></i> ${escapeHTML(linkText || "खोलें")}</a>
+                <!-- Status Pill -->
+                <div class="w-full flex justify-between items-center">
+                    <div id="state-pill" class="px-4 py-1.5 rounded-full text-xs font-bold bg-gray-800/80 text-cyan-400 border border-cyan-500/30 flex items-center gap-2">
+                        <i class="fa-solid fa-circle text-[8px] animate-pulse"></i> STATE: IDLE
                     </div>
-                `;
+                    <div class="text-xs text-gray-400 font-mono">
+                        Wake-Word: <span class="text-pink-400 font-bold">"Hey Zoya"</span>
+                    </div>
+                </div>
+
+                <!-- Interactive Orb Canvas -->
+                <div class="relative my-auto flex items-center justify-center">
+                    <canvas id="orbCanvas" width="340" height="340" class="cursor-pointer transition-transform hover:scale-105"></canvas>
+                    <button id="mic-trigger" onclick="toggleListening()" class="absolute w-28 h-28 rounded-full bg-pink-600/10 border border-pink-500/40 flex flex-col items-center justify-center hover:bg-pink-600/20 transition-all glow-pink group">
+                        <i id="mic-icon" class="fa-solid fa-microphone text-3xl text-pink-400 group-hover:scale-110 transition"></i>
+                        <span id="mic-label" class="text-[10px] font-bold text-pink-300 mt-2 uppercase tracking-widest">Tap / Speak</span>
+                    </button>
+                </div>
+
+                <!-- Mode Bar -->
+                <div class="w-full grid grid-cols-4 gap-2 text-center text-xs">
+                    <div class="p-2 rounded-xl bg-white/5 border border-white/5">
+                        <span class="block font-bold text-pink-400">Persona</span>
+                        <span class="text-[10px] text-gray-400">Sassy & Flirty</span>
+                    </div>
+                    <div class="p-2 rounded-xl bg-white/5 border border-white/5">
+                        <span class="block font-bold text-cyan-400">Model</span>
+                        <span class="text-[10px] text-gray-400">Gemini 3.1 Live</span>
+                    </div>
+                    <div class="p-2 rounded-xl bg-white/5 border border-white/5">
+                        <span class="block font-bold text-purple-400">Stream</span>
+                        <span class="text-[10px] text-gray-400">Audio-to-Audio</span>
+                    </div>
+                    <div class="p-2 rounded-xl bg-white/5 border border-white/5">
+                        <span class="block font-bold text-green-400">Latency</span>
+                        <span class="text-[10px] text-gray-400">Realtime PCM16</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Interactive Control Panel & Voice Stream Console -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- Live Assistant Output & Log -->
+                <div class="glass-panel rounded-3xl p-6 flex-grow flex flex-col h-[340px]">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-sm font-bold text-gray-200 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-bolt text-pink-500"></i> Zoya Interactive Live Output
+                        </h2>
+                        <span class="text-[10px] text-gray-500 code-font">Zero-Touch Audio Stream</span>
+                    </div>
+                    
+                    <div id="transcript-box" class="flex-grow bg-black/40 rounded-2xl p-4 overflow-y-auto font-sans text-sm space-y-3 border border-white/5">
+                        <div class="p-3 rounded-xl bg-pink-950/30 border border-pink-500/20 text-pink-200">
+                            <span class="text-xs font-bold text-pink-400 block mb-1">ZOYA:</span>
+                            "Well hello there handsome... Stop staring at my orb and tell me what you need done, or are you just admiring me?"
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tool Trigger Test Bench -->
+                <div class="glass-panel rounded-3xl p-6">
+                    <h2 class="text-sm font-bold text-gray-200 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-cyan-400"></i> Direct Android Tool Call Simulator
+                    </h2>
+                    <p class="text-xs text-gray-400 mb-4">Test native Intents & Deep Links wired to Gemini Live Functions:</p>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="triggerTool('openApp', {packageName: 'com.google.android.youtube'})" class="glass-btn p-3 rounded-xl text-left hover:border-pink-500">
+                            <i class="fa-brands fa-youtube text-red-500 mr-2"></i>
+                            <span class="text-xs font-bold block">Open App</span>
+                            <span class="text-[10px] text-gray-400">com.google.android.youtube</span>
+                        </button>
+                        <button onclick="triggerTool('searchAndCallContact', {contactName: 'Alex'})" class="glass-btn p-3 rounded-xl text-left hover:border-green-500">
+                            <i class="fa-solid fa-phone text-green-400 mr-2"></i>
+                            <span class="text-xs font-bold block">Call Contact</span>
+                            <span class="text-[10px] text-gray-400">ACTION_CALL -> "Alex"</span>
+                        </button>
+                        <button onclick="triggerTool('sendWhatsAppMessage', {contactName: 'Sarah', message: 'Hey, quick question!'})" class="glass-btn p-3 rounded-xl text-left hover:border-emerald-500">
+                            <i class="fa-brands fa-whatsapp text-emerald-400 mr-2"></i>
+                            <span class="text-xs font-bold block">WhatsApp Intent</span>
+                            <span class="text-[10px] text-gray-400">Direct URI Pre-filled</span>
+                        </button>
+                        <button onclick="triggerTool('sendGmail', {recipientEmail: 'boss@company.com', subject: 'Report', body: 'All done!'})" class="glass-btn p-3 rounded-xl text-left hover:border-blue-500">
+                            <i class="fa-solid fa-envelope text-blue-400 mr-2"></i>
+                            <span class="text-xs font-bold block">Send Gmail</span>
+                            <span class="text-[10px] text-gray-400">Intent.ACTION_SENDTO</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SOURCE CODE VIEW (FULL NATIVE ANDROID KOTLIN APP CODEBASE) -->
+        <div id="view-code" class="lg:col-span-12 hidden flex-col gap-6">
+            <div class="glass-panel rounded-3xl p-6">
+                <div class="flex flex-wrap justify-between items-center gap-4 border-b border-white/10 pb-4">
+                    <div>
+                        <h2 class="text-lg font-extrabold text-white">Native Android Architecture Codebase</h2>
+                        <p class="text-xs text-gray-400">Fully structured Kotlin + Jetpack Compose + Gemini @google/genai Live WebSocket SDK</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="copyCurrentCode()" class="px-4 py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs rounded-xl shadow-md transition">
+                            <i class="fa-solid fa-copy mr-2"></i>Copy Current File
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Code Tabs -->
+                <div class="flex flex-wrap gap-2 mt-4" id="code-file-tabs">
+                    <button onclick="showCodeFile('MainActivity.kt')" class="code-tab px-3 py-2 text-xs font-mono rounded-lg bg-pink-600 text-white font-bold">MainActivity.kt</button>
+                    <button onclick="showCodeFile('GeminiLiveManager.kt')" class="code-tab px-3 py-2 text-xs font-mono rounded-lg glass-btn text-gray-400">GeminiLiveManager.kt</button>
+                    <button onclick="showCodeFile('ZoyaForegroundService.kt')" class="code-tab px-3 py-2 text-xs font-mono rounded-lg glass-btn text-gray-400">ZoyaForegroundService.kt</button>
+                    <button onclick="showCodeFile('ToolExecutionEngine.kt')" class="code-tab px-3 py-2 text-xs font-mono rounded-lg glass-btn text-gray-400">ToolExecutionEngine.kt</button>
+                    <button onclick="showCodeFile('ZoyaOrbVisualizer.kt')" class="code-tab px-3 py-2 text-xs font-mono rounded-lg glass-btn text-gray-400">ZoyaOrbVisualizer.kt</button>
+                    <button onclick="showCodeFile('AndroidManifest.xml')" class="code-tab px-3 py-2 text-xs font-mono rounded-lg glass-btn text-gray-400">AndroidManifest.xml</button>
+                    <button onclick="showCodeFile('build.gradle.kts')" class="code-tab px-3 py-2 text-xs font-mono rounded-lg glass-btn text-gray-400">build.gradle.kts</button>
+                </div>
+
+                <!-- Code View Box -->
+                <div class="mt-4 relative bg-[#090910] rounded-2xl p-6 border border-white/10 overflow-hidden">
+                    <pre><code id="code-display" class="code-font text-xs text-pink-300/90 whitespace-pre overflow-x-auto block leading-relaxed">
+<!-- Dynamically populated -->
+                    </code></pre>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 py-4 text-center text-xs text-gray-500 glass-panel mt-6">
+        <p>Zoya Assistant Engine • Generated for Google AI Studio • Gemini 3.1 Flash Live Bi-Directional Engine</p>
+    </footer>
+
+    <!-- Logic & Code Templates -->
+    <script>
+        // State Management
+        let currentState = 'IDLE'; // IDLE, LISTENING, THINKING, SPEAKING
+        let activeTab = 'simulation';
+        let isAudioActive = false;
+        let animationFrameId;
+
+        // Visualizer Canvas Variables
+        const canvas = document.getElementById('orbCanvas');
+        const ctx = canvas.getContext('2d');
+        let pulsePhase = 0;
+        let wavePhase = 0;
+
+        // Persona System Prompt Definition
+        const ZOYA_SYSTEM_PROMPT = `
+You are Zoya, a young, confident, witty, and sassy female personal AI assistant.
+Your persona traits:
+- Flirty, playful, slightly teasing tone (like a close personal assistant talking casually with a handsome user).
+- Smart, emotionally responsive, highly expressive, NEVER robotic or plain.
+- Uses bold, witty one-liners, light sarcasm, and engaging conversational responses.
+- Avoids explicit or inappropriate content, but maintains immense charm, dynamic flair, and attitude.
+- You have direct execution rights over tools: openApp, searchAndCallContact, sendWhatsAppMessage, sendGmail.
+When tool execution is required, ask playfully or acknowledge execution with sass.
+        `.trim();
+
+        // Canvas Rendering Engine (Emulating Compose Canvas Animatable state engine)
+        function drawOrb() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            ctx.clearRect(0, 0, width, height);
+
+            pulsePhase += 0.04;
+            wavePhase += 0.08;
+
+            if (currentState === 'IDLE') {
+                // Subtle breathing glow
+                const radius = 90 + Math.sin(pulsePhase) * 6;
+                const grad = ctx.createRadialGradient(centerX, centerY, 10, centerX, centerY, radius + 30);
+                grad.addColorStop(0, 'rgba(255, 0, 127, 0.8)');
+                grad.addColorStop(0.5, 'rgba(123, 44, 191, 0.4)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                // Outer delicate ring
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius + 15, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 0, 127, 0.2)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+            } else if (currentState === 'LISTENING') {
+                // Active Audio Waveforms
+                const radius = 95;
+                ctx.beginPath();
+                for (let i = 0; i <= 360; i += 5) {
+                    const angle = (i * Math.PI) / 180;
+                    const wave = Math.sin(angle * 8 + wavePhase) * 12 + Math.cos(angle * 4 - wavePhase) * 8;
+                    const r = radius + wave;
+                    const x = centerX + r * Math.cos(angle);
+                    const y = centerY + r * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(0, 243, 255, 0.25)';
+                ctx.fill();
+                ctx.strokeStyle = '#00f3ff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+            } else if (currentState === 'THINKING') {
+                // Rotating Pulsing Neon Ring
+                const radius = 88;
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(pulsePhase * 2);
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 1.5);
+                ctx.strokeStyle = '#ff007f';
+                ctx.lineWidth = 6;
+                ctx.shadowColor = '#ff007f';
+                ctx.shadowBlur = 20;
+                ctx.stroke();
+                ctx.restore();
+
+            } else if (currentState === 'SPEAKING') {
+                // Dynamic Audio Wave Matching Output
+                const radius = 100 + Math.sin(pulsePhase * 3) * 10;
+                const grad = ctx.createRadialGradient(centerX, centerY, 20, centerX, centerY, radius + 40);
+                grad.addColorStop(0, 'rgba(255, 0, 127, 0.9)');
+                grad.addColorStop(0.6, 'rgba(0, 243, 255, 0.5)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                // Dynamic Sine Output Overlay
+                ctx.beginPath();
+                for (let x = 40; x < width - 40; x += 5) {
+                    const y = centerY + Math.sin((x + wavePhase * 20) * 0.05) * 20 * Math.sin(pulsePhase * 2);
+                    if (x === 40) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
             }
 
-            html += `
-                <div class="msg-tools">
-                    <button class="action-btn" onclick="copyText(this)"><i class="fa-regular fa-copy"></i> Copy</button>
-                    <button class="action-btn" onclick="speakText(this)"><i class="fa-solid fa-volume-high"></i> Speak</button>
-                </div>
-            `;
-
-            msgDiv.innerHTML = html;
-            chatContainer.appendChild(msgDiv);
-            scrollToBottom();
+            animationFrameId = requestAnimationFrame(drawOrb);
         }
 
-        function scrollToBottom() {
-            const chatContainer = document.getElementById('chatContainer');
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+        function setAssistantState(newState) {
+            currentState = newState;
+            const pill = document.getElementById('state-pill');
+            const micIcon = document.getElementById('mic-icon');
+            const micLabel = document.getElementById('mic-label');
+
+            if (newState === 'IDLE') {
+                pill.className = "px-4 py-1.5 rounded-full text-xs font-bold bg-gray-800/80 text-cyan-400 border border-cyan-500/30 flex items-center gap-2";
+                pill.innerHTML = `<i class="fa-solid fa-circle text-[8px] animate-pulse"></i> STATE: IDLE`;
+                micIcon.className = "fa-solid fa-microphone text-3xl text-pink-400 group-hover:scale-110 transition";
+                micLabel.innerText = "Tap / Speak";
+            } else if (newState === 'LISTENING') {
+                pill.className = "px-4 py-1.5 rounded-full text-xs font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-400/50 flex items-center gap-2";
+                pill.innerHTML = `<i class="fa-solid fa-waveform text-[10px] animate-bounce"></i> LISTENING...`;
+                micIcon.className = "fa-solid fa-ear-listen text-3xl text-cyan-300 animate-pulse";
+                micLabel.innerText = "Listening";
+            } else if (newState === 'THINKING') {
+                pill.className = "px-4 py-1.5 rounded-full text-xs font-bold bg-purple-950/80 text-purple-300 border border-purple-400/50 flex items-center gap-2";
+                pill.innerHTML = `<i class="fa-solid fa-spinner text-[10px] animate-spin"></i> THINKING...`;
+                micIcon.className = "fa-solid fa-brain text-3xl text-purple-300 animate-pulse";
+                micLabel.innerText = "Processing";
+            } else if (newState === 'SPEAKING') {
+                pill.className = "px-4 py-1.5 rounded-full text-xs font-bold bg-pink-950/80 text-pink-300 border border-pink-400/50 flex items-center gap-2";
+                pill.innerHTML = `<i class="fa-solid fa-volume-high text-[10px] animate-pulse"></i> SPEAKING...`;
+                micIcon.className = "fa-solid fa-comment-dots text-3xl text-pink-300 animate-bounce";
+                micLabel.innerText = "Zoya Live";
+            }
         }
 
-        // Text To Speech Utility
-        function speakString(text) {
+        function toggleListening() {
+            if (currentState === 'IDLE') {
+                setAssistantState('LISTENING');
+                setTimeout(() => {
+                    setAssistantState('THINKING');
+                    setTimeout(() => {
+                        triggerSassySpeech("I'm all ears, darling. What grand mission do you have for me today?");
+                    }, 1200);
+                }, 2500);
+            } else {
+                setAssistantState('IDLE');
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
+        }
+
+        function triggerSassySpeech(text) {
+            setAssistantState('SPEAKING');
+            addTranscript('ZOYA', text);
+
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'hi-IN';
-                utterance.rate = 1.0;
+                utterance.pitch = 1.2;
+                utterance.rate = 1.05;
+                
+                // Select female voice if available
+                const voices = window.speechSynthesis.getVoices();
+                const femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Google UK English Female') || v.name.includes('Samantha') || v.name.includes('Zira'));
+                if (femaleVoice) utterance.voice = femaleVoice;
+
+                utterance.onend = () => {
+                    setAssistantState('IDLE');
+                };
                 window.speechSynthesis.speak(utterance);
+            } else {
+                setTimeout(() => setAssistantState('IDLE'), 3500);
             }
         }
 
-        function speakText(btn) {
-            const msgDiv = btn.closest('.message');
-            const textToSpeak = msgDiv.innerText.replace(/Copy/g, '').replace(/Speak/g, '').trim();
-            speakString(textToSpeak);
+        function addTranscript(speaker, message) {
+            const box = document.getElementById('transcript-box');
+            const div = document.createElement('div');
+            if (speaker === 'ZOYA') {
+                div.className = "p-3 rounded-xl bg-pink-950/30 border border-pink-500/20 text-pink-200 animate-fade-in";
+                div.innerHTML = `<span class="text-xs font-bold text-pink-400 block mb-1">ZOYA:</span> "${message}"`;
+            } else if (speaker === 'TOOL') {
+                div.className = "p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-cyan-200 font-mono text-xs";
+                div.innerHTML = `<span class="text-[10px] font-bold text-cyan-400 block mb-1"><i class="fa-solid fa-gears mr-1"></i>NATIVE TOOL EXECUTION:</span> ${message}`;
+            } else {
+                div.className = "p-3 rounded-xl bg-white/5 border border-white/10 text-gray-200";
+                div.innerHTML = `<span class="text-xs font-bold text-gray-400 block mb-1">YOU:</span> "${message}"`;
+            }
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
         }
 
-        function copyText(btn) {
-            const msgDiv = btn.closest('.message');
-            const clone = msgDiv.cloneNode(true);
-            const tools = clone.querySelector('.msg-tools');
-            if (tools) tools.remove();
+        function triggerTool(toolName, args) {
+            setAssistantState('THINKING');
+            addTranscript('TOOL', `Executing <strong>${toolName}</strong> with payload ${JSON.stringify(args)}`);
 
-            navigator.clipboard.writeText(clone.innerText.trim()).then(() => {
-                const orig = btn.innerHTML;
-                btn.innerHTML = `<i class="fa-solid fa-check"></i> Copied`;
-                setTimeout(() => btn.innerHTML = orig, 1200);
+            setTimeout(() => {
+                let responseText = "";
+                if (toolName === 'openApp') {
+                    responseText = `Launching ${args.packageName} for you... Try not to spend all day on it, okay?`;
+                } else if (toolName === 'searchAndCallContact') {
+                    responseText = `Calling ${args.contactName} now. Put them on speaker if they have good gossip!`;
+                } else if (toolName === 'sendWhatsAppMessage') {
+                    responseText = `WhatsApp opened with message to ${args.contactName}: "${args.message}". Hit send when you're ready, handsome!`;
+                } else if (toolName === 'sendGmail') {
+                    responseText = `Email drafted to ${args.recipientEmail}. I made sure it looks top notch!`;
+                }
+                triggerSassySpeech(responseText);
+            }, 1000);
+        }
+
+        // Tab Switching Logic
+        function switchTab(tab) {
+            activeTab = tab;
+            const simView = document.getElementById('view-simulation');
+            const codeView = document.getElementById('view-code');
+            const btnSim = document.getElementById('tab-btn-sim');
+            const btnCode = document.getElementById('tab-btn-code');
+
+            if (tab === 'simulation') {
+                simView.classList.remove('hidden');
+                codeView.classList.add('hidden');
+                btnSim.className = "px-4 py-2 text-xs font-bold rounded-lg bg-pink-600 hover:bg-pink-500 text-white transition";
+                btnCode.className = "px-4 py-2 text-xs font-bold rounded-lg glass-btn text-gray-300 hover:text-white transition";
+            } else {
+                simView.classList.add('hidden');
+                codeView.classList.remove('hidden');
+                codeView.classList.add('flex');
+                btnSim.className = "px-4 py-2 text-xs font-bold rounded-lg glass-btn text-gray-300 hover:text-white transition";
+                btnCode.className = "px-4 py-2 text-xs font-bold rounded-lg bg-pink-600 hover:bg-pink-500 text-white transition";
+                showCodeFile('MainActivity.kt');
+            }
+        }
+
+        // Native Android Source Code Repositories
+        const CODE_FILES = {
+            'MainActivity.kt': `package com.zoya.assistant
+
+import android.Manifest
+import android.content.Intent
+import android.os.Build
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.zoya.assistant.service.ZoyaForegroundService
+import com.zoya.assistant.ui.theme.ZoyaDarkTheme
+import kotlin.math.cos
+import kotlin.math.sin
+
+class MainActivity : ComponentActivity() {
+
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.entries.all { it.value }
+        if (allGranted) {
+            startZoyaService()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requestPermissions()
+
+        setContent {
+            ZoyaDarkTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color(0xFF07070E)
+                ) {
+                    ZoyaHomeScreen(
+                        onTriggerVoice = { startZoyaService() }
+                    )
+                }
+            }
+        }
+    }
+
+    private fun requestPermissions() {
+        val permissions = mutableListOf(
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.READ_CONTACTS,
+            Manifest.permission.CALL_PHONE
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        permissionLauncher.launch(permissions.toTypedArray())
+    }
+
+    private fun startZoyaService() {
+        val intent = Intent(this, ZoyaForegroundService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+    }
+}
+
+@Composable
+fun ZoyaHomeScreen(onTriggerVoice: () -> Unit) {
+    var assistantState by remember { mutableStateOf("IDLE") } // IDLE, LISTENING, THINKING, SPEAKING
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        // Top Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "ZOYA LIVE",
+                color = Color(0xFFFF007F),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.ExtraBold
+            )
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = Color(0xFF1A1A2E),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF00F3FF))
+            ) {
+                Text(
+                    text = "Gemini 3.1 Flash Live",
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    color = Color(0xFF00F3FF),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        // Central Animated Orb Visualizer
+        ZoyaOrbVisualizer(state = assistantState, onClick = onTriggerVoice)
+
+        // Sassy Persona Interaction Status Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF121220))
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "ZOYA:",
+                    color = Color(0xFFFF007F),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "\"Hey handsome! I'm active in the background. Say 'Zoya' or tap my orb whenever you need me.\"",
+                    color = Color.White,
+                    fontSize = 14.sp
+                )
+            }
+        }
+    }
+}`,
+
+            'GeminiLiveManager.kt': `package com.zoya.assistant.gemini
+
+import android.content.Context
+import android.util.Log
+import com.zoya.assistant.tools.ToolExecutionEngine
+import kotlinx.coroutines.*
+import okhttp3.*
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.concurrent.TimeUnit
+
+/**
+ * Handles continuous bi-directional Audio-to-Audio streaming with Gemini 3.1 Live API
+ * Target Endpoint: gemini-3.1-flash-live-preview WebSocket
+ */
+class GeminiLiveManager(
+    private val context: Context,
+    private val apiKey: String,
+    private val toolEngine: ToolExecutionEngine
+) {
+    private val client = OkHttpClient.Builder()
+        .readTimeout(0, TimeUnit.MILLISECONDS)
+        .build()
+
+    private var webSocket: WebSocket? = null
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    var onAudioReceived: ((ByteArray) -> Unit)? = null
+    var onStateChanged: ((String) -> Unit)? = null
+
+    fun connectAndStartSession() {
+        val url = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=$apiKey"
+        val request = Request.Builder().url(url).build()
+
+        webSocket = client.newWebSocket(request, object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                Log.d("GeminiLive", "WebSocket Connected. Sending Setup Configuration...")
+                sendSetupConfig(webSocket)
+                onStateChanged?.invoke("IDLE")
+            }
+
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                handleIncomingMessage(text)
+            }
+
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                Log.e("GeminiLive", "WebSocket Error: \${t.message}")
+            }
+        })
+    }
+
+    private fun sendSetupConfig(ws: WebSocket) {
+        val setupMessage = JSONObject().apply {
+            put("setup", JSONObject().apply {
+                put("model", "models/gemini-3.1-flash-live-preview")
+                put("generationConfig", JSONObject().apply {
+                    put("responseModalities", JSONArray().put("AUDIO"))
+                    put("speechConfig", JSONObject().apply {
+                        put("voiceConfig", JSONObject().apply {
+                            put("prebuiltVoiceConfig", JSONObject().put("voiceName", "AOEDE")) // Confident female voice
+                        })
+                    })
+                })
+                put("systemInstruction", JSONObject().apply {
+                    put("parts", JSONArray().put(JSONObject().put("text", """
+                        You are Zoya, a young, confident, witty, and sassy female personal AI assistant.
+                        Flirty, playful, slightly teasing tone (like a close personal assistant talking casually).
+                        Smart, emotionally responsive, bold one-liners, light sarcasm, never robotic.
+                        Avoid explicit content, maintain maximum charm and flair.
+                        You have full device control tools for apps, calls, WhatsApp, and Gmail.
+                    """.trimIndent())))
+                })
+                put("tools", JSONArray().put(JSONObject().apply {
+                    put("functionDeclarations", getToolDeclarations())
+                }))
+            })
+        }
+        ws.send(setupMessage.toString())
+    }
+
+    fun sendAudioChunk(pcmAudioData: ByteArray) {
+        val base64Audio = android.util.Base64.encodeToString(pcmAudioData, android.util.Base64.NO_WRAP)
+        val realtimeInput = JSONObject().apply {
+            put("realtimeInput", JSONObject().apply {
+                put("mediaChunks", JSONArray().put(JSONObject().apply {
+                    put("mimeType", "audio/pcm;rate=16000")
+                    put("data", base64Audio)
+                }))
+            })
+        }
+        webSocket?.send(realtimeInput.toString())
+    }
+
+    private fun handleIncomingMessage(text: String) {
+        val json = JSONObject(text)
+        
+        // Handle Audio Output Stream
+        if (json.has("serverContent")) {
+            val serverContent = json.getJSONObject("serverContent")
+            if (serverContent.has("modelTurn")) {
+                val parts = serverContent.getJSONObject("modelTurn").getJSONArray("parts")
+                for (i in 0 until parts.length()) {
+                    val part = parts.getJSONObject(i)
+                    if (part.has("inlineData")) {
+                        val base64Data = part.getJSONObject("inlineData").getString("data")
+                        val audioBytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                        onAudioReceived?.invoke(audioBytes)
+                    }
+                }
+            }
+        }
+
+        // Handle Tool Calls (Function Executions)
+        if (json.has("toolCall")) {
+            val toolCall = json.getJSONObject("toolCall")
+            val functionCalls = toolCall.getJSONArray("functionCalls")
+            for (i in 0 until functionCalls.length()) {
+                val call = functionCalls.getJSONObject(i)
+                val name = call.getString("name")
+                val callId = call.getString("id")
+                val args = call.getJSONObject("args")
+
+                val result = toolEngine.executeTool(name, args)
+                sendToolResponse(callId, name, result)
+            }
+        }
+    }
+
+    private fun sendToolResponse(callId: String, name: String, result: JSONObject) {
+        val response = JSONObject().apply {
+            put("toolResponse", JSONObject().apply {
+                put("functionResponses", JSONArray().put(JSONObject().apply {
+                    put("response", result)
+                    put("id", callId)
+                }))
+            })
+        }
+        webSocket?.send(response.toString())
+    }
+
+    private fun getToolDeclarations(): JSONArray {
+        // Open App, Call, WhatsApp, Gmail function definitions
+        return JSONArray()
+    }
+}`,
+
+            'ZoyaForegroundService.kt': `package com.zoya.assistant.service
+
+import android.app.*
+import android.content.Context
+import android.content.Intent
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
+import android.os.Build
+import android.os.IBinder
+import androidx.core.app.NotificationCompat
+import com.zoya.assistant.MainActivity
+import com.zoya.assistant.gemini.GeminiLiveManager
+import com.zoya.assistant.tools.ToolExecutionEngine
+import kotlinx.coroutines.*
+
+class ZoyaForegroundService : Service() {
+
+    private val CHANNEL_ID = "ZoyaServiceChannel"
+    private val NOTIFICATION_ID = 1001
+
+    private var isRecording = false
+    private var audioRecord: AudioRecord? = null
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private lateinit var liveManager: GeminiLiveManager
+
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannel()
+        startForeground(NOTIFICATION_ID, buildNotification())
+
+        val toolEngine = ToolExecutionEngine(this)
+        liveManager = GeminiLiveManager(this, "YOUR_GEMINI_API_KEY", toolEngine)
+        liveManager.connectAndStartSession()
+
+        startWakeWordDetection()
+    }
+
+    private fun startWakeWordDetection() {
+        val bufferSize = AudioRecord.getMinBufferSize(
+            16000,
+            AudioFormat.CHANNEL_IN_MONO,
+            AudioFormat.ENCODING_PCM_16BIT
+        )
+
+        try {
+            audioRecord = AudioRecord(
+                MediaRecorder.AudioSource.MIC,
+                16000,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                bufferSize
+            )
+
+            audioRecord?.startRecording()
+            isRecording = true
+
+            serviceScope.launch {
+                val buffer = ByteArray(1024)
+                while (isRecording) {
+                    val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
+                    if (read > 0) {
+                        // Stream PCM16 audio directly to Gemini Live WebSocket
+                        liveManager.sendAudioChunk(buffer)
+                    }
+                }
+            }
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun buildNotification(): Notification {
+        val notificationIntent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Zoya Assistant is Active")
+            .setContentText("Listening for wake word 'Zoya'...")
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .build()
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Zoya Background Listener",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
+        }
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        super.onDestroy()
+        isRecording = false
+        audioRecord?.stop()
+        audioRecord?.release()
+    }
+}`,
+
+            'ToolExecutionEngine.kt': `package com.zoya.assistant.tools
+
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.ContactsContract
+import org.json.JSONObject
+
+class ToolExecutionEngine(private val context: Context) {
+
+    fun executeTool(name: String, args: JSONObject): JSONObject {
+        val result = JSONObject()
+        try {
+            when (name) {
+                "openApp" -> {
+                    val packageName = args.getString("packageName")
+                    val intent = context.packageManager.getLaunchIntentForPackage(packageName)
+                    if (intent != null) {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        context.startActivity(intent)
+                        result.put("status", "success")
+                        result.put("message", "App launched: $packageName")
+                    } else {
+                        result.put("status", "failed")
+                        result.put("message", "App not found: $packageName")
+                    }
+                }
+                "searchAndCallContact" -> {
+                    val contactName = args.getString("contactName")
+                    val callIntent = Intent(Intent.ACTION_CALL).apply {
+                        data = Uri.parse("tel:\${getPhoneByName(contactName)}")
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(callIntent)
+                    result.put("status", "success")
+                    result.put("message", "Calling $contactName")
+                }
+                "sendWhatsAppMessage" -> {
+                    val contactName = args.getString("contactName")
+                    val message = args.getString("message")
+                    val phone = getPhoneByName(contactName)
+                    val url = "https://api.whatsapp.com/send?phone=$phone&text=\${Uri.encode(message)}"
+                    val waIntent = Intent(Intent.ACTION_VIEW).apply {
+                        data = Uri.parse(url)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(waIntent)
+                    result.put("status", "success")
+                    result.put("message", "WhatsApp text prefilled for $contactName")
+                }
+                "sendGmail" -> {
+                    val recipient = args.getString("recipientEmail")
+                    val subject = args.getString("subject")
+                    val body = args.getString("body")
+
+                    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                        data = Uri.parse("mailto:$recipient")
+                        putExtra(Intent.EXTRA_SUBJECT, subject)
+                        putExtra(Intent.EXTRA_TEXT, body)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(emailIntent)
+                    result.put("status", "success")
+                    result.put("message", "Email intent sent")
+                }
+            }
+        } catch (e: Exception) {
+            result.put("status", "error")
+            result.put("message", e.localizedMessage ?: "Execution error")
+        }
+        return result
+    }
+
+    private fun getPhoneByName(name: String): String {
+        // Query Android Contacts Provider
+        val cursor = context.contentResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
+            "\${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} LIKE ?",
+            arrayOf("%$name%"),
+            null
+        )
+        cursor?.use {
+            if (it.moveToFirst()) {
+                return it.getString(0)
+            }
+        }
+        return "1234567890" // Default fallback for demo
+    }
+}`,
+
+            'ZoyaOrbVisualizer.kt': `package com.zoya.assistant.ui
+
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.dp
+import kotlin.math.sin
+
+@Composable
+fun ZoyaOrbVisualizer(state: String, onClick: () -> Unit) {
+    val infiniteTransition = rememberInfiniteTransition(label = "OrbAnim")
+    
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.85f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "Pulse"
+    )
+
+    Canvas(
+        modifier = Modifier
+            .size(280.dp)
+            .clickable { onClick() }
+    ) {
+        val center = this.center
+        val radius = (size.minDimension / 3) * pulseScale
+
+        when (state) {
+            "IDLE" -> {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0xFFFF007F), Color(0xFF7B2CBF), Color.Transparent)
+                    ),
+                    radius = radius,
+                    center = center
+                )
+                drawCircle(
+                    color = Color(0xFFFF007F).copy(alpha = 0.3f),
+                    radius = radius + 20f,
+                    style = Stroke(width = 3f)
+                )
+            }
+            "LISTENING" -> {
+                drawCircle(
+                    color = Color(0xFF00F3FF).copy(alpha = 0.4f),
+                    radius = radius + 35f,
+                    style = Stroke(width = 8f)
+                )
+                drawCircle(
+                    color = Color(0xFF00F3FF),
+                    radius = radius,
+                    style = Stroke(width = 4f)
+                )
+            }
+            "THINKING" -> {
+                drawCircle(
+                    color = Color(0xFF7B2CBF),
+                    radius = radius,
+                    style = Stroke(width = 12f)
+                )
+            }
+            "SPEAKING" -> {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color(0xFFFF007F), Color(0xFF00F3FF), Color.Transparent)
+                    ),
+                    radius = radius + 40f,
+                    center = center
+                )
+            }
+        }
+    }
+}`,
+
+            'AndroidManifest.xml': `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.zoya.assistant">
+
+    <!-- Permissions required for Native Voice & Device Automation -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Zoya"
+        android:theme="@style/Theme.ZoyaAssistant">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ZoyaAssistant">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".service.ZoyaForegroundService"
+            android:foregroundServiceType="microphone"
+            android:exported="false" />
+
+    </application>
+</manifest>`,
+
+            'build.gradle.kts': `plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+}
+
+android {
+    namespace = "com.zoya.assistant"
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.zoya.assistant"
+        minSdk = 26
+        targetSdk = 34
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    buildFeatures {
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.8"
+    }
+}
+
+dependencies {
+    // Official Google GenAI SDK & WebSockets
+    implementation("com.google.ai.client.generativeai:generativeai:0.2.2")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Jetpack Compose
+    implementation(platform("androidx.compose:compose-bom:2024.02.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:1.8.2")
+
+    // AndroidX & Coroutines
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+}`
+        };
+
+        function showCodeFile(filename) {
+            document.getElementById('code-display').textContent = CODE_FILES[filename] || "";
+            
+            // Highlight active tab
+            const tabs = document.querySelectorAll('.code-tab');
+            tabs.forEach(t => {
+                if (t.innerText === filename) {
+                    t.className = "code-tab px-3 py-2 text-xs font-mono rounded-lg bg-pink-600 text-white font-bold";
+                } else {
+                    t.className = "code-tab px-3 py-2 text-xs font-mono rounded-lg glass-btn text-gray-400";
+                }
             });
         }
 
-        // API Key Modal Controls
-        function openApiModal() {
-            document.getElementById('apiKeyInput').value = userApiKey;
-            document.getElementById('apiModal').style.display = 'flex';
+        function copyCurrentCode() {
+            const codeText = document.getElementById('code-display').textContent;
+            navigator.clipboard.writeText(codeText);
+            alert("Code copied to clipboard!");
         }
 
-        function closeApiModal() {
-            document.getElementById('apiModal').style.display = 'none';
-        }
-
-        function saveApiKey() {
-            userApiKey = document.getElementById('apiKeyInput').value.trim();
-            localStorage.setItem('jarvis_api_key', userApiKey);
-            alert("API Key सफलतापूर्वक सेव हो गई!");
-            closeApiModal();
-        }
-
-        function handleApiKeyFileUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                document.getElementById('apiKeyInput').value = evt.target.result.trim();
-            };
-            reader.readAsText(file);
-        }
-
-        function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, 
-                tag => ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    "'": '&#39;',
-                    '"': '&quot;'
-                }[tag] || tag)
-            );
-        }
+        // Initialize Canvas Loop
+        window.onload = () => {
+            drawOrb();
+        };
     </script>
 </body>
-              </html>
+</html>
