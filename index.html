@@ -362,11 +362,11 @@ body{background:var(--user-bg);color:var(--user-text);font-size:var(--user-fonts
     <!-- LEFT ALIGNED: About Family & Creator -->
     <div class="sf-col sf-anim-node">
       <h3>Creator Details</h3>
-      <p>Made by: <span class="highlight">NAITIK JAIN</span></p>
-      <p>Father's Name: <strong>RAKESH KUMAR JAIN</strong></p>
-      <p>Mother's Name: <strong>HEMALATA JAIN</strong></p>
-      <p>Grandfather's Name: <strong>BAHWARA LALA JAIN</strong></p>
-      <p>Grandmother's Name: <strong>KAMALA DEVI</strong></p>
+      <p>Made by: <span class="highlight">NAITIK JAIN ( DHALAWAT ) </span></p>
+      <p>Father's Name: <strong>RAKESH KUMAR JAIN ( DHALAWAT ) </strong></p>
+      <p>Mother's Name: <strong>HEMALATA JAIN ( DHALAWAT ) </strong></p>
+      <p>Grandfather's Name: <strong>BHAWARA LALA JAIN ( DHALAWAT ) </strong></p>
+      <p>Grandmother's Name: <strong>KAMALA DEVI ( DHALAWAT ) </strong></p>
     </div>
 
     <!-- CENTER ALIGNED: Connections / Socials -->
@@ -375,9 +375,9 @@ body{background:var(--user-bg);color:var(--user-text);font-size:var(--user-fonts
       <ul>
         <li><a href="https://instagram.com/naitikjain9119" target="_blank" rel="noopener noreferrer">Instagram (@naitikjain9119)</a></li>
         <li><a href="mailto:naitikjain240725@gmail.com">Email Me</a></li>
-        <li><a href="javascript:void(0);">Facebook</a></li>
+        <li><a href="https://www.facebook.com/share/1BveNXFCrk/" target="_blank" rel="noopener noreferrer">Facebook</a></li>
         <li><a href="javascript:void(0);">Twitter</a></li>
-        <li><a href="javascript:void(0);">Join WhatsApp Channel</a></li>
+        <li><a href="https://whatsapp.com/channel/0029VbDQGoHK0IBi17tdyp21" target="_blank" rel="noopener noreferrer">Join WhatsApp Channel</a></li>
       </ul>
     </div>
 
@@ -403,7 +403,7 @@ body{background:var(--user-bg);color:var(--user-text);font-size:var(--user-fonts
   </div>
 
   <div class="sf-disclaimer">
-    Copyright © 2024 Naitik Jain Web Space. Designed beautifully for user interactions. All Details strictly referenced.
+    Copyright © 2025 Naitik Jain Web Space. Designed beautifully for user interactions. All Details strictly referenced.
   </div>
 </footer>
 
@@ -502,7 +502,7 @@ window.jumpNav=function(idx){
 // ---- HERO ----
 function renderHero(){
   const el=document.getElementById('pageHero');
-  if(navStack.length===0){el.innerHTML='<h1>📋 THIS WEBSITE IS MADE BY NAITIK JAIN DHALAWAT  </h1>';return;}
+  if(navStack.length===0){el.innerHTML='<h1>📋 THIS WEBSITE IS MADE BY NAITIK JAIN DHALAWAT </h1>';return;}
   const cur=navStack[navStack.length-1];
   const badge=navStack.length>1?`<div class="parent-badge">📂 ${esc(navStack.slice(0,-1).map(n=>n.name).join(' › '))}</div>`:'';
   el.innerHTML=`${badge}<h1>${esc(cur.name)}</h1>`;
