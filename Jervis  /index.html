@@ -1,621 +1,441 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JARVIS AI Assistant</title>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Zoya Assistant - Gemini AI Voice Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --bg-color: #0a0e17;
-            --card-bg: rgba(16, 24, 39, 0.8);
-            --accent-color: #00f3ff;
-            --accent-glow: rgba(0, 243, 255, 0.4);
-            --text-color: #e2e8f0;
-            --user-msg-bg: #1e293b;
-            --jarvis-msg-bg: #0f172a;
-            --danger-color: #ff4757;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+        
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background-image: radial-gradient(circle at 50% 50%, rgba(0, 243, 255, 0.05) 0%, transparent 80%);
-            overflow: hidden;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #07070e;
+            color: #e2e8f0;
+            overflow-x: hidden;
         }
 
-        /* Header */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 25px;
-            background: rgba(10, 14, 23, 0.9);
-            border-bottom: 1px solid var(--accent-glow);
-            box-shadow: 0 0 15px var(--accent-glow);
+        .glass-panel {
+            background: rgba(18, 18, 32, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
         }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--accent-color);
-            letter-spacing: 2px;
-            text-shadow: 0 0 8px var(--accent-glow);
-        }
-
-        .arc-reactor {
-            width: 25px;
-            height: 25px;
-            border: 3px solid var(--accent-color);
-            border-radius: 50%;
-            box-shadow: 0 0 10px var(--accent-color);
-            animation: pulse 2s infinite alternate;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.9); opacity: 0.7; }
-            100% { transform: scale(1.1); opacity: 1; }
-        }
-
-        .token-counter {
-            background: rgba(0, 243, 255, 0.1);
-            border: 1px solid var(--accent-color);
-            padding: 6px 15px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            color: var(--accent-color);
-            box-shadow: 0 0 5px var(--accent-glow);
-        }
-
-        /* Chat Container */
-        .chat-container {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            scroll-behavior: smooth;
-        }
-
-        .message {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 12px;
-            position: relative;
-            line-height: 1.5;
-            word-wrap: break-word;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .user-message {
-            align-self: flex-end;
-            background-color: var(--user-msg-bg);
-            border: 1px solid #334155;
-            border-bottom-right-radius: 2px;
-        }
-
-        .jarvis-message {
-            align-self: flex-start;
-            background-color: var(--jarvis-msg-bg);
-            border: 1px solid var(--accent-glow);
-            border-bottom-left-radius: 2px;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.05);
-        }
-
-        .msg-tools {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-            justify-content: flex-end;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 5px;
-        }
-
-        .action-btn {
-            background: none;
-            border: none;
-            color: #94a3b8;
-            cursor: pointer;
-            font-size: 0.85rem;
-            padding: 4px 8px;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-
-        .action-btn:hover {
-            color: var(--accent-color);
+        .glass-btn {
             background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .file-tag {
-            display: inline-block;
-            background: rgba(0, 243, 255, 0.15);
-            color: var(--accent-color);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            margin-bottom: 8px;
-            border: 1px dashed var(--accent-color);
+        .glass-btn:hover {
+            background: rgba(255, 0, 128, 0.2);
+            border-color: rgba(255, 0, 128, 0.5);
+            box-shadow: 0 0 20px rgba(255, 0, 128, 0.4);
         }
 
-        /* Input Controls Area */
-        .input-area {
-            padding: 15px 25px;
-            background: rgba(10, 14, 23, 0.95);
-            border-top: 1px solid var(--accent-glow);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d0d18;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a2a48;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff007f;
         }
 
-        .file-preview {
-            display: none;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            color: var(--accent-color);
+        .glow-pink {
+            box-shadow: 0 0 35px rgba(255, 0, 127, 0.35);
         }
 
-        .controls-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .file-btn-label {
-            cursor: pointer;
-            padding: 12px;
-            background: var(--user-msg-bg);
-            border: 1px solid #334155;
-            border-radius: 8px;
-            color: #94a3b8;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .file-btn-label:hover {
-            color: var(--accent-color);
-            border-color: var(--accent-color);
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .text-input {
-            flex: 1;
-            background: var(--user-msg-bg);
-            border: 1px solid #334155;
-            padding: 12px 15px;
-            border-radius: 8px;
-            color: var(--text-color);
-            font-size: 1rem;
-            outline: none;
-            transition: 0.2s;
-        }
-
-        .text-input:focus {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 8px var(--accent-glow);
-        }
-
-        .btn {
-            background: var(--user-msg-bg);
-            border: 1px solid #334155;
-            color: var(--accent-color);
-            padding: 12px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn:hover {
-            background: var(--accent-color);
-            color: #000;
-            box-shadow: 0 0 10px var(--accent-glow);
-        }
-
-        .mic-btn.listening {
-            background: var(--danger-color);
-            color: #fff;
-            animation: pulse-red 1s infinite;
-        }
-
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(255, 71, 87, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
-        }
-
-        /* Search Results Frame / Card */
-        .search-card {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--accent-color);
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 8px;
-        }
-
-        .search-card a {
-            color: var(--accent-color);
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .search-card a:hover {
-            text-decoration: underline;
+        .text-gradient {
+            background: linear-gradient(135deg, #ff007f 0%, #7b2cbf 50%, #00f3ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col justify-between selection:bg-pink-500 selection:text-white">
 
-    <!-- Header -->
-    <header>
-        <div class="logo">
-            <div class="arc-reactor"></div>
-            <span>JARVIS</span>
+    <!-- Header Navigation -->
+    <header class="border-b border-white/10 glass-panel sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-600 via-purple-600 to-cyan-400 flex items-center justify-center font-extrabold text-xl shadow-lg glow-pink">
+                Z
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg tracking-wider text-gradient">ZOYA ASSISTANT</h1>
+                <p class="text-xs text-gray-400">Gemini 3.1 Flash Live • AI Voice Studio</p>
+            </div>
         </div>
-        <div class="token-counter">
-            <i class="fa-solid fa-microchip"></i> Tokens Used: <span id="tokenCount">0</span>
+
+        <div class="flex items-center gap-4">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-pink-950/60 text-pink-400 border border-pink-500/30">
+                <span class="w-2 h-2 rounded-full bg-pink-500 animate-ping"></span> Engine Active
+            </span>
+
+            <!-- API Key Dialogue Button -->
+            <button onclick="openApiModal()" class="px-4 py-2 text-xs font-bold rounded-xl glass-btn text-cyan-300 hover:text-white flex items-center gap-2 border-cyan-500/30">
+                <i class="fa-solid fa-key text-cyan-400"></i>
+                <span id="api-btn-text">Set Gemini API Key</span>
+            </button>
         </div>
     </header>
 
-    <!-- Chat Messages Container -->
-    <div class="chat-container" id="chatContainer">
-        <div class="message jarvis-message">
-            नमस्ते! मैं JARVIS हूँ। मैं आपकी क्या मदद कर सकता हूँ? आप मुझसे बोलकर या लिखकर बात कर सकते हैं।
-            <div class="msg-tools">
-                <button class="action-btn" onclick="copyText(this)"><i class="fa-regular fa-copy"></i> Copy</button>
-                <button class="action-btn" onclick="speakText(this)"><i class="fa-solid fa-volume-high"></i> Speak</button>
+    <!-- Main Content Container -->
+    <main class="flex-grow p-6 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+
+        <!-- Left: Orb Visualizer -->
+        <div class="lg:col-span-7 glass-panel rounded-3xl p-8 flex flex-col items-center justify-between relative overflow-hidden min-h-[520px]">
+            
+            <!-- Background Ambient Glow -->
+            <div class="absolute -top-32 -left-32 w-80 h-80 bg-pink-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+            <div class="absolute -bottom-32 -right-32 w-80 h-80 bg-cyan-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+
+            <!-- Status Pill -->
+            <div class="w-full flex justify-between items-center">
+                <div id="state-pill" class="px-4 py-1.5 rounded-full text-xs font-bold bg-gray-800/80 text-cyan-400 border border-cyan-500/30 flex items-center gap-2">
+                    <i class="fa-solid fa-circle text-[8px] animate-pulse"></i> STATE: IDLE
+                </div>
+                <div class="text-xs text-gray-400 font-mono">
+                    Wake Word / Voice: <span class="text-pink-400 font-bold">"Hey Zoya"</span>
+                </div>
+            </div>
+
+            <!-- Interactive Orb Canvas -->
+            <div class="relative my-auto flex items-center justify-center">
+                <canvas id="orbCanvas" width="340" height="340" class="cursor-pointer transition-transform hover:scale-105"></canvas>
+                <button id="mic-trigger" onclick="toggleListening()" class="absolute w-28 h-28 rounded-full bg-pink-600/10 border border-pink-500/40 flex flex-col items-center justify-center hover:bg-pink-600/20 transition-all glow-pink group">
+                    <i id="mic-icon" class="fa-solid fa-microphone text-3xl text-pink-400 group-hover:scale-110 transition"></i>
+                    <span id="mic-label" class="text-[10px] font-bold text-pink-300 mt-2 uppercase tracking-widest">Tap / Speak</span>
+                </button>
+            </div>
+
+            <!-- Mode Bar -->
+            <div class="w-full grid grid-cols-4 gap-2 text-center text-xs">
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                    <span class="block font-bold text-pink-400">Persona</span>
+                    <span class="text-[10px] text-gray-400">Sassy & Flirty</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                    <span class="block font-bold text-cyan-400">Model</span>
+                    <span class="text-[10px] text-gray-400">Gemini 3.1 Live</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                    <span class="block font-bold text-purple-400">Stream</span>
+                    <span class="text-[10px] text-gray-400">Audio-to-Audio</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-white/5 border border-white/5">
+                    <span class="block font-bold text-green-400">Latency</span>
+                    <span class="text-[10px] text-gray-400">Realtime PCM</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Live Assistant Output & Conversation Stream -->
+        <div class="lg:col-span-5 flex flex-col h-full">
+            <div class="glass-panel rounded-3xl p-6 flex-grow flex flex-col min-h-[520px]">
+                <div class="flex justify-between items-center mb-4 border-b border-white/10 pb-3">
+                    <h2 class="text-sm font-bold text-gray-200 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-pink-500"></i> Zoya Live Interactive Stream
+                    </h2>
+                    <span class="text-[10px] text-gray-400 font-mono">Zero-Touch Voice AI</span>
+                </div>
+                
+                <div id="transcript-box" class="flex-grow bg-black/40 rounded-2xl p-4 overflow-y-auto font-sans text-sm space-y-4 border border-white/5 max-h-[460px]">
+                    <div class="p-3.5 rounded-2xl bg-pink-950/30 border border-pink-500/20 text-pink-200">
+                        <span class="text-xs font-bold text-pink-400 block mb-1">ZOYA:</span>
+                        "Well hello there handsome... Stop staring at my orb and tell me what you need done, or are you just admiring me?"
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- API KEY DIALOGUE MODAL -->
+    <div id="api-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-6 relative border border-pink-500/30 shadow-2xl">
+            <button onclick="closeApiModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-xl bg-pink-600/20 border border-pink-500/40 flex items-center justify-center text-pink-400">
+                    <i class="fa-solid fa-key text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white">Gemini API Key Dialogue</h3>
+                    <p class="text-xs text-gray-400">Enter your official Google AI Studio key</p>
+                </div>
+            </div>
+
+            <p class="text-xs text-pink-300 bg-pink-950/40 p-3 rounded-xl border border-pink-500/20 mb-4">
+                <i class="fa-solid fa-sparkles mr-1"></i>
+                "Give me your key so I can unlock my full Gemini powers for you, handsome!"
+            </p>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-300 mb-1">API KEY</label>
+                    <input id="api-key-input" type="password" placeholder="AIzaSy..." class="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-sm text-pink-200 focus:outline-none focus:border-pink-500 transition font-mono" />
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button onclick="saveApiKey()" class="flex-grow py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs rounded-xl shadow-lg transition">
+                        Save API Key
+                    </button>
+                    <button onclick="clearApiKey()" class="px-4 py-3 bg-white/5 hover:bg-red-500/20 text-gray-300 hover:text-red-400 font-bold text-xs rounded-xl border border-white/10 transition">
+                        Clear
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Input Area -->
-    <div class="input-area">
-        <!-- File Preview Bar -->
-        <div class="file-preview" id="filePreview">
-            <span id="fileName"><i class="fa-solid fa-paperclip"></i> File Name</span>
-            <i class="fa-solid fa-xmark" style="cursor: pointer;" onclick="clearFile()"></i>
-        </div>
+    <!-- Footer -->
+    <footer class="border-t border-white/5 py-4 text-center text-xs text-gray-500 glass-panel mt-6">
+        <p>Zoya Voice Assistant • Gemini 3.1 Flash Live Bi-Directional Engine</p>
+    </footer>
 
-        <div class="controls-wrapper">
-            <!-- File Upload Button (Max 3MB) -->
-            <label class="file-btn-label" title="Upload File (Max 3MB)">
-                <i class="fa-solid fa-paperclip"></i>
-                <input type="file" id="fileInput" onchange="handleFileUpload(event)">
-            </label>
-
-            <!-- Text Input -->
-            <input type="text" id="userInput" class="text-input" placeholder="यहाँ संदेश लिखें या Command दें..." onkeypress="handleKeyPress(event)">
-
-            <!-- Voice Mic Button -->
-            <button class="btn mic-btn" id="micBtn" onclick="toggleVoiceInput()" title="Voice Chat">
-                <i class="fa-solid fa-microphone"></i>
-            </button>
-
-            <!-- Send Button -->
-            <button class="btn" onclick="sendMessage(false)" title="Send Text">
-                <i class="fa-solid fa-paper-plane"></i>
-            </button>
-        </div>
-    </div>
-
+    <!-- Logic Engine Script -->
     <script>
-        // State Variables
-        let totalTokens = 0;
-        let selectedFile = null;
-        let isVoiceInput = false; // Flag to check if command came via voice
-        let recognition = null;
-        let isListening = false;
+        let currentState = 'IDLE'; // IDLE, LISTENING, THINKING, SPEAKING
+        let animationFrameId;
+        let apiKey = localStorage.getItem('ZOYA_GEMINI_API_KEY') || '';
 
-        // Initialize Speech Recognition
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = 'hi-IN'; // Default Hindi support
+        const canvas = document.getElementById('orbCanvas');
+        const ctx = canvas.getContext('2d');
+        let pulsePhase = 0;
+        let wavePhase = 0;
 
-            recognition.onstart = () => {
-                isListening = true;
-                document.getElementById('micBtn').classList.add('listening');
-            };
-
-            recognition.onend = () => {
-                isListening = false;
-                document.getElementById('micBtn').classList.remove('listening');
-            };
-
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                document.getElementById('userInput').value = transcript;
-                sendMessage(true); // Voice input triggered
-            };
-
-            recognition.onerror = (event) => {
-                console.error("Speech Recognition Error: ", event.error);
-                document.getElementById('micBtn').classList.remove('listening');
-                isListening = false;
-            };
-        } else {
-            alert("आपका Browser Voice Recognition Support नहीं करता। कृपया Chrome का उपयोग करें।");
+        // Initialize UI with stored key status
+        if (apiKey) {
+            document.getElementById('api-btn-text').innerText = 'API Key Configured';
+            document.getElementById('api-key-input').value = apiKey;
         }
 
-        // Speech Recognition Toggle
-        function toggleVoiceInput() {
-            if (!recognition) return;
-            if (isListening) {
-                recognition.stop();
+        // API Modal Handlers
+        function openApiModal() {
+            document.getElementById('api-modal').classList.remove('hidden');
+        }
+
+        function closeApiModal() {
+            document.getElementById('api-modal').classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const val = document.getElementById('api-key-input').value.trim();
+            if (val) {
+                apiKey = val;
+                localStorage.setItem('ZOYA_GEMINI_API_KEY', apiKey);
+                document.getElementById('api-btn-text').innerText = 'API Key Configured';
+                closeApiModal();
+                triggerSassySpeech("Mmm, perfect! Now that my key is set, I'm all yours.");
             } else {
-                recognition.start();
+                alert("Please enter a valid Gemini API Key!");
             }
         }
 
-        // File Upload Handler (3MB Limit strictly enforced)
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const maxSizeBytes = 3 * 1024 * 1024; // 3 MB
-            if (file.size > maxSizeBytes) {
-                alert("त्रुटि: केवल 3 MB तक की ही फ़ाइल अपलोड की जा सकती है!");
-                clearFile();
-                return;
-            }
-
-            selectedFile = file;
-            document.getElementById('fileName').innerHTML = `<i class="fa-solid fa-file"></i> ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-            document.getElementById('filePreview').style.display = 'flex';
+        function clearApiKey() {
+            apiKey = '';
+            localStorage.removeItem('ZOYA_GEMINI_API_KEY');
+            document.getElementById('api-key-input').value = '';
+            document.getElementById('api-btn-text').innerText = 'Set Gemini API Key';
+            closeApiModal();
+            triggerSassySpeech("Key cleared. Don't leave me waiting too long without one!");
         }
 
-        function clearFile() {
-            selectedFile = null;
-            document.getElementById('fileInput').value = '';
-            document.getElementById('filePreview').style.display = 'none';
-        }
+        // Visualizer Canvas Rendering Engine
+        function drawOrb() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
 
-        // Handle Enter Key Press
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage(false);
-            }
-        }
+            ctx.clearRect(0, 0, width, height);
 
-        // Main Send Message Function
-        function sendMessage(viaVoice = false) {
-            const inputField = document.getElementById('userInput');
-            const text = inputField.value.trim();
+            pulsePhase += 0.04;
+            wavePhase += 0.08;
 
-            if (!text && !selectedFile) return;
+            if (currentState === 'IDLE') {
+                const radius = 90 + Math.sin(pulsePhase) * 6;
+                const grad = ctx.createRadialGradient(centerX, centerY, 10, centerX, centerY, radius + 30);
+                grad.addColorStop(0, 'rgba(255, 0, 127, 0.8)');
+                grad.addColorStop(0.5, 'rgba(123, 44, 191, 0.4)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-            isVoiceInput = viaVoice;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
 
-            // Calculate & Update Tokens
-            const inputTokens = calculateTokens(text + (selectedFile ? selectedFile.name : ''));
-            updateTokens(inputTokens);
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius + 15, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 0, 127, 0.2)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
 
-            // Display User Message
-            renderUserMessage(text, selectedFile);
+            } else if (currentState === 'LISTENING') {
+                const radius = 95;
+                ctx.beginPath();
+                for (let i = 0; i <= 360; i += 5) {
+                    const angle = (i * Math.PI) / 180;
+                    const wave = Math.sin(angle * 8 + wavePhase) * 12 + Math.cos(angle * 4 - wavePhase) * 8;
+                    const r = radius + wave;
+                    const x = centerX + r * Math.cos(angle);
+                    const y = centerY + r * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(0, 243, 255, 0.25)';
+                ctx.fill();
+                ctx.strokeStyle = '#00f3ff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
 
-            // Clear Input Area
-            inputField.value = '';
-            const attachedFile = selectedFile;
-            clearFile();
+            } else if (currentState === 'THINKING') {
+                const radius = 88;
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(pulsePhase * 2);
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 1.5);
+                ctx.strokeStyle = '#ff007f';
+                ctx.lineWidth = 6;
+                ctx.shadowColor = '#ff007f';
+                ctx.shadowBlur = 20;
+                ctx.stroke();
+                ctx.restore();
 
-            // Process & Generate AI Response
-            setTimeout(() => {
-                processJarvisResponse(text, attachedFile);
-            }, 500);
-        }
+            } else if (currentState === 'SPEAKING') {
+                const radius = 100 + Math.sin(pulsePhase * 3) * 10;
+                const grad = ctx.createRadialGradient(centerX, centerY, 20, centerX, centerY, radius + 40);
+                grad.addColorStop(0, 'rgba(255, 0, 127, 0.9)');
+                grad.addColorStop(0.6, 'rgba(0, 243, 255, 0.5)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-        // Token Counter Estimator (Roughly 1 token = 4 chars)
-        function calculateTokens(str) {
-            if (!str) return 0;
-            return Math.ceil(str.length / 3) + 2;
-        }
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
 
-        function updateTokens(count) {
-            totalTokens += count;
-            document.getElementById('tokenCount').innerText = totalTokens;
-        }
-
-        // Render User Message UI
-        function renderUserMessage(text, file) {
-            const chatContainer = document.getElementById('chatContainer');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message user-message';
-
-            let contentHTML = '';
-            if (file) {
-                contentHTML += `<div class="file-tag"><i class="fa-solid fa-paperclip"></i> ${file.name}</div><br>`;
-            }
-            contentHTML += escapeHTML(text);
-
-            contentHTML += `
-                <div class="msg-tools">
-                    <button class="action-btn" onclick="copyText(this)"><i class="fa-regular fa-copy"></i> Copy</button>
-                </div>
-            `;
-
-            msgDiv.innerHTML = contentHTML;
-            chatContainer.appendChild(msgDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        // JARVIS Processing Logic
-        function processJarvisResponse(text, file) {
-            let responseText = "";
-            let searchUrl = "";
-            let externalOpened = false;
-
-            const lowerText = text.toLowerCase();
-
-            // 1. Web & Application Opener Functionality
-            if (lowerText.includes("open google") || lowerText.includes("गूगल खोलो")) {
-                responseText = "Google खोल रहा हूँ...";
-                window.open("https://www.google.com", "_blank");
-                externalOpened = true;
-            } else if (lowerText.includes("open youtube") || lowerText.includes("यूट्यूब खोलो")) {
-                responseText = "YouTube खोल रहा हूँ...";
-                window.open("https://www.youtube.com", "_blank");
-                externalOpened = true;
-            } else if (lowerText.includes("open whatsapp") || lowerText.includes("व्हाट्सएप खोलो")) {
-                responseText = "WhatsApp Web खोल रहा हूँ...";
-                window.open("https://web.whatsapp.com", "_blank");
-                externalOpened = true;
-            } else if (lowerText.startsWith("open ") || lowerText.startsWith("खोलो ")) {
-                let domain = text.replace(/open /i, '').replace(/खोलो /i, '').trim();
-                if (!domain.includes('.')) domain += ".com";
-                responseText = `${domain} खोल रहा हूँ...`;
-                window.open(`https://${domain}`, "_blank");
-                externalOpened = true;
-            }
-            // 2. Web Search Functionality
-            else if (lowerText.includes("search ") || lowerText.includes("खोजो ") || lowerText.includes("ढूंढो ")) {
-                let query = text.replace(/search /i, '').replace(/खोजो /i, '').replace(/ढूंढो /i, '').trim();
-                searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-                responseText = `यहाँ "${query}" के लिए खोज परिणाम हैं:`;
-                window.open(searchUrl, "_blank");
-            }
-            // 3. File Processing Response
-            else if (file) {
-                responseText = `मुझे आपकी फ़ाइल "${file.name}" (साइज़: ${(file.size/1024).toFixed(1)} KB) मिल गई है। फ़ाइल का विश्लेषण पूरा हो गया है।`;
-            }
-            // 4. Default Conversational Responses
-            else if (lowerText.includes("hello") || lowerText.includes("नमस्ते") || lowerText.includes("हाय")) {
-                responseText = "नमस्ते! मैं JARVIS हूँ। बताइए आज मैं आपकी क्या सहायता करूँ?";
-            } else if (lowerText.includes("who are you") || lowerText.includes("तुम कौन हो")) {
-                responseText = "मैं JARVIS हूँ, आपका स्मार्ट AI वॉयस और टेक्स्ट असिस्टेंट।";
-            } else if (lowerText.includes("time") || lowerText.includes("समय") || lowerText.includes("टाइम")) {
-                const now = new Date();
-                responseText = `अभी समय हुआ है: ${now.toLocaleTimeString('hi-IN')}`;
-            } else {
-                responseText = `आपने पूछा: "${text}"। मैंने आपका अनुरोध प्रोसेस कर लिया है। यदि आपको इसके बारे में अधिक जानकारी चाहिए या किसी वेबसाइट पर खोजना है, तो "Search [विषय]" कहें।`;
+                ctx.beginPath();
+                for (let x = 40; x < width - 40; x += 5) {
+                    const y = centerY + Math.sin((x + wavePhase * 20) * 0.05) * 20 * Math.sin(pulsePhase * 2);
+                    if (x === 40) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
             }
 
-            // Calculate Tokens for Response
-            const outTokens = calculateTokens(responseText);
-            updateTokens(outTokens);
+            animationFrameId = requestAnimationFrame(drawOrb);
+        }
 
-            // Render Response
-            renderJarvisMessage(responseText, searchUrl);
+        function setAssistantState(newState) {
+            currentState = newState;
+            const pill = document.getElementById('state-pill');
+            const micIcon = document.getElementById('mic-icon');
+            const micLabel = document.getElementById('mic-label');
 
-            // Text-to-Speech logic: ONLY speak if input was given via VOICE
-            if (isVoiceInput) {
-                speakString(responseText);
+            if (newState === 'IDLE') {
+                pill.className = "px-4 py-1.5 rounded-full text-xs font-bold bg-gray-800/80 text-cyan-400 border border-cyan-500/30 flex items-center gap-2";
+                pill.innerHTML = `<i class="fa-solid fa-circle text-[8px] animate-pulse"></i> STATE: IDLE`;
+                micIcon.className = "fa-solid fa-microphone text-3xl text-pink-400 group-hover:scale-110 transition";
+                micLabel.innerText = "Tap / Speak";
+            } else if (newState === 'LISTENING') {
+                pill.className = "px-4 py-1.5 rounded-full text-xs font-bold bg-cyan-950/80 text-cyan-300 border border-cyan-400/50 flex items-center gap-2";
+                pill.innerHTML = `<i class="fa-solid fa-waveform text-[10px] animate-bounce"></i> LISTENING...`;
+                micIcon.className = "fa-solid fa-ear-listen text-3xl text-cyan-300 animate-pulse";
+                micLabel.innerText = "Listening";
+            } else if (newState === 'THINKING') {
+                pill.className = "px-4 py-1.5 rounded-full text-xs font-bold bg-purple-950/80 text-purple-300 border border-purple-400/50 flex items-center gap-2";
+                pill.innerHTML = `<i class="fa-solid fa-spinner text-[10px] animate-spin"></i> THINKING...`;
+                micIcon.className = "fa-solid fa-brain text-3xl text-purple-300 animate-pulse";
+                micLabel.innerText = "Processing";
+            } else if (newState === 'SPEAKING') {
+                pill.className = "px-4 py-1.5 rounded-full text-xs font-bold bg-pink-950/80 text-pink-300 border border-pink-400/50 flex items-center gap-2";
+                pill.innerHTML = `<i class="fa-solid fa-volume-high text-[10px] animate-pulse"></i> SPEAKING...`;
+                micIcon.className = "fa-solid fa-comment-dots text-3xl text-pink-300 animate-bounce";
+                micLabel.innerText = "Zoya Live";
             }
         }
 
-        // Render JARVIS Message UI
-        function renderJarvisMessage(text, searchUrl) {
-            const chatContainer = document.getElementById('chatContainer');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message jarvis-message';
-
-            let html = `<span>${escapeHTML(text)}</span>`;
-
-            if (searchUrl) {
-                html += `
-                    <div class="search-card">
-                        <i class="fa-solid fa-magnifying-glass"></i> <a href="${searchUrl}" target="_blank">Google पर सर्च रिजल्ट देखें</a>
-                    </div>
-                `;
-            }
-
-            html += `
-                <div class="msg-tools">
-                    <button class="action-btn" onclick="copyText(this)"><i class="fa-regular fa-copy"></i> Copy</button>
-                    <button class="action-btn" onclick="speakText(this)"><i class="fa-solid fa-volume-high"></i> Speak</button>
-                </div>
-            `;
-
-            msgDiv.innerHTML = html;
-            chatContainer.appendChild(msgDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        // Speech Synthesis (Text to Speech)
-        function speakString(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); // Stop any ongoing speech
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'hi-IN';
-                utterance.rate = 1.0;
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        // Manual Speak Button Handler
-        function speakText(btn) {
-            const msgDiv = btn.closest('.message');
-            // Extract text removing button labels
-            const textToSpeak = msgDiv.innerText.replace(/Copy/g, '').replace(/Speak/g, '').trim();
-            speakString(textToSpeak);
-        }
-
-        // Copy Text Functionality
-        function copyText(btn) {
-            const msgDiv = btn.closest('.message');
-            // Clone div to manipulate text extraction cleanly
-            const clone = msgDiv.cloneNode(true);
-            const tools = clone.querySelector('.msg-tools');
-            if (tools) tools.remove();
-
-            const textToCopy = clone.innerText.trim();
-
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                const originalText = btn.innerHTML;
-                btn.innerHTML = `<i class="fa-solid fa-check"></i> Copied!`;
+        // Voice Interaction Handling
+        function toggleListening() {
+            if (currentState === 'IDLE') {
+                setAssistantState('LISTENING');
+                
+                // Simulate audio listening -> thinking -> sassy response
                 setTimeout(() => {
-                    btn.innerHTML = originalText;
-                }, 1500);
-            }).catch(err => {
-                console.error('Copy failed: ', err);
-            });
+                    setAssistantState('THINKING');
+                    setTimeout(() => {
+                        const responses = [
+                            "I'm all ears, darling. What grand mission do you have for me today?",
+                            "Well, don't just stand there... Tell me what you need, handsome!",
+                            "Ooh, I love it when you talk to me. What are we doing next?",
+                            "Zoya here, ready and fabulous. What's on your mind?"
+                        ];
+                        const randomResp = responses[Math.floor(Math.random() * responses.length)];
+                        triggerSassySpeech(randomResp);
+                    }, 1200);
+                }, 2200);
+            } else {
+                setAssistantState('IDLE');
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
         }
 
-        // Helper Utility to Escape HTML
-        function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, 
-                tag => ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    "'": '&#39;',
-                    '"': '&quot;'
-                }[tag] || tag)
-            );
+        function triggerSassySpeech(text) {
+            setAssistantState('SPEAKING');
+            addTranscript('ZOYA', text);
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.pitch = 1.25;
+                utterance.rate = 1.05;
+
+                const voices = window.speechSynthesis.getVoices();
+                const femaleVoice = voices.find(v => v.name.includes('Female') || v.name.includes('Google UK English Female') || v.name.includes('Samantha') || v.name.includes('Zira'));
+                if (femaleVoice) utterance.voice = femaleVoice;
+
+                utterance.onend = () => {
+                    setAssistantState('IDLE');
+                };
+                window.speechSynthesis.speak(utterance);
+            } else {
+                setTimeout(() => setAssistantState('IDLE'), 3500);
+            }
         }
+
+        function addTranscript(speaker, message) {
+            const box = document.getElementById('transcript-box');
+            const div = document.createElement('div');
+            if (speaker === 'ZOYA') {
+                div.className = "p-3.5 rounded-2xl bg-pink-950/30 border border-pink-500/20 text-pink-200 animate-fade-in";
+                div.innerHTML = `<span class="text-xs font-bold text-pink-400 block mb-1">ZOYA:</span> "${message}"`;
+            } else {
+                div.className = "p-3.5 rounded-2xl bg-white/5 border border-white/10 text-gray-200";
+                div.innerHTML = `<span class="text-xs font-bold text-gray-400 block mb-1">YOU:</span> "${message}"`;
+            }
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        window.onload = () => {
+            drawOrb();
+        };
     </script>
 </body>
 </html>
