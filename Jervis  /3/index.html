@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>JARVIS AI Assistant</title>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #060911;
+            --card-bg: rgba(15, 23, 42, 0.95);
+            --accent-color: #00f3ff;
+            --accent-glow: rgba(0, 243, 255, 0.35);
+            --text-color: #f1f5f9;
+            --user-msg-bg: #1e293b;
+            --jarvis-msg-bg: #0f172a;
+            --danger-color: #ff4757;
+            --success-color: #2ed573;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Screen Fix - Device App Fixed Height */
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            position: fixed;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            background-image: radial-gradient(circle at 50% 30%, rgba(0, 243, 255, 0.08) 0%, transparent 70%);
+        }
+
+        /* Top Header */
+        header {
+            flex-shrink: 0;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 16px;
+            background: rgba(6, 9, 17, 0.95);
+            border-bottom: 1px solid var(--accent-glow);
+            box-shadow: 0 2px 10px rgba(0, 243, 255, 0.1);
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .arc-reactor {
+            width: 20px;
+            height: 20px;
+            border: 2.5px solid var(--accent-color);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-color);
+            animation: pulse 2s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.85); opacity: 0.6; }
+            100% { transform: scale(1.1); opacity: 1; }
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .token-counter {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--accent-color);
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .api-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #334155;
+            color: var(--text-color);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        /* Scrollable Chat Area Only */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+            position: relative;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--user-msg-bg);
+            border: 1px solid #334155;
+            border-bottom-right-radius: 2px;
+        }
+
+        .jarvis-message {
+            align-self: flex-start;
+            background-color: var(--jarvis-msg-bg);
+            border: 1px solid var(--accent-glow);
+            border-bottom-left-radius: 2px;
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.05);
+        }
+
+        .msg-tools {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            justify-content: flex-end;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 4px;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 3px 6px;
+            border-radius: 4px;
+        }
+
+        .action-btn:active {
+            color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .app-link-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--accent-color);
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin-top: 6px;
+            display: inline-block;
+        }
+
+        .app-link-card a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        /* Fixed Bottom Controls Area */
+        .input-area {
+            flex-shrink: 0;
+            padding: 10px 12px;
+            background: rgba(6, 9, 17, 0.98);
+            border-top: 1px solid var(--accent-glow);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .text-input {
+            flex: 1;
+            background: var(--user-msg-bg);
+            border: 1px solid #334155;
+            padding: 12px 14px;
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .text-input:focus {
+            border-color: var(--accent-color);
+        }
+
+        .btn {
+            background: var(--user-msg-bg);
+            border: 1px solid #334155;
+            color: var(--accent-color);
+            padding: 12px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mic-btn.listening {
+            background: var(--danger-color);
+            color: #fff;
+            animation: pulse-red 1s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(255, 71, 87, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--accent-color);
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .modal-content h3 {
+            color: var(--accent-color);
+            font-size: 1.1rem;
+        }
+
+        .modal-content input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            background: #090d16;
+            border: 1px solid #334155;
+            color: #fff;
+            border-radius: 6px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .file-btn-label {
+            cursor: pointer;
+            padding: 8px 12px;
+            background: var(--user-msg-bg);
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        input[type="file"] { display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <div class="arc-reactor"></div>
+            <span>JARVIS</span>
+        </div>
+        <div class="header-actions">
+            <div class="token-counter">
+                <i class="fa-solid fa-microchip"></i> <span id="tokenCount">0</span>
+            </div>
+            <button class="api-btn" onclick="openApiModal()"><i class="fa-solid fa-key"></i> API Key</button>
+        </div>
+    </header>
+
+    <!-- Chat Messages Container -->
+    <div class="chat-container" id="chatContainer">
+        <div class="message jarvis-message">
+            नमस्ते! मैं JARVIS हूँ। आप मुझसे सामान्य बातचीत कर सकते हैं, कोई भी ऐप खोलने के लिए कह सकते हैं, या किसी भी ऐप/Chrome/डिवाइस में सर्च करवा सकते हैं।
+            <div class="msg-tools">
+                <button class="action-btn" onclick="copyText(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+                <button class="action-btn" onclick="speakText(this)"><i class="fa-solid fa-volume-high"></i> Speak</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fixed Bottom Controls -->
+    <div class="input-area">
+        <input type="text" id="userInput" class="text-input" placeholder="यहाँ लिखें या बोलकर कहें..." onkeypress="handleKeyPress(event)">
+        
+        <button class="btn mic-btn" id="micBtn" onclick="toggleVoiceInput()" title="Voice Input">
+            <i class="fa-solid fa-microphone"></i>
+        </button>
+
+        <button class="btn" onclick="sendMessage(false)" title="Send">
+            <i class="fa-solid fa-paper-plane"></i>
+        </button>
+    </div>
+
+    <!-- API Key Settings Modal -->
+    <div class="modal" id="apiModal">
+        <div class="modal-content">
+            <h3>API Key सेट करें</h3>
+            <p style="font-size: 0.8rem; color: #94a3b8;">अपनी OpenAI या Gemini API Key दर्ज करें:</p>
+            <input type="text" id="apiKeyInput" placeholder="Enter API Key here...">
+            <label class="file-btn-label">
+                <i class="fa-solid fa-file-import"></i> Key फ़ाइल अपलोड करें (.txt)
+                <input type="file" accept=".txt" onchange="handleApiKeyFileUpload(event)">
+            </label>
+            <div class="modal-buttons">
+                <button class="btn" style="font-size:0.85rem;" onclick="closeApiModal()">रद्द करें</button>
+                <button class="btn" style="font-size:0.85rem; background: var(--accent-color); color:#000;" onclick="saveApiKey()">सेव करें</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global State Variables
+        let totalTokens = 0;
+        let isVoiceInput = false;
+        let recognition = null;
+        let isListening = false;
+        let userApiKey = localStorage.getItem('jarvis_api_key') || '';
+
+        // Speech Recognition Initialization
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'hi-IN';
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('micBtn').classList.add('listening');
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                document.getElementById('micBtn').classList.remove('listening');
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('userInput').value = transcript;
+                sendMessage(true); // Voice triggered
+            };
+
+            recognition.onerror = () => {
+                document.getElementById('micBtn').classList.remove('listening');
+                isListening = false;
+            };
+        }
+
+        function toggleVoiceInput() {
+            if (!recognition) {
+                alert("आपका डिवाइस वॉइस इनपुट सपोर्ट नहीं कर रहा है।");
+                return;
+            }
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage(false); // Text triggered
+            }
+        }
+
+        // Send Message
+        function sendMessage(viaVoice = false) {
+            const inputField = document.getElementById('userInput');
+            const text = inputField.value.trim();
+
+            if (!text) return;
+
+            isVoiceInput = viaVoice;
+
+            // Token Tracking
+            const inputTokens = calculateTokens(text);
+            updateTokens(inputTokens);
+
+            // Render User Message
+            renderUserMessage(text);
+
+            inputField.value = '';
+
+            // Process Commands or General Conversation
+            setTimeout(() => {
+                processCommandOrChat(text);
+            }, 300);
+        }
+
+        function calculateTokens(str) {
+            if (!str) return 0;
+            return Math.ceil(str.length / 3) + 2;
+        }
+
+        function updateTokens(count) {
+            totalTokens += count;
+            document.getElementById('tokenCount').innerText = totalTokens;
+        }
+
+        function renderUserMessage(text) {
+            const chatContainer = document.getElementById('chatContainer');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message user-message';
+            msgDiv.innerHTML = `
+                ${escapeHTML(text)}
+                <div class="msg-tools">
+                    <button class="action-btn" onclick="copyText(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+                </div>
+            `;
+            chatContainer.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        // Database of Android Package Intent URIs for Native Apps
+        const APP_DATABASE = {
+            'youtube': { intent: 'intent://www.youtube.com/#Intent;scheme=https;package=com.google.android.youtube;end', web: 'https://www.youtube.com' },
+            'whatsapp': { intent: 'intent://send#Intent;scheme=whatsapp;package=com.whatsapp;end', web: 'https://web.whatsapp.com' },
+            'facebook': { intent: 'intent://facebook.com/#Intent;scheme=https;package=com.facebook.katana;end', web: 'https://www.facebook.com' },
+            'instagram': { intent: 'intent://instagram.com/#Intent;scheme=https;package=com.instagram.android;end', web: 'https://www.instagram.com' },
+            'chrome': { intent: 'intent://google.com/#Intent;scheme=https;package=com.android.chrome;end', web: 'https://www.google.com' },
+            'play store': { intent: 'intent://play.google.com/#Intent;scheme=https;package=com.android.vending;end', web: 'https://play.google.com' },
+            'playstore': { intent: 'intent://play.google.com/#Intent;scheme=https;package=com.android.vending;end', web: 'https://play.google.com' },
+            'spotify': { intent: 'intent://spotify.com/#Intent;scheme=https;package=com.spotify.music;end', web: 'https://open.spotify.com' },
+            'telegram': { intent: 'intent://telegram.org/#Intent;scheme=https;package=org.telegram.messenger;end', web: 'https://web.telegram.org' },
+            'paytm': { intent: 'intent://paytm.com/#Intent;scheme=https;package=net.one97.paytm;end', web: 'https://paytm.com' },
+            'maps': { intent: 'intent://maps.google.com/#Intent;scheme=https;package=com.google.android.apps.maps;end', web: 'https://maps.google.com' },
+            'google maps': { intent: 'intent://maps.google.com/#Intent;scheme=https;package=com.google.android.apps.maps;end', web: 'https://maps.google.com' },
+            'gmail': { intent: 'intent://mail.google.com/#Intent;scheme=https;package=com.google.android.gm;end', web: 'https://mail.google.com' },
+            'settings': { intent: 'intent:#Intent;action=android.settings.SETTINGS;end', web: '' },
+            'camera': { intent: 'intent:#Intent;action=android.media.action.IMAGE_CAPTURE;end', web: '' },
+            'dialer': { intent: 'tel:', web: '' },
+            'phone': { intent: 'tel:', web: '' },
+            'call': { intent: 'tel:', web: '' }
+        };
+
+        // Main Processor Logic
+        function processCommandOrChat(rawInput) {
+            const input = rawInput.trim();
+            const lower = input.toLowerCase();
+
+            let responseText = "";
+            let actionLink = "";
+            let linkText = "";
+
+            // -------------------------------------------------------------
+            // 1. IN-APP SEARCH COMMANDS (e.g. "YouTube par [X] search karo", "Play store pe [X] search kar")
+            // -------------------------------------------------------------
+            if (lower.includes("search") || lower.includes("सर्च") || lower.includes("खोजो") || lower.includes("ढूंढो")) {
+                
+                // Device Internal Search
+                if (lower.includes("device me") || lower.includes("device par") || lower.includes("डिवाइस में") || lower.includes("डिवाइस पर") || lower.includes("phone me") || lower.includes("फोन में")) {
+                    let query = input.replace(/device me|device par|डिवाइस में|डिवाइस पर|phone me|फोन में|search|सर्च|खोजो|ढूंढो|करो|मारो/gi, '').trim();
+                    actionLink = `intent:#Intent;action=android.intent.action.GLOBAL_SEARCH;query=${encodeURIComponent(query)};end`;
+                    responseText = `डिवाइस में "${query}" खोजा जा रहा है।`;
+                    linkText = "डिवाइस सर्च खोलें";
+                    triggerNativeIntent(actionLink, `https://www.google.com/search?q=${encodeURIComponent(query)}`);
+                }
+                // YouTube App Search
+                else if (lower.includes("youtube") || lower.includes("यूट्यूब")) {
+                    let query = input.replace(/youtube|यूट्यूब|पे|पर|में|me|par|search|सर्च|खोजो|ढूंढो|करो|मारो|चलाओ/gi, '').trim();
+                    actionLink = `intent://www.youtube.com/results?search_query=${encodeURIComponent(query)}#Intent;scheme=https;package=com.google.android.youtube;end`;
+                    responseText = `यूट्यूब ऐप में "${query}" सर्च किया जा रहा है।`;
+                    linkText = "YouTube ऐप में खोलें";
+                    triggerNativeIntent(actionLink, `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`);
+                }
+                // Play Store App Search
+                else if (lower.includes("play store") || lower.includes("प्ले स्टोर") || lower.includes("playstore")) {
+                    let query = input.replace(/play store|प्ले स्टोर|playstore|पे|पर|में|me|par|search|सर्च|खोजो|ढूंढो|करो|मारो/gi, '').trim();
+                    actionLink = `intent://search?q=${encodeURIComponent(query)}#Intent;scheme=market;package=com.android.vending;end`;
+                    responseText = `प्ले स्टोर पर "${query}" खोजा जा रहा है।`;
+                    linkText = "Play Store ऐप में खोलें";
+                    triggerNativeIntent(actionLink, `https://play.google.com/store/search?q=${encodeURIComponent(query)}&c=apps`);
+                }
+                // Spotify App Search
+                else if (lower.includes("spotify") || lower.includes("स्पॉटीफाइ")) {
+                    let query = input.replace(/spotify|स्पॉटीफाइ|पे|पर|में|me|par|search|सर्च|खोजो|ढूंढो|करो|मारो/gi, '').trim();
+                    actionLink = `intent://search/${encodeURIComponent(query)}#Intent;scheme=spotify;package=com.spotify.music;end`;
+                    responseText = `Spotify ऐप में "${query}" सर्च किया जा रहा है।`;
+                    linkText = "Spotify ऐप में खोलें";
+                    triggerNativeIntent(actionLink, `https://open.spotify.com/search/${encodeURIComponent(query)}`);
+                }
+                // Chrome / Website Search (Explicit Search on Web)
+                else if (lower.includes("chrome") || lower.includes("क्रोम") || lower.includes("website") || lower.includes("वेबसाइट") || lower.includes("google") || lower.includes("गूगल")) {
+                    let query = input.replace(/chrome|क्रोम|website|वेबसाइट|google|गूगल|पे|पर|में|me|par|search|सर्च|खोजो|ढूंढो|करो|मारो/gi, '').trim();
+                    actionLink = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                    responseText = `Chrome पर "${query}" सर्च किया जा रहा है।`;
+                    linkText = "Chrome पर खोलें";
+                    window.open(actionLink, '_blank');
+                }
+                // Other App Searches
+                else {
+                    let words = input.split(/search|सर्च|खोजो|ढूंढो/i);
+                    let appCandidate = words[0].replace(/pe|par|me|में|पर|पे/g, '').trim().toLowerCase();
+                    let queryCandidate = words[1] ? words[1].replace(/karo|maro|करो|मारो/g, '').trim() : "";
+
+                    if (appCandidate && queryCandidate) {
+                        actionLink = `intent://search?q=${encodeURIComponent(queryCandidate)}#Intent;scheme=https;package=com.${encodeURIComponent(appCandidate)};end`;
+                        responseText = `${appCandidate} ऐप में "${queryCandidate}" खोजा जा रहा है।`;
+                        linkText = `${appCandidate} में देखें`;
+                        triggerNativeIntent(actionLink, `https://www.google.com/search?q=${encodeURIComponent(appCandidate + ' ' + queryCandidate)}`);
+                    } else {
+                        // Fallback to Chrome search
+                        let query = input.replace(/search|सर्च|खोजो|ढूंढो|करो|मारो/gi, '').trim();
+                        actionLink = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                        responseText = `Chrome पर "${query}" सर्च किया जा रहा है।`;
+                        linkText = "Chrome Search देखें";
+                        window.open(actionLink, '_blank');
+                    }
+                }
+            }
+
+            // -------------------------------------------------------------
+            // 2. EXPLICIT DEVICE APP OPEN COMMANDS (e.g. "Open YouTube App", "WhatsApp open karo", "YouTube app kholo")
+            // -------------------------------------------------------------
+            else if (
+                lower.includes("open") || lower.includes("खोलो") || 
+                lower.includes("चलाओ") || lower.includes("ओपन")
+            ) {
+                // Extract target app name cleanly
+                let appTarget = lower
+                    .replace(/open|खोलो|चलाओ|ओपन|करो|कर|दो|please|कमांड/g, '')
+                    .replace(/app|ऐप|एप/g, '')
+                    .trim();
+
+                let matchedKey = Object.keys(APP_DATABASE).find(k => appTarget.includes(k) || k.includes(appTarget));
+
+                if (matchedKey) {
+                    let appData = APP_DATABASE[matchedKey];
+                    responseText = `${capitalize(matchedKey)} ऐप खोला जा रहा है।`;
+                    actionLink = appData.intent || appData.web;
+                    linkText = `${capitalize(matchedKey)} खोलें`;
+                    triggerNativeIntent(appData.intent, appData.web);
+                } else if (appTarget.length > 0) {
+                    // Try Generic Android Intent Package launch for installed app
+                    let genericPackage = `com.${appTarget.replace(/\s+/g, '')}`;
+                    let genericIntent = `intent://launch#Intent;scheme=https;package=${genericPackage};end`;
+                    let webFallback = `https://www.google.com/search?q=${encodeURIComponent(appTarget)}`;
+
+                    responseText = `${capitalize(appTarget)} ऐप खोला जा रहा है।`;
+                    actionLink = genericIntent;
+                    linkText = `${capitalize(appTarget)} खोलें`;
+                    triggerNativeIntent(genericIntent, webFallback);
+                } else {
+                    responseText = "कृपया उस ऐप का नाम बताएँ जिसे आप खोलना चाहते हैं।";
+                }
+            }
+
+            // -------------------------------------------------------------
+            // 3. PURE JARVIS AI CHAT (Conversational / General Questions)
+            // -------------------------------------------------------------
+            else {
+                responseText = getJarvisDirectChatResponse(input);
+            }
+
+            // Update Tokens for Output
+            updateTokens(calculateTokens(responseText));
+
+            // Render Message
+            renderJarvisMessage(responseText, actionLink, linkText);
+
+            // AUTO VOICE RESPONSE: Speaks ONLY IF prompt was received via VOICE
+            if (isVoiceInput) {
+                speakString(responseText);
+            }
+        }
+
+        // Trigger Android Native App Intents with Fallback
+        function triggerNativeIntent(intentUrl, fallbackWebUrl) {
+            if (!intentUrl) {
+                if (fallbackWebUrl) window.open(fallbackWebUrl, '_blank');
+                return;
+            }
+
+            const start = Date.now();
+            window.location.href = intentUrl;
+
+            // Fallback if app is not installed or intent fails
+            setTimeout(() => {
+                if (Date.now() - start < 1500 && fallbackWebUrl) {
+                    window.open(fallbackWebUrl, '_blank');
+                }
+            }, 1200);
+        }
+
+        // Pure Conversational Intelligent Engine (NO Command Echoing)
+        function getJarvisDirectChatResponse(text) {
+            const lower = text.toLowerCase().trim();
+
+            if (lower.includes("hello") || lower.includes("नमस्ते") || lower.includes("हाय") || lower.includes("hey")) {
+                return "नमस्ते! मैं आपकी क्या सहायता कर सकता हूँ?";
+            }
+            if (lower.includes("kaise ho") || lower.includes("कैसे हो")) {
+                return "मैं एकदम बढ़िया हूँ। आप कैसे हैं?";
+            }
+            if (lower.includes("who are you") || lower.includes("कौन हो")) {
+                return "मैं JARVIS हूँ, आपका AI वॉयस और टेक्स्ट असिस्टेंट।";
+            }
+            if (lower.includes("time") || lower.includes("समय") || lower.includes("टाइम")) {
+                const now = new Date();
+                return `अभी समय ${now.toLocaleTimeString('hi-IN', { hour: '2-digit', minute: '2-digit' })} है।`;
+            }
+            if (lower.includes("date") || lower.includes("तारीख") || lower.includes("तिथि")) {
+                const now = new Date();
+                return `आज की तारीख ${now.toLocaleDateString('hi-IN')} है।`;
+            }
+            if (lower.includes("thank") || lower.includes("धन्यवाद") || lower.includes("शुक्रिया")) {
+                return "आपका स्वागत है! मुझे आपकी मदद करके खुशी हुई।";
+            }
+
+            // Smart Direct AI General Knowledge Fallback
+            return `${text} के बारे में: मैं आपकी सहायता के लिए तैयार हूँ। आप मुझे किसी ऐप को खोलने या ऐप के अंदर सर्च करने का आदेश भी दे सकते हैं।`;
+        }
+
+        // Render JARVIS Output Box
+        function renderJarvisMessage(text, link = "", linkText = "") {
+            const chatContainer = document.getElementById('chatContainer');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message jarvis-message';
+
+            let html = `<span>${escapeHTML(text)}</span>`;
+
+            if (link) {
+                html += `
+                    <div class="app-link-card">
+                        <a href="${link}" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> ${escapeHTML(linkText || "खोलें")}</a>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div class="msg-tools">
+                    <button class="action-btn" onclick="copyText(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+                    <button class="action-btn" onclick="speakText(this)"><i class="fa-solid fa-volume-high"></i> Speak</button>
+                </div>
+            `;
+
+            msgDiv.innerHTML = html;
+            chatContainer.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Text To Speech Utility
+        function speakString(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'hi-IN';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function speakText(btn) {
+            const msgDiv = btn.closest('.message');
+            const clone = msgDiv.cloneNode(true);
+            const tools = clone.querySelector('.msg-tools');
+            if (tools) tools.remove();
+            speakString(clone.innerText.trim());
+        }
+
+        function copyText(btn) {
+            const msgDiv = btn.closest('.message');
+            const clone = msgDiv.cloneNode(true);
+            const tools = clone.querySelector('.msg-tools');
+            if (tools) tools.remove();
+
+            navigator.clipboard.writeText(clone.innerText.trim()).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> Copied`;
+                setTimeout(() => btn.innerHTML = orig, 1200);
+            });
+        }
+
+        // API Key Modal Controls
+        function openApiModal() {
+            document.getElementById('apiKeyInput').value = userApiKey;
+            document.getElementById('apiModal').style.display = 'flex';
+        }
+
+        function closeApiModal() {
+            document.getElementById('apiModal').style.display = 'none';
+        }
+
+        function saveApiKey() {
+            userApiKey = document.getElementById('apiKeyInput').value.trim();
+            localStorage.setItem('jarvis_api_key', userApiKey);
+            alert("API Key सेव हो गई!");
+            closeApiModal();
+        }
+
+        function handleApiKeyFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                document.getElementById('apiKeyInput').value = evt.target.result.trim();
+            };
+            reader.readAsText(file);
+        }
+
+        function capitalize(str) {
+            if (!str) return '';
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>
