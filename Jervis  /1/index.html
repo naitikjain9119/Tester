@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>JARVIS AI Mobile Assistant</title>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #060911;
+            --card-bg: rgba(15, 23, 42, 0.95);
+            --accent-color: #00f3ff;
+            --accent-glow: rgba(0, 243, 255, 0.4);
+            --text-color: #f1f5f9;
+            --user-msg-bg: #1e293b;
+            --jarvis-msg-bg: #0f172a;
+            --danger-color: #ff4757;
+            --success-color: #2ed573;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Prevent full page scroll - Mobile App Frame Fix */
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            position: fixed;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            background-image: radial-gradient(circle at 50% 30%, rgba(0, 243, 255, 0.08) 0%, transparent 70%);
+        }
+
+        /* Fixed Header */
+        header {
+            flex-shrink: 0;
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 16px;
+            background: rgba(6, 9, 17, 0.95);
+            border-bottom: 1px solid var(--accent-glow);
+            box-shadow: 0 2px 10px rgba(0, 243, 255, 0.1);
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .arc-reactor {
+            width: 20px;
+            height: 20px;
+            border: 2.5px solid var(--accent-color);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-color);
+            animation: pulse 2s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.85); opacity: 0.6; }
+            100% { transform: scale(1.1); opacity: 1; }
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .token-counter {
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--accent-color);
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .api-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #334155;
+            color: var(--text-color);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        /* Scrollable Chat Area Only */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+            position: relative;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--user-msg-bg);
+            border: 1px solid #334155;
+            border-bottom-right-radius: 2px;
+        }
+
+        .jarvis-message {
+            align-self: flex-start;
+            background-color: var(--jarvis-msg-bg);
+            border: 1px solid var(--accent-glow);
+            border-bottom-left-radius: 2px;
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.05);
+        }
+
+        .msg-tools {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+            justify-content: flex-end;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 4px;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 3px 6px;
+            border-radius: 4px;
+        }
+
+        .action-btn:active {
+            color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .file-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 243, 255, 0.15);
+            color: var(--accent-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-bottom: 6px;
+            border: 1px dashed var(--accent-color);
+        }
+
+        /* Fixed Bottom Controls */
+        .input-area {
+            flex-shrink: 0;
+            padding: 10px 12px;
+            background: rgba(6, 9, 17, 0.98);
+            border-top: 1px solid var(--accent-glow);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .file-preview {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: var(--accent-color);
+        }
+
+        .controls-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-btn-label {
+            cursor: pointer;
+            padding: 10px 12px;
+            background: var(--user-msg-bg);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .text-input {
+            flex: 1;
+            background: var(--user-msg-bg);
+            border: 1px solid #334155;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .text-input:focus {
+            border-color: var(--accent-color);
+        }
+
+        .btn {
+            background: var(--user-msg-bg);
+            border: 1px solid #334155;
+            color: var(--accent-color);
+            padding: 10px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mic-btn.listening {
+            background: var(--danger-color);
+            color: #fff;
+            animation: pulse-red 1s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+            70% { box-shadow: 0 0 0 8px rgba(255, 71, 87, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+        }
+
+        .app-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--accent-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 6px;
+            display: inline-block;
+        }
+
+        .app-card a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        /* API Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--accent-color);
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .modal-content h3 {
+            color: var(--accent-color);
+            font-size: 1.1rem;
+        }
+
+        .modal-content input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            background: #090d16;
+            border: 1px solid #334155;
+            color: #fff;
+            border-radius: 6px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <div class="arc-reactor"></div>
+            <span>JARVIS</span>
+        </div>
+        <div class="header-actions">
+            <div class="token-counter">
+                <i class="fa-solid fa-microchip"></i> <span id="tokenCount">0</span>
+            </div>
+            <button class="api-btn" onclick="openApiModal()"><i class="fa-solid fa-key"></i> API</button>
+        </div>
+    </header>
+
+    <!-- Scrollable Chat Messages Container -->
+    <div class="chat-container" id="chatContainer">
+        <div class="message jarvis-message">
+            नमस्ते! मैं JARVIS हूँ। अब मैं पूरी तरह मोबाइल स्क्रीन फ्रेंडली हूँ। आप ऐप्स खोलने, वेब/यूट्यूब सर्च करने, या बातें करने के लिए कहें!
+            <div class="msg-tools">
+                <button class="action-btn" onclick="copyText(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+                <button class="action-btn" onclick="speakText(this)"><i class="fa-solid fa-volume-high"></i> Speak</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fixed Input Area -->
+    <div class="input-area">
+        <!-- File Preview Bar -->
+        <div class="file-preview" id="filePreview">
+            <span id="fileName"><i class="fa-solid fa-paperclip"></i> File Name</span>
+            <i class="fa-solid fa-xmark" style="cursor: pointer;" onclick="clearFile()"></i>
+        </div>
+
+        <div class="controls-wrapper">
+            <!-- File Upload Button (Max 3MB) -->
+            <label class="file-btn-label" title="Upload File (Max 3MB)">
+                <i class="fa-solid fa-paperclip"></i>
+                <input type="file" id="fileInput" onchange="handleFileUpload(event)">
+            </label>
+
+            <!-- Text Input -->
+            <input type="text" id="userInput" class="text-input" placeholder="लिखें या Command दें..." onkeypress="handleKeyPress(event)">
+
+            <!-- Voice Mic Button -->
+            <button class="btn mic-btn" id="micBtn" onclick="toggleVoiceInput()" title="Voice Chat">
+                <i class="fa-solid fa-microphone"></i>
+            </button>
+
+            <!-- Send Button -->
+            <button class="btn" onclick="sendMessage(false)" title="Send Text">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- API Key Upload/Set Modal -->
+    <div class="modal" id="apiModal">
+        <div class="modal-content">
+            <h3>API Key सेटअप करें</h3>
+            <p style="font-size: 0.8rem; color: #94a3b8;">अपनी OpenAI / Gemini API Key यहाँ डालें या की (Key) फ़ाइल अपलोड करें:</p>
+            <input type="text" id="apiKeyInput" placeholder="Enter API Key here...">
+            <label class="file-btn-label" style="text-align: center; display: block; border-style: dashed;">
+                <i class="fa-solid fa-file-import"></i> Key फ़ाइल अपलोड करें (.txt)
+                <input type="file" accept=".txt" onchange="handleApiKeyFileUpload(event)">
+            </label>
+            <div class="modal-buttons">
+                <button class="btn" style="font-size:0.85rem;" onclick="closeApiModal()">रद्द करें</button>
+                <button class="btn" style="font-size:0.85rem; background: var(--accent-color); color:#000;" onclick="saveApiKey()">सेव करें</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global State Variables
+        let totalTokens = 0;
+        let selectedFile = null;
+        let isVoiceInput = false;
+        let recognition = null;
+        let isListening = false;
+        let userApiKey = localStorage.getItem('jarvis_api_key') || '';
+
+        // Speech Recognition Setup
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'hi-IN';
+
+            recognition.onstart = () => {
+                isListening = true;
+                document.getElementById('micBtn').classList.add('listening');
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                document.getElementById('micBtn').classList.remove('listening');
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('userInput').value = transcript;
+                sendMessage(true);
+            };
+
+            recognition.onerror = () => {
+                document.getElementById('micBtn').classList.remove('listening');
+                isListening = false;
+            };
+        }
+
+        function toggleVoiceInput() {
+            if (!recognition) {
+                alert("आपका ब्राउज़र वॉइस इनपुट सपोर्ट नहीं करता।");
+                return;
+            }
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        // Handle File Upload with Strict 3MB Limit Check
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const maxSizeBytes = 3 * 1024 * 1024; // 3 MB Limit
+            if (file.size > maxSizeBytes) {
+                alert("त्रुटि: आप 3 MB से बड़ी फ़ाइल अपलोड नहीं कर सकते!");
+                clearFile();
+                return;
+            }
+
+            selectedFile = file;
+            document.getElementById('fileName').innerHTML = `<i class="fa-solid fa-file"></i> ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            document.getElementById('filePreview').style.display = 'flex';
+        }
+
+        function clearFile() {
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('filePreview').style.display = 'none';
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage(false);
+            }
+        }
+
+        // Send Message Handler
+        function sendMessage(viaVoice = false) {
+            const inputField = document.getElementById('userInput');
+            const text = inputField.value.trim();
+
+            if (!text && !selectedFile) return;
+
+            isVoiceInput = viaVoice;
+
+            // Update Token Usage Count
+            const inputTokens = calculateTokens(text + (selectedFile ? selectedFile.name : ''));
+            updateTokens(inputTokens);
+
+            // Display User Message
+            renderUserMessage(text, selectedFile);
+
+            inputField.value = '';
+            const attachedFile = selectedFile;
+            clearFile();
+
+            // Process Commands & AI Response
+            setTimeout(() => {
+                processJarvisCommand(text, attachedFile);
+            }, 400);
+        }
+
+        function calculateTokens(str) {
+            if (!str) return 0;
+            return Math.ceil(str.length / 3) + 2;
+        }
+
+        function updateTokens(count) {
+            totalTokens += count;
+            document.getElementById('tokenCount').innerText = totalTokens;
+        }
+
+        function renderUserMessage(text, file) {
+            const chatContainer = document.getElementById('chatContainer');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message user-message';
+
+            let contentHTML = '';
+            if (file) {
+                contentHTML += `<div class="file-tag"><i class="fa-solid fa-paperclip"></i> ${file.name}</div><br>`;
+            }
+            contentHTML += escapeHTML(text);
+            contentHTML += `
+                <div class="msg-tools">
+                    <button class="action-btn" onclick="copyText(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+                </div>
+            `;
+
+            msgDiv.innerHTML = contentHTML;
+            chatContainer.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        // Core Command Parser: Apps, YouTube, Web Searches
+        function processJarvisCommand(text, file) {
+            let responseText = "";
+            let actionLink = "";
+            let linkLabel = "";
+
+            const lower = text.toLowerCase();
+
+            // 1. YouTube Search Specific Logic
+            if (lower.includes("youtube") && (lower.includes("search") || lower.includes("सर्च") || lower.includes("चलाओ") || lower.includes("खोलो"))) {
+                let query = text.replace(/youtube|on youtube|पर|search|सर्च|चलाओ|खोलो/gi, '').trim();
+                if (query) {
+                    actionLink = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+                    responseText = `यूट्यूब पर "${query}" सर्च किया जा रहा है...`;
+                    linkLabel = "YouTube पर सर्च खोलें";
+                    window.open(actionLink, '_blank');
+                } else {
+                    actionLink = "vnd.youtube://";
+                    let fallbackLink = "https://www.youtube.com";
+                    responseText = "यूट्यूब ऐप खोला जा रहा है...";
+                    linkLabel = "YouTube खोलें";
+                    openDeviceApp(actionLink, fallbackLink);
+                }
+            }
+            // 2. Open Device Apps (Deep Linking)
+            else if (lower.startsWith("open ") || lower.includes("खोलो")) {
+                let target = lower.replace("open", "").replace("खोलो", "").trim();
+
+                if (target.includes("whatsapp") || target.includes("व्हाट्सएप")) {
+                    responseText = "WhatsApp खोला जा रहा है...";
+                    openDeviceApp("whatsapp://", "https://web.whatsapp.com");
+                } else if (target.includes("facebook") || target.includes("फेसबुक")) {
+                    responseText = "Facebook खोला जा रहा है...";
+                    openDeviceApp("fb://", "https://www.facebook.com");
+                } else if (target.includes("instagram") || target.includes("इंस्टाग्राम")) {
+                    responseText = "Instagram खोला जा रहा है...";
+                    openDeviceApp("instagram://", "https://www.instagram.com");
+                } else if (target.includes("chrome") || target.includes("क्रोम")) {
+                    responseText = "Chrome ब्राउज़र खोला जा रहा है...";
+                    window.open("https://www.google.com", "_blank");
+                } else {
+                    // Search and open Website on Chrome
+                    let webUrl = target;
+                    if (!webUrl.startsWith("http")) {
+                        webUrl = `https://www.google.com/search?q=${encodeURIComponent(target)}`;
+                    }
+                    responseText = `Chrome पर ${target} खोला जा रहा है...`;
+                    actionLink = webUrl;
+                    linkLabel = `${target} खोलें`;
+                    window.open(webUrl, "_blank");
+                }
+            }
+            // 3. Web Search in Chrome Command
+            else if (lower.includes("search") || lower.includes("सर्च") || lower.includes("खोजो") || lower.includes("गूगल")) {
+                let query = text.replace(/search|सर्च|खोजो|गूगल|google|पर/gi, '').trim();
+                actionLink = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                responseText = `Chrome पर "${query}" सर्च किया जा रहा है...`;
+                linkLabel = "Chrome Search देखें";
+                window.open(actionLink, '_blank');
+            }
+            // 4. File Attached Case
+            else if (file) {
+                responseText = `आपकी फ़ाइल "${file.name}" सफलतापूर्वक प्राप्त हुई। (साइज़: ${(file.size/1024).toFixed(1)} KB)`;
+            }
+            // 5. Conversational Fallback
+            else {
+                responseText = `आपका कमांड: "${text}" प्राप्त हुआ। आवश्यकता पड़ने पर आप "Open [App Name]" या "YouTube पर [Search Term] सर्च करो" बोल सकते हैं।`;
+            }
+
+            // Update Token Count for Output
+            updateTokens(calculateTokens(responseText));
+
+            // Render Output Response
+            renderJarvisMessage(responseText, actionLink, linkLabel);
+
+            // AUTO VOICE RESPONSE: Speaks ONLY IF prompt was received via VOICE
+            if (isVoiceInput) {
+                speakString(responseText);
+            }
+        }
+
+        // Deep Link Handler for Device Apps with Web Fallback
+        function openDeviceApp(deepLink, fallbackUrl) {
+            const now = Date.now();
+            window.location.href = deepLink;
+            setTimeout(() => {
+                if (Date.now() - now < 1500) {
+                    window.open(fallbackUrl, '_blank');
+                }
+            }, 1000);
+        }
+
+        function renderJarvisMessage(text, link = "", linkText = "") {
+            const chatContainer = document.getElementById('chatContainer');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message jarvis-message';
+
+            let html = `<span>${escapeHTML(text)}</span>`;
+
+            if (link) {
+                html += `
+                    <div class="app-card">
+                        <a href="${link}" target="_blank"><i class="fa-solid fa-external-link-alt"></i> ${escapeHTML(linkText || "खोलें")}</a>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div class="msg-tools">
+                    <button class="action-btn" onclick="copyText(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+                    <button class="action-btn" onclick="speakText(this)"><i class="fa-solid fa-volume-high"></i> Speak</button>
+                </div>
+            `;
+
+            msgDiv.innerHTML = html;
+            chatContainer.appendChild(msgDiv);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            const chatContainer = document.getElementById('chatContainer');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Text To Speech Utility
+        function speakString(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'hi-IN';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function speakText(btn) {
+            const msgDiv = btn.closest('.message');
+            const textToSpeak = msgDiv.innerText.replace(/Copy/g, '').replace(/Speak/g, '').trim();
+            speakString(textToSpeak);
+        }
+
+        function copyText(btn) {
+            const msgDiv = btn.closest('.message');
+            const clone = msgDiv.cloneNode(true);
+            const tools = clone.querySelector('.msg-tools');
+            if (tools) tools.remove();
+
+            navigator.clipboard.writeText(clone.innerText.trim()).then(() => {
+                const orig = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> Copied`;
+                setTimeout(() => btn.innerHTML = orig, 1200);
+            });
+        }
+
+        // API Key Modal Controls
+        function openApiModal() {
+            document.getElementById('apiKeyInput').value = userApiKey;
+            document.getElementById('apiModal').style.display = 'flex';
+        }
+
+        function closeApiModal() {
+            document.getElementById('apiModal').style.display = 'none';
+        }
+
+        function saveApiKey() {
+            userApiKey = document.getElementById('apiKeyInput').value.trim();
+            localStorage.setItem('jarvis_api_key', userApiKey);
+            alert("API Key सफलतापूर्वक सेव हो गई!");
+            closeApiModal();
+        }
+
+        function handleApiKeyFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                document.getElementById('apiKeyInput').value = evt.target.result.trim();
+            };
+            reader.readAsText(file);
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+              </html>
