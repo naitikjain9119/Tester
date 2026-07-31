@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Location Sharing App</title>
+    <title>Live Location Tracker - Google Satellite View</title>
     
-    <!-- Tailwind CSS (Styling ke liye) -->
+    <!-- Tailwind CSS (Styling) -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Leaflet CSS & JS (Free Interactive Map) -->
+    <!-- Leaflet CSS & JS (Free Interactive Map Engine) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- MQTT JS (Real-time Live Data Sync) -->
+    <!-- MQTT JS (Real-time Sync) -->
     <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
 
     <style>
@@ -29,23 +29,30 @@
 <body class="bg-gray-100 font-sans antialiased flex flex-col h-screen">
 
     <!-- Top Header -->
-    <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center z-10">
+    <header class="bg-blue-700 text-white p-4 shadow-md flex justify-between items-center z-10">
         <div class="flex items-center space-x-2">
-            <i class="fa-solid fa-location-crosshairs text-red-400 text-2xl"></i>
+            <i class="fa-solid fa-location-dot text-red-400 text-2xl"></i>
             <h1 class="text-lg font-bold">लाइव लोकेशन ट्रेकर</h1>
         </div>
-        <div id="statusText" class="text-xs bg-blue-800 px-3 py-1 rounded-full text-blue-100 font-medium">
+        <div id="statusText" class="text-xs bg-blue-900 px-3 py-1 rounded-full text-blue-100 font-medium">
             तैयार है
         </div>
     </header>
 
     <!-- Main Container -->
     <main class="relative flex-1">
-        <!-- Floating Control Card -->
-        <div class="absolute top-4 left-4 right-4 sm:left-6 sm:w-80 bg-white p-4 rounded-xl shadow-2xl z-20 space-y-4">
+
+        <!-- Satellite Switch Floating Button (Top Right) -->
+        <button id="satelliteBtn" onclick="toggleMapLayer()" class="absolute top-4 right-4 bg-white text-gray-800 font-bold px-4 py-2 rounded-lg shadow-xl z-20 flex items-center gap-2 border border-gray-300 hover:bg-gray-50 transition">
+            <i class="fa-solid fa-satellite text-indigo-600 text-lg"></i>
+            <span id="satelliteBtnText">सैटेलाइट कैमरा (Satellite)</span>
+        </button>
+
+        <!-- Left Floating Control Card -->
+        <div class="absolute top-4 left-4 right-16 sm:right-auto sm:w-80 bg-white p-4 rounded-xl shadow-2xl z-20 space-y-3">
             
             <!-- SENDER SECTION -->
-            <div id="senderSection" class="space-y-4">
+            <div id="senderSection" class="space-y-3">
                 
                 <!-- Live Location Fetch Button -->
                 <button onclick="fetchLiveLocation()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow transition">
@@ -53,7 +60,7 @@
                 </button>
 
                 <!-- ON / OFF Toggle Switch -->
-                <div class="flex items-center justify-between p-3 bg-gray-50 border rounded-lg">
+                <div class="flex items-center justify-between p-2.5 bg-gray-50 border rounded-lg">
                     <span class="text-sm font-semibold text-gray-700">लोकेशन शेयरिंग:</span>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="toggleSwitch" onchange="handleToggleChange()" class="sr-only peer">
@@ -61,51 +68,86 @@
                     </label>
                 </div>
 
-                <!-- Universal Share Button -->
+                <!-- Universal System Share Button -->
                 <button id="shareBtn" onclick="shareLocation()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow opacity-50 cursor-not-allowed transition" disabled>
                     <i class="fa-solid fa-share-nodes text-lg"></i> शेयर करें (Share)
                 </button>
             </div>
 
-            <!-- RECEIVER SECTION (Only visible to the recipient opening the link) -->
-            <div id="receiverSection" class="hidden space-y-2">
+            <!-- RECEIVER SECTION -->
+            <div id="receiverSection" class="hidden">
                 <div class="p-3 bg-blue-50 text-blue-800 rounded-lg text-xs font-semibold flex items-center gap-2 border border-blue-200">
-                    <i class="fa-solid fa-circle-info text-blue-600 text-base"></i>
+                    <i class="fa-solid fa-eye text-blue-600 text-base"></i>
                     <span>आप शेयर की गई लाइव लोकेशन देख रहे हैं।</span>
                 </div>
             </div>
 
+            <!-- Detailed Address Card (District, State, Place) -->
+            <div id="addressBox" class="hidden p-3 bg-gray-50 rounded-lg border text-xs space-y-1 text-gray-700">
+                <div class="font-bold text-blue-600 border-b pb-1 mb-1">📍 वर्तमान स्थान विवरण:</div>
+                <div><b>स्थान (Place):</b> <span id="placeName" class="text-gray-900 font-medium">-</span></div>
+                <div><b>ज़िला (District):</b> <span id="districtName" class="text-gray-900 font-medium">-</span></div>
+                <div><b>राज्य (State):</b> <span id="stateName" class="text-gray-900 font-medium">-</span></div>
+            </div>
+
         </div>
 
-        <!-- Interactive Map Container -->
+        <!-- Map Container -->
         <div id="map"></div>
     </main>
 
-    <!-- JavaScript Logic -->
+    <!-- JavaScript Engine -->
     <script>
         let map, marker;
         let watchId = null;
         let mqttClient = null;
         let shareId = null;
         let isSharingOn = false;
+        let isSatellite = false;
+
+        // Tile Layers (Normal vs Google Satellite Hybrid)
+        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        });
+
+        const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            attribution: '© Google Satellite'
+        });
 
         const urlParams = new URLSearchParams(window.location.search);
         const trackParam = urlParams.get('track');
 
-        // Initialize Leaflet Map
-        map = L.map('map').setView([20.5937, 78.9629], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+        // Initialize Map
+        map = L.map('map', {
+            center: [20.5937, 78.9629],
+            zoom: 5,
+            layers: [streetLayer]
+        });
 
         // Custom Marker Pin Symbol
         const locationIcon = L.divIcon({
             className: 'custom-pin',
-            html: `<div style="background-color:#2563EB; width:22px; height:22px; border-radius:50%; border:3px solid white; box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>`,
-            iconSize: [22, 22],
-            iconAnchor: [11, 11]
+            html: `<div style="background-color:#EF4444; width:24px; height:24px; border-radius:50%; border:3px solid white; box-shadow:0 0 12px rgba(0,0,0,0.6); animation: pulse 1.5s infinite;"></div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
         });
+
+        // Satellite Switch Function
+        function toggleMapLayer() {
+            if (isSatellite) {
+                map.removeLayer(satelliteLayer);
+                map.addLayer(streetLayer);
+                document.getElementById('satelliteBtnText').innerText = "सैटेलाइट कैमरा (Satellite)";
+                isSatellite = false;
+            } else {
+                map.removeLayer(streetLayer);
+                map.addLayer(satelliteLayer);
+                document.getElementById('satelliteBtnText').innerText = "नॉर्मल मैप (Normal)";
+                isSatellite = true;
+            }
+        }
 
         // Mode Detection (Receiver vs Sender)
         if (trackParam) {
@@ -127,9 +169,10 @@
                 if (data.status === "OFF") {
                     if (marker) map.removeLayer(marker);
                     marker = null;
+                    document.getElementById('addressBox').classList.add('hidden');
                     updateStatus("यूज़र ने लोकेशन शेयरिंग OFF कर दी है 🔴", "bg-red-600");
                 } else if (data.status === "ON") {
-                    updateMapMarker(data.lat, data.lng, "यूज़र की लाइव लोकेशन");
+                    updateMapAndDetails(data.lat, data.lng);
                     updateStatus(`लाइव: ${new Date().toLocaleTimeString()} 🟢`, "bg-green-600");
                 }
             });
@@ -146,7 +189,6 @@
                 return;
             }
 
-            // Auto turn ON toggle switch when clicking Live Location
             const toggle = document.getElementById('toggleSwitch');
             toggle.checked = true;
             handleToggleChange();
@@ -171,7 +213,7 @@
             }
         }
 
-        // Automatic GPS Tracking (Self-uploading)
+        // Automatic GPS Tracking
         function startLocationTracking() {
             if (watchId) navigator.geolocation.clearWatch(watchId);
 
@@ -180,9 +222,9 @@
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
 
-                    updateMapMarker(lat, lng, "आपकी लाइव लोकेशन");
+                    updateMapAndDetails(lat, lng);
 
-                    // Upload live coordinates to channel
+                    // Publish coordinates to MQTT channel
                     if (mqttClient && isSharingOn) {
                         mqttClient.publish(`live-loc-channel/${shareId}`, JSON.stringify({
                             status: "ON",
@@ -205,7 +247,7 @@
             );
         }
 
-        // Stop Location Tracking
+        // Stop Tracking
         function stopLocationTracking() {
             if (watchId) {
                 navigator.geolocation.clearWatch(watchId);
@@ -220,9 +262,45 @@
                 map.removeLayer(marker);
                 marker = null;
             }
+            document.getElementById('addressBox').classList.add('hidden');
         }
 
-        // 3. Universal System Share Option (Any App)
+        // Update Map, Zoom-In & Reverse Geocoding Details
+        async function updateMapAndDetails(lat, lng) {
+            // Zoom in directly to the location (Level 18)
+            map.setView([lat, lng], 18, { animate: true });
+
+            const popupMessage = "<b>📍 अभी व्यक्ति इस स्थान पर है</b>";
+
+            if (!marker) {
+                marker = L.marker([lat, lng], { icon: locationIcon }).addTo(map);
+            } else {
+                marker.setLatLng([lat, lng]);
+            }
+            marker.bindPopup(popupMessage).openPopup();
+
+            // Reverse Geocoding to get Place, District, State
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+                const data = await response.json();
+
+                if (data && data.address) {
+                    const addr = data.address;
+                    const place = addr.suburb || addr.village || addr.town || addr.city || addr.neighbourhood || addr.road || "अज्ञात स्थान";
+                    const district = addr.state_district || addr.county || addr.district || addr.city || "अज्ञात ज़िला";
+                    const state = addr.state || "अज्ञात राज्य";
+
+                    document.getElementById('placeName').innerText = place;
+                    document.getElementById('districtName').innerText = district;
+                    document.getElementById('stateName').innerText = state;
+                    document.getElementById('addressBox').classList.remove('hidden');
+                }
+            } catch (err) {
+                console.log("Geocoding Fetch Error:", err);
+            }
+        }
+
+        // 3. Universal System Share Option
         function shareLocation() {
             if (!isSharingOn) {
                 alert("कृपया पहले लोकेशन शेयरिंग चालू (ON) करें।");
@@ -231,35 +309,22 @@
 
             const shareUrl = `${window.location.origin}${window.location.pathname}?track=${shareId}`;
 
-            // Native Share API
             if (navigator.share) {
                 navigator.share({
                     title: 'मेरी लाइव लोकेशन',
                     text: 'मेरी लाइव लोकेशन देखने के लिए इस लिंक पर क्लिक करें:',
                     url: shareUrl
                 }).catch((err) => {
-                    console.log('Share error/cancelled:', err);
+                    console.log('Share cancelled:', err);
                 });
             } else {
-                // Fallback option if Web Share API is unavailable
                 navigator.clipboard.writeText(shareUrl).then(() => {
                     alert("शेयर लिंक कॉपी हो गया है! आप इसे किसी भी ऐप पर शेयर कर सकते हैं:\n\n" + shareUrl);
                 });
             }
         }
 
-        // Map Marker Helper
-        function updateMapMarker(lat, lng, text) {
-            if (!marker) {
-                marker = L.marker([lat, lng], { icon: locationIcon }).addTo(map);
-            } else {
-                marker.setLatLng([lat, lng]);
-            }
-            marker.bindPopup(text).openPopup();
-            map.setView([lat, lng], 16);
-        }
-
-        // Status Display Helper
+        // UI Status Helper
         function updateStatus(text, bgClass) {
             const statusElem = document.getElementById('statusText');
             statusElem.innerText = text;
