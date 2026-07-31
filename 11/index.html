@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Location Sharing App</title>
+    
+    <!-- Tailwind CSS (Styling ke liye) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet CSS & JS (Free Interactive Map) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- MQTT JS (Real-time Live Data Sync) -->
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+
+    <style>
+        #map {
+            height: calc(100vh - 70px);
+            width: 100%;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased flex flex-col h-screen">
+
+    <!-- Top Header -->
+    <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center z-10">
+        <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-location-crosshairs text-red-400 text-2xl"></i>
+            <h1 class="text-lg font-bold">लाइव लोकेशन ट्रेकर</h1>
+        </div>
+        <div id="statusText" class="text-xs bg-blue-800 px-3 py-1 rounded-full text-blue-100 font-medium">
+            तैयार है
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="relative flex-1">
+        <!-- Floating Control Card -->
+        <div class="absolute top-4 left-4 right-4 sm:left-6 sm:w-80 bg-white p-4 rounded-xl shadow-2xl z-20 space-y-4">
+            
+            <!-- SENDER SECTION -->
+            <div id="senderSection" class="space-y-4">
+                
+                <!-- Live Location Fetch Button -->
+                <button onclick="fetchLiveLocation()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow transition">
+                    <i class="fa-solid fa-crosshairs text-lg"></i> लाइव लोकेशन (Live Location)
+                </button>
+
+                <!-- ON / OFF Toggle Switch -->
+                <div class="flex items-center justify-between p-3 bg-gray-50 border rounded-lg">
+                    <span class="text-sm font-semibold text-gray-700">लोकेशन शेयरिंग:</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggleSwitch" onchange="handleToggleChange()" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                    </label>
+                </div>
+
+                <!-- Universal Share Button -->
+                <button id="shareBtn" onclick="shareLocation()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow opacity-50 cursor-not-allowed transition" disabled>
+                    <i class="fa-solid fa-share-nodes text-lg"></i> शेयर करें (Share)
+                </button>
+            </div>
+
+            <!-- RECEIVER SECTION (Only visible to the recipient opening the link) -->
+            <div id="receiverSection" class="hidden space-y-2">
+                <div class="p-3 bg-blue-50 text-blue-800 rounded-lg text-xs font-semibold flex items-center gap-2 border border-blue-200">
+                    <i class="fa-solid fa-circle-info text-blue-600 text-base"></i>
+                    <span>आप शेयर की गई लाइव लोकेशन देख रहे हैं।</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Interactive Map Container -->
+        <div id="map"></div>
+    </main>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let map, marker;
+        let watchId = null;
+        let mqttClient = null;
+        let shareId = null;
+        let isSharingOn = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const trackParam = urlParams.get('track');
+
+        // Initialize Leaflet Map
+        map = L.map('map').setView([20.5937, 78.9629], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Custom Marker Pin Symbol
+        const locationIcon = L.divIcon({
+            className: 'custom-pin',
+            html: `<div style="background-color:#2563EB; width:22px; height:22px; border-radius:50%; border:3px solid white; box-shadow:0 0 10px rgba(0,0,0,0.5);"></div>`,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+        });
+
+        // Mode Detection (Receiver vs Sender)
+        if (trackParam) {
+            // --- RECEIVER MODE ---
+            document.getElementById('senderSection').classList.add('hidden');
+            document.getElementById('receiverSection').classList.remove('hidden');
+            updateStatus("लाइव कनेक्ट हो रहे हैं...", "bg-yellow-600");
+
+            mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
+
+            mqttClient.on('connect', () => {
+                mqttClient.subscribe(`live-loc-channel/${trackParam}`);
+                updateStatus("लाइव अपडेट का इंतज़ार है...", "bg-blue-600");
+            });
+
+            mqttClient.on('message', (topic, message) => {
+                const data = JSON.parse(message.toString());
+                
+                if (data.status === "OFF") {
+                    if (marker) map.removeLayer(marker);
+                    marker = null;
+                    updateStatus("यूज़र ने लोकेशन शेयरिंग OFF कर दी है 🔴", "bg-red-600");
+                } else if (data.status === "ON") {
+                    updateMapMarker(data.lat, data.lng, "यूज़र की लाइव लोकेशन");
+                    updateStatus(`लाइव: ${new Date().toLocaleTimeString()} 🟢`, "bg-green-600");
+                }
+            });
+        } else {
+            // --- SENDER MODE ---
+            shareId = 'loc_' + Math.random().toString(36).substring(2, 10);
+            mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
+        }
+
+        // 1. Live Location Button Click Function
+        function fetchLiveLocation() {
+            if (!navigator.geolocation) {
+                alert("आपका डिवाइस जीपीएस/लोकेशन का समर्थन नहीं करता है।");
+                return;
+            }
+
+            // Auto turn ON toggle switch when clicking Live Location
+            const toggle = document.getElementById('toggleSwitch');
+            toggle.checked = true;
+            handleToggleChange();
+        }
+
+        // 2. Toggle Change Function (ON / OFF)
+        function handleToggleChange() {
+            const toggle = document.getElementById('toggleSwitch');
+            const shareBtn = document.getElementById('shareBtn');
+            isSharingOn = toggle.checked;
+
+            if (isSharingOn) {
+                shareBtn.disabled = false;
+                shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                updateStatus("लोकेशन शेयरिंग: ON 🟢", "bg-green-600");
+                startLocationTracking();
+            } else {
+                shareBtn.disabled = true;
+                shareBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                updateStatus("लोकेशन शेयरिंग: OFF 🔴", "bg-red-600");
+                stopLocationTracking();
+            }
+        }
+
+        // Automatic GPS Tracking (Self-uploading)
+        function startLocationTracking() {
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    updateMapMarker(lat, lng, "आपकी लाइव लोकेशन");
+
+                    // Upload live coordinates to channel
+                    if (mqttClient && isSharingOn) {
+                        mqttClient.publish(`live-loc-channel/${shareId}`, JSON.stringify({
+                            status: "ON",
+                            lat: lat,
+                            lng: lng,
+                            time: Date.now()
+                        }));
+                    }
+                },
+                (error) => {
+                    alert("लोकेशन एक्सेस एरर: " + error.message);
+                    document.getElementById('toggleSwitch').checked = false;
+                    handleToggleChange();
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 10000
+                }
+            );
+        }
+
+        // Stop Location Tracking
+        function stopLocationTracking() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            if (mqttClient && shareId) {
+                mqttClient.publish(`live-loc-channel/${shareId}`, JSON.stringify({
+                    status: "OFF"
+                }));
+            }
+            if (marker) {
+                map.removeLayer(marker);
+                marker = null;
+            }
+        }
+
+        // 3. Universal System Share Option (Any App)
+        function shareLocation() {
+            if (!isSharingOn) {
+                alert("कृपया पहले लोकेशन शेयरिंग चालू (ON) करें।");
+                return;
+            }
+
+            const shareUrl = `${window.location.origin}${window.location.pathname}?track=${shareId}`;
+
+            // Native Share API
+            if (navigator.share) {
+                navigator.share({
+                    title: 'मेरी लाइव लोकेशन',
+                    text: 'मेरी लाइव लोकेशन देखने के लिए इस लिंक पर क्लिक करें:',
+                    url: shareUrl
+                }).catch((err) => {
+                    console.log('Share error/cancelled:', err);
+                });
+            } else {
+                // Fallback option if Web Share API is unavailable
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    alert("शेयर लिंक कॉपी हो गया है! आप इसे किसी भी ऐप पर शेयर कर सकते हैं:\n\n" + shareUrl);
+                });
+            }
+        }
+
+        // Map Marker Helper
+        function updateMapMarker(lat, lng, text) {
+            if (!marker) {
+                marker = L.marker([lat, lng], { icon: locationIcon }).addTo(map);
+            } else {
+                marker.setLatLng([lat, lng]);
+            }
+            marker.bindPopup(text).openPopup();
+            map.setView([lat, lng], 16);
+        }
+
+        // Status Display Helper
+        function updateStatus(text, bgClass) {
+            const statusElem = document.getElementById('statusText');
+            statusElem.innerText = text;
+            statusElem.className = `text-xs px-3 py-1 rounded-full text-white font-medium ${bgClass}`;
+        }
+    </script>
+</body>
+</html>
