@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>JARVIS AI Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-color: #080c14;
+      --card-bg: rgba(16, 24, 40, 0.75);
+      --card-border: rgba(0, 240, 255, 0.2);
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #00f0ff;
+      --accent-glow: rgba(0, 240, 255, 0.35);
+      --accent-secondary: #7000ff;
+      --user-msg-bg: linear-gradient(135deg, #00f0ff 0%, #7000ff 100%);
+      --user-msg-text: #ffffff;
+      --ai-msg-bg: rgba(15, 23, 42, 0.85);
+      --ai-msg-border: rgba(0, 240, 255, 0.3);
+      --input-bg: rgba(15, 23, 42, 0.9);
+      --banner-bg: linear-gradient(90deg, #7000ff, #00f0ff, #7000ff);
+      --anim-duration: 0.3s;
+    }
+
+    body.light-mode {
+      --bg-color: #f0f4f8;
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --card-border: rgba(0, 102, 204, 0.2);
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --accent: #0066cc;
+      --accent-glow: rgba(0, 102, 204, 0.25);
+      --accent-secondary: #4f46e5;
+      --user-msg-bg: linear-gradient(135deg, #0066cc 0%, #4f46e5 100%);
+      --user-msg-text: #ffffff;
+      --ai-msg-bg: rgba(255, 255, 255, 0.95);
+      --ai-msg-border: rgba(0, 102, 204, 0.25);
+      --input-bg: rgba(255, 255, 255, 0.95);
+      --banner-bg: linear-gradient(90deg, #0066cc, #4f46e5, #0066cc);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', sans-serif;
+      transition: background-color var(--anim-duration) ease, color var(--anim-duration) ease, border-color var(--anim-duration) ease;
+    }
+
+    body, html {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+    }
+
+    #app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+    }
+
+    /* Prominent Top Banner */
+    .top-banner {
+      background: var(--banner-bg);
+      background-size: 200% 200%;
+      animation: gradientBg 5s ease infinite;
+      color: #ffffff;
+      text-align: center;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      z-index: 100;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @keyframes gradientBg {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Navigation Header */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--card-border);
+      z-index: 90;
+    }
+
+    .menu-btn {
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 26px;
+      height: 20px;
+    }
+
+    .menu-btn span {
+      display: block;
+      height: 3px;
+      width: 100%;
+      background-color: var(--accent);
+      border-radius: 3px;
+      box-shadow: 0 0 5px var(--accent-glow);
+    }
+
+    .header-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      text-shadow: 0 0 8px var(--accent-glow);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    /* Main Chat Container */
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+
+    .chat-container::-webkit-scrollbar {
+      width: 4px;
+    }
+    .chat-container::-webkit-scrollbar-thumb {
+      background: var(--card-border);
+      border-radius: 4px;
+    }
+
+    /* Message Bubbles */
+    .message-wrapper {
+      display: flex;
+      flex-direction: column;
+      max-width: 85%;
+      animation: fadeIn var(--anim-duration) ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-wrapper.user {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .message-wrapper.ai {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .message-sender {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      padding: 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .message-bubble {
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      line-height: 1.45;
+      word-break: break-word;
+      position: relative;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .message-wrapper.user .message-bubble {
+      background: var(--user-msg-bg);
+      color: var(--user-msg-text);
+      border-bottom-right-radius: 4px;
+    }
+
+    .message-wrapper.ai .message-bubble {
+      background: var(--ai-msg-bg);
+      border: 1px solid var(--ai-msg-border);
+      color: var(--text-main);
+      border-bottom-left-radius: 4px;
+      backdrop-filter: blur(8px);
+    }
+
+    /* Message Actions */
+    .message-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      padding: 0 4px;
+    }
+
+    .action-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all var(--anim-duration) ease;
+    }
+
+    .action-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    /* Input Area */
+    .input-container {
+      padding: 12px 16px;
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mic-btn {
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      color: var(--accent);
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all var(--anim-duration) ease;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .mic-btn.recording {
+      background: #ef4444;
+      color: #ffffff;
+      border-color: #ef4444;
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .input-box {
+      flex: 1;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 12px 18px;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color var(--anim-duration) ease;
+    }
+
+    .input-box:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .send-btn {
+      background: var(--accent);
+      border: none;
+      color: #000;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-weight: bold;
+      transition: all var(--anim-duration) ease;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .send-btn:hover {
+      transform: scale(1.05);
+    }
+
+    /* Left Drawer / Settings Panel */
+    .drawer-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--anim-duration) ease;
+      z-index: 200;
+    }
+
+    .drawer-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 310px;
+      max-width: 85%;
+      height: 100%;
+      background: var(--bg-color);
+      border-right: 1px solid var(--card-border);
+      box-shadow: 5px 0 25px rgba(0, 0, 0, 0.5);
+      transform: translateX(-100%);
+      transition: transform var(--anim-duration) ease;
+      z-index: 201;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .drawer-overlay.open .drawer {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      padding: 20px 16px;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .drawer-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      color: var(--accent);
+    }
+
+    .close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .drawer-content {
+      padding: 16px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .setting-group {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .setting-title {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .setting-label {
+      font-size: 0.9rem;
+    }
+
+    /* Switch Component */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 46px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #334155;
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(22px);
+    }
+
+    /* Range Slider */
+    .range-slider {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    /* API Management UI */
+    .api-card {
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .api-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .api-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .api-name {
+      font-weight: bold;
+      font-size: 0.85rem;
+    }
+
+    .api-input {
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      width: 100%;
+    }
+
+    .btn-sm {
+      background: var(--accent);
+      border: none;
+      color: #000;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      cursor: pointer;
+      align-self: flex-end;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: absolute;
+      bottom: 75px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--accent);
+      color: #000;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      z-index: 300;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- Prominent Top Banner -->
+    <div class="top-banner">
+      This website is made by Naitik Rakesh Kumar Jain Dhalawat
+    </div>
+
+    <!-- Application Header -->
+    <header class="app-header">
+      <button class="menu-btn" id="menu-toggle" aria-label="Open Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="header-title">
+        <div class="status-dot"></div>
+        JARVIS AI
+      </div>
+      <div style="width: 26px;"></div> <!-- Spacer for center alignment -->
+    </header>
+
+    <!-- Main Chat Interface -->
+    <main class="chat-container" id="chat-messages"></main>
+
+    <!-- Bottom Input Controls -->
+    <footer class="input-container">
+      <button class="mic-btn" id="mic-btn" title="Speak Message">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+      </button>
+      <input type="text" class="input-box" id="user-input" placeholder="Type a command or message..." />
+      <button class="send-btn" id="send-btn" title="Send Message">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </footer>
+
+    <!-- Settings Drawer Overlay -->
+    <div class="drawer-overlay" id="drawer-overlay">
+      <div class="drawer" id="drawer">
+        <div class="drawer-header">
+          <div class="drawer-title">SETTINGS</div>
+          <button class="close-btn" id="drawer-close">&times;</button>
+        </div>
+        <div class="drawer-content">
+          
+          <!-- Animation Speed Control -->
+          <div class="setting-group">
+            <div class="setting-title">Animation Speed</div>
+            <div class="setting-row">
+              <span class="setting-label">Transition Speed:</span>
+              <span id="anim-speed-val" style="font-weight: bold; font-size: 0.85rem;">0.3s</span>
+            </div>
+            <input type="range" class="range-slider" id="anim-speed-slider" min="0.1" max="1.0" step="0.1" value="0.3" />
+          </div>
+
+          <!-- Dark / Light Mode Switch -->
+          <div class="setting-group">
+            <div class="setting-title">Theme Control</div>
+            <div class="setting-row">
+              <span class="setting-label">Dark Mode</span>
+              <label class="switch">
+                <input type="checkbox" id="theme-toggle" checked />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- API Upload & Management -->
+          <div class="setting-group">
+            <div class="setting-title">API Management (Up to 3)</div>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">
+              Add custom API keys/endpoints to power Jarvis online capabilities.
+            </p>
+            <div id="api-list-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">Copied to clipboard!</div>
+  </div>
+
+  <script>
+    /* Global Application State */
+    const state = {
+      theme: localStorage.getItem('jarvis_theme') || 'dark',
+      animSpeed: parseFloat(localStorage.getItem('jarvis_anim_speed')) || 0.3,
+      apis: JSON.parse(localStorage.getItem('jarvis_apis')) || [
+        { id: 1, name: 'Primary API Slot', key: '', active: true },
+        { id: 2, name: 'Secondary API Slot', key: '', active: false },
+        { id: 3, name: 'Backup API Slot', key: '', active: false }
+      ],
+      isListening: false,
+      speechRecognition: null,
+      synth: window.speechSynthesis
+    };
+
+    /* Installed Apps Simulation / Protocol Registry */
+    const APPS_REGISTRY = {
+      'youtube': { name: 'YouTube', scheme: 'vnd.youtube://', webUrl: 'https://www.youtube.com', searchUrl: 'https://www.youtube.com/results?search_query=' },
+      'instagram': { name: 'Instagram', scheme: 'instagram://', webUrl: 'https://www.instagram.com', searchUrl: 'https://www.instagram.com/explore/tags/', msgUrl: 'https://www.instagram.com/direct/inbox/' },
+      'facebook': { name: 'Facebook', scheme: 'fb://', webUrl: 'https://www.facebook.com', searchUrl: 'https://www.facebook.com/search/top/?q=' },
+      'whatsapp': { name: 'WhatsApp', scheme: 'whatsapp://', webUrl: 'https://web.whatsapp.com', msgUrl: 'https://api.whatsapp.com/send?text=' },
+      'telegram': { name: 'Telegram', scheme: 'tg://', webUrl: 'https://web.telegram.org', msgUrl: 'https://t.me/share/url?text=' },
+      'twitter': { name: 'Twitter', scheme: 'twitter://', webUrl: 'https://twitter.com', searchUrl: 'https://twitter.com/search?q=', msgUrl: 'https://twitter.com/intent/tweet?text=' },
+      'x': { name: 'Twitter', scheme: 'twitter://', webUrl: 'https://x.com', searchUrl: 'https://x.com/search?q=', msgUrl: 'https://x.com/intent/tweet?text=' },
+      'chrome': { name: 'Chrome', scheme: 'googlechrome://', webUrl: 'https://www.google.com', searchUrl: 'https://www.google.com/search?q=' },
+      'google': { name: 'Google', scheme: 'googlechrome://', webUrl: 'https://www.google.com', searchUrl: 'https://www.google.com/search?q=' }
+    };
+
+    /* DOM Element References */
+    const elements = {
+      menuToggle: document.getElementById('menu-toggle'),
+      drawerOverlay: document.getElementById('drawer-overlay'),
+      drawerClose: document.getElementById('drawer-close'),
+      chatMessages: document.getElementById('chat-messages'),
+      userInput: document.getElementById('user-input'),
+      sendBtn: document.getElementById('send-btn'),
+      micBtn: document.getElementById('mic-btn'),
+      themeToggle: document.getElementById('theme-toggle'),
+      animSpeedSlider: document.getElementById('anim-speed-slider'),
+      animSpeedVal: document.getElementById('anim-speed-val'),
+      apiListContainer: document.getElementById('api-list-container'),
+      toast: document.getElementById('toast')
+    };
+
+    /* Initialize Application */
+    function initApp() {
+      applyTheme(state.theme);
+      applyAnimSpeed(state.animSpeed);
+      renderApiManagement();
+      initSpeechRecognition();
+      setupEventListeners();
+      
+      // Welcome Greeting Message
+      addMessage('ai', "Hello! I am JARVIS, your personal AI Assistant. How may I assist you today?");
+    }
+
+    /* Event Listeners */
+    function setupEventListeners() {
+      // Menu Drawer
+      elements.menuToggle.addEventListener('click', () => toggleDrawer(true));
+      elements.drawerClose.addEventListener('click', () => toggleDrawer(false));
+      elements.drawerOverlay.addEventListener('click', (e) => {
+        if (e.target === elements.drawerOverlay) toggleDrawer(false);
+      });
+
+      // Settings
+      elements.themeToggle.addEventListener('change', (e) => {
+        const theme = e.target.checked ? 'dark' : 'light';
+        state.theme = theme;
+        localStorage.setItem('jarvis_theme', theme);
+        applyTheme(theme);
+      });
+
+      elements.animSpeedSlider.addEventListener('input', (e) => {
+        const speed = parseFloat(e.target.value);
+        state.animSpeed = speed;
+        localStorage.setItem('jarvis_anim_speed', speed);
+        applyAnimSpeed(speed);
+      });
+
+      // Chat Inputs
+      elements.sendBtn.addEventListener('click', handleUserSubmit);
+      elements.userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleUserSubmit();
+      });
+
+      // Mic Button
+      elements.micBtn.addEventListener('click', toggleSpeechRecognition);
+    }
+
+    /* Drawer Controls */
+    function toggleDrawer(open) {
+      if (open) {
+        elements.drawerOverlay.classList.add('open');
+      } else {
+        elements.drawerOverlay.classList.remove('open');
+      }
+    }
+
+    /* Theme & Animation Controls */
+    function applyTheme(theme) {
+      if (theme === 'light') {
+        document.body.classList.add('light-mode');
+        elements.themeToggle.checked = false;
+      } else {
+        document.body.classList.remove('light-mode');
+        elements.themeToggle.checked = true;
+      }
+    }
+
+    function applyAnimSpeed(speed) {
+      document.documentElement.style.setProperty('--anim-duration', `${speed}s`);
+      elements.animSpeedVal.textContent = `${speed}s`;
+      elements.animSpeedSlider.value = speed;
+    }
+
+    /* API Management UI Render */
+    function renderApiManagement() {
+      elements.apiListContainer.innerHTML = '';
+      state.apis.forEach((api, index) => {
+        const card = document.createElement('div');
+        card.className = `api-card ${api.active ? 'active' : ''}`;
+        card.innerHTML = `
+          <div class="api-card-header">
+            <span class="api-name">${api.name}</span>
+            <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+              <input type="radio" name="active_api" ${api.active ? 'checked' : ''} onchange="setActiveApi(${api.id})" /> Active
+            </label>
+          </div>
+          <input type="text" class="api-input" placeholder="API Key / Endpoint" value="${api.key}" onchange="updateApiKey(${api.id}, this.value)" />
+          <input type="text" class="api-input" placeholder="Custom API Name" value="${api.name}" onchange="updateApiName(${api.id}, this.value)" style="margin-top: 4px;" />
+        `;
+        elements.apiListContainer.appendChild(card);
+      });
+    }
+
+    window.setActiveApi = function(id) {
+      state.apis.forEach(api => api.active = (api.id === id));
+      saveApis();
+      renderApiManagement();
+    };
+
+    window.updateApiKey = function(id, val) {
+      const api = state.apis.find(a => a.id === id);
+      if (api) { api.key = val.trim(); saveApis(); }
+    };
+
+    window.updateApiName = function(id, val) {
+      const api = state.apis.find(a => a.id === id);
+      if (api && val.trim()) { api.name = val.trim(); saveApis(); renderApiManagement(); }
+    };
+
+    function saveApis() {
+      localStorage.setItem('jarvis_apis', JSON.stringify(state.apis));
+    }
+
+    /* Toast Alert */
+    function showToast(message) {
+      elements.toast.textContent = message;
+      elements.toast.classList.add('show');
+      setTimeout(() => elements.toast.classList.remove('show'), 2000);
+    }
+
+    /* Text-to-Speech */
+    function speakText(text) {
+      if (!state.synth) return;
+      state.synth.cancel(); // Stop any ongoing speech
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      state.synth.speak(utterance);
+    }
+
+    /* Copy to Clipboard */
+    function copyText(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard!');
+      }).catch(() => {
+        showToast('Failed to copy text.');
+      });
+    }
+
+    /* Speech Recognition Setup */
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        console.warn("Speech recognition not supported in this browser.");
+        return;
+      }
+      
+      state.speechRecognition = new SpeechRecognition();
+      state.speechRecognition.continuous = false;
+      state.speechRecognition.interimResults = false;
+      state.speechRecognition.lang = 'en-US';
+
+      state.speechRecognition.onstart = () => {
+        state.isListening = true;
+        elements.micBtn.classList.add('recording');
+      };
+
+      state.speechRecognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        elements.userInput.value = transcript;
+        handleUserSubmit();
+      };
+
+      state.speechRecognition.onerror = (e) => {
+        console.error("Speech recognition error:", e);
+        stopSpeechRecognition();
+      };
+
+      state.speechRecognition.onend = () => {
+        stopSpeechRecognition();
+      };
+    }
+
+    function toggleSpeechRecognition() {
+      if (!state.speechRecognition) {
+        alert("Speech Recognition is not supported on this device/browser.");
+        return;
+      }
+      if (state.isListening) {
+        state.speechRecognition.stop();
+      } else {
+        state.speechRecognition.start();
+      }
+    }
+
+    function stopSpeechRecognition() {
+      state.isListening = false;
+      elements.micBtn.classList.remove('recording');
+    }
+
+    /* Add Message to UI */
+    function addMessage(sender, text) {
+      const wrapper = document.createElement('div');
+      wrapper.className = `message-wrapper ${sender}`;
+
+      const senderLabel = document.createElement('div');
+      senderLabel.className = 'message-sender';
+      senderLabel.textContent = sender === 'user' ? 'You' : 'JARVIS';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.textContent = text;
+
+      const actions = document.createElement('div');
+      actions.className = 'message-actions';
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'action-btn';
+      copyBtn.innerHTML = `📋 Copy`;
+      copyBtn.onclick = () => copyText(text);
+
+      const speakBtn = document.createElement('button');
+      speakBtn.className = 'action-btn';
+      speakBtn.innerHTML = `🔊 Speak`;
+      speakBtn.onclick = () => speakText(text);
+
+      actions.appendChild(copyBtn);
+      actions.appendChild(speakBtn);
+
+      wrapper.appendChild(senderLabel);
+      wrapper.appendChild(bubble);
+      wrapper.appendChild(actions);
+
+      elements.chatMessages.appendChild(wrapper);
+      elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+    }
+
+    /* Main Processing Engine for Voice & Text Commands */
+    function handleUserSubmit() {
+      const query = elements.userInput.value.trim();
+      if (!query) return;
+
+      addMessage('user', query);
+      elements.userInput.value = '';
+
+      // Process input
+      setTimeout(() => {
+        processCommandOrQuery(query);
+      }, 300);
+    }
+
+    function processCommandOrQuery(input) {
+      const text = input.toLowerCase().trim();
+
+      // 1. OPEN APPLICATION COMMANDS
+      if (text.startsWith('open ') || text.startsWith('launch ') || text.startsWith('start ')) {
+        const appQuery = text.replace(/^(open|launch|start)\s+/, '').trim();
+        handleOpenApp(appQuery);
+        return;
+      }
+
+      // 2. SEARCH COMMANDS
+      if (text.startsWith('search ')) {
+        handleSearchCommand(text);
+        return;
+      }
+
+      // 3. MESSAGING COMMANDS
+      if (text.includes('send ') || text.includes('message ')) {
+        const handled = handleMessagingCommand(text);
+        if (handled) return;
+      }
+
+      // 4. CALLING COMMANDS
+      if (text.startsWith('call ')) {
+        const recipient = text.replace(/^call\s+/, '').trim();
+        handleCallingCommand(recipient);
+        return;
+      }
+
+      // 5. GENERAL QUERY / AI RESPONDER
+      handleGeneralAiResponse(input);
+    }
+
+    /* Command Handler: Open Apps */
+    function handleOpenApp(appName) {
+      const key = appName.toLowerCase();
+      const matchedApp = APPS_REGISTRY[key];
+
+      if (matchedApp) {
+        const reply = `Opening ${matchedApp.name}...`;
+        addMessage('ai', reply);
+        speakText(reply);
+        
+        // Attempt protocol launch or fall back to web
+        setTimeout(() => {
+          window.open(matchedApp.webUrl, '_blank');
+        }, 800);
+      } else {
+        // App non-recognized / uninstalled message
+        const reply = "This app is not installed on your device.";
+        addMessage('ai', reply);
+        speakText(reply);
+      }
+    }
+
+    /* Command Handler: Search */
+    function handleSearchCommand(text) {
+      // Examples: "search on instagram sunset", "search youtube lofi music", "search for quantum computing"
+      let searchTarget = 'chrome';
+      let searchQuery = '';
+
+      for (const appKey in APPS_REGISTRY) {
+        if (text.includes(`on ${appKey}`) || text.includes(`in ${appKey}`) || text.includes(`${appKey} for`)) {
+          searchTarget = appKey;
+          searchQuery = text.replace(new RegExp(`.*(on|in|for)?\\s*${appKey}\\s*(for)?`, 'i'), '').trim();
+          break;
+        }
+      }
+
+      if (!searchQuery) {
+        searchQuery = text.replace(/^search\s+(for\s+)?/, '').trim();
+      }
+
+      const app = APPS_REGISTRY[searchTarget] || APPS_REGISTRY['chrome'];
+      const targetUrl = app.searchUrl ? (app.searchUrl + encodeURIComponent(searchQuery)) : (APPS_REGISTRY['chrome'].searchUrl + encodeURIComponent(searchQuery));
+      
+      const reply = `Searching for "${searchQuery}" on ${app.name}...`;
+      addMessage('ai', reply);
+      speakText(reply);
+
+      setTimeout(() => {
+        window.open(targetUrl, '_blank');
+      }, 800);
+    }
+
+    /* Command Handler: Messaging */
+    function handleMessagingCommand(text) {
+      // Examples: "send this message hello to whatsapp", "send message Good morning to Telegram"
+      let targetAppKey = null;
+
+      for (const appKey in APPS_REGISTRY) {
+        if (text.includes(appKey)) {
+          targetAppKey = appKey;
+          break;
+        }
+      }
+
+      if (!targetAppKey) return false;
+
+      const app = APPS_REGISTRY[targetAppKey];
+      let msgBody = text.replace(new RegExp(`.*send\\s+(this\\s+)?(message\\s+)?`, 'i'), '');
+      msgBody = msgBody.replace(new RegExp(`\\s+(to|on)\\s+${targetAppKey}.*`, 'i'), '').trim();
+
+      if (!msgBody) msgBody = "Hello!";
+
+      const targetUrl = app.msgUrl ? (app.msgUrl + encodeURIComponent(msgBody)) : app.webUrl;
+      const reply = `Opening ${app.name} to send your message...`;
+      
+      addMessage('ai', reply);
+      speakText(reply);
+
+      setTimeout(() => {
+        window.open(targetUrl, '_blank');
+      }, 800);
+
+      return true;
+    }
+
+    /* Command Handler: Calling */
+    function handleCallingCommand(recipient) {
+      const cleanNum = recipient.replace(/[^0-9+]/g, '');
+      const reply = `Initiating call to ${recipient}...`;
+      addMessage('ai', reply);
+      speakText(reply);
+
+      setTimeout(() => {
+        if (cleanNum) {
+          window.location.href = `tel:${cleanNum}`;
+        } else {
+          window.location.href = `tel:${recipient}`;
+        }
+      }, 800);
+    }
+
+    /* General Intelligent Response Engine */
+    async function handleGeneralAiResponse(prompt) {
+      const activeApi = state.apis.find(a => a.active && a.key.trim() !== '');
+
+      if (activeApi) {
+        try {
+          addMessage('ai', "Thinking...");
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${activeApi.key}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-3.5-turbo',
+              messages: [{ role: 'user', content: prompt }]
+            })
+          });
+
+          // Remove "Thinking..." message
+          elements.chatMessages.removeChild(elements.chatMessages.lastChild);
+
+          if (response.ok) {
+            const data = await response.json();
+            const aiText = data.choices[0].message.content;
+            addMessage('ai', aiText);
+            speakText(aiText);
+            return;
+          }
+        } catch (err) {
+          console.error("API Fetch Error:", err);
+          if (elements.chatMessages.lastChild && elements.chatMessages.lastChild.textContent.includes("Thinking...")) {
+            elements.chatMessages.removeChild(elements.chatMessages.lastChild);
+          }
+        }
+      }
+
+      // Offline Dynamic Response Engine
+      const reply = generateLocalJarvisReply(prompt);
+      addMessage('ai', reply);
+      speakText(reply);
+    }
+
+    function generateLocalJarvisReply(input) {
+      const query = input.toLowerCase();
+
+      if (query.includes('hello') || query.includes('hi') || query.includes('hey')) {
+        return "Greetings! How can I assist you with your system or queries today?";
+      }
+      if (query.includes('who are you') || query.includes('your name')) {
+        return "I am JARVIS, your advanced artificial intelligence assistant.";
+      }
+      if (query.includes('who created you') || query.includes('who made you')) {
+        return "This application is designed and developed by Naitik Rakesh Kumar Jain Dhalawat.";
+      }
+      if (query.includes('time') || query.includes('clock')) {
+        return `The current time is ${new Date().toLocaleTimeString()}.`;
+      }
+      if (query.includes('date') || query.includes('day')) {
+        return `Today is ${new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`;
+      }
+      if (query.includes('how are you')) {
+        return "All systems are operational and functioning at 100% capacity, thank you!";
+      }
+
+      return `I have processed your request regarding "${input}". To enable online AI capabilities, you can configure an active API key in the Settings menu.`;
+    }
+
+    // Start App on Page Load
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
