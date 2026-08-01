@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>JARVIS AI Assistant</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <style>
     :root {
+      --vh: 1vh;
       --bg-color: #080c14;
-      --card-bg: rgba(16, 24, 40, 0.75);
-      --card-border: rgba(0, 240, 255, 0.2);
+      --card-bg: rgba(16, 24, 40, 0.85);
+      --card-border: rgba(0, 240, 255, 0.25);
       --text-main: #e2e8f0;
       --text-muted: #94a3b8;
       --accent: #00f0ff;
@@ -17,17 +18,17 @@
       --accent-secondary: #7000ff;
       --user-msg-bg: linear-gradient(135deg, #00f0ff 0%, #7000ff 100%);
       --user-msg-text: #ffffff;
-      --ai-msg-bg: rgba(15, 23, 42, 0.85);
+      --ai-msg-bg: rgba(15, 23, 42, 0.9);
       --ai-msg-border: rgba(0, 240, 255, 0.3);
-      --input-bg: rgba(15, 23, 42, 0.9);
+      --input-bg: rgba(15, 23, 42, 0.95);
       --banner-bg: linear-gradient(90deg, #7000ff, #00f0ff, #7000ff);
       --anim-duration: 0.3s;
     }
 
     body.light-mode {
       --bg-color: #f0f4f8;
-      --card-bg: rgba(255, 255, 255, 0.85);
-      --card-border: rgba(0, 102, 204, 0.2);
+      --card-bg: rgba(255, 255, 255, 0.9);
+      --card-border: rgba(0, 102, 204, 0.25);
       --text-main: #1e293b;
       --text-muted: #64748b;
       --accent: #0066cc;
@@ -35,9 +36,9 @@
       --accent-secondary: #4f46e5;
       --user-msg-bg: linear-gradient(135deg, #0066cc 0%, #4f46e5 100%);
       --user-msg-text: #ffffff;
-      --ai-msg-bg: rgba(255, 255, 255, 0.95);
+      --ai-msg-bg: rgba(255, 255, 255, 0.98);
       --ai-msg-border: rgba(0, 102, 204, 0.25);
-      --input-bg: rgba(255, 255, 255, 0.95);
+      --input-bg: rgba(255, 255, 255, 0.98);
       --banner-bg: linear-gradient(90deg, #0066cc, #4f46e5, #0066cc);
     }
 
@@ -45,37 +46,46 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Roboto', sans-serif;
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
       transition: background-color var(--anim-duration) ease, color var(--anim-duration) ease, border-color var(--anim-duration) ease;
     }
 
-    body, html {
-      height: 100%;
+    html, body {
       width: 100%;
+      height: 100%;
+      height: calc(var(--vh, 1vh) * 100);
       overflow: hidden;
       background-color: var(--bg-color);
       color: var(--text-main);
+      position: fixed;
+      top: 0;
+      left: 0;
     }
 
     #app-container {
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      width: 100vw;
+      width: 100%;
+      height: 100%;
+      height: 100dvh;
+      max-width: 100vw;
       position: relative;
+      overflow: hidden;
     }
 
     /* Prominent Top Banner */
     .top-banner {
+      flex-shrink: 0;
       background: var(--banner-bg);
       background-size: 200% 200%;
       animation: gradientBg 5s ease infinite;
       color: #ffffff;
       text-align: center;
-      padding: 8px 12px;
-      font-size: 0.85rem;
+      padding: clamp(6px, 1.5vh, 10px) 12px;
+      font-size: clamp(0.72rem, 2.8vw, 0.88rem);
       font-weight: 700;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
       z-index: 100;
       white-space: nowrap;
@@ -91,12 +101,14 @@
 
     /* Navigation Header */
     .app-header {
+      flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 16px;
+      padding: 10px 14px;
       background: var(--card-bg);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--card-border);
       z-index: 90;
     }
@@ -109,13 +121,14 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      width: 26px;
-      height: 20px;
+      width: 24px;
+      height: 18px;
+      padding: 0;
     }
 
     .menu-btn span {
       display: block;
-      height: 3px;
+      height: 2.5px;
       width: 100%;
       background-color: var(--accent);
       border-radius: 3px;
@@ -124,9 +137,9 @@
 
     .header-title {
       font-family: 'Orbitron', sans-serif;
-      font-size: 1.25rem;
+      font-size: clamp(1rem, 4vw, 1.25rem);
       font-weight: 800;
-      letter-spacing: 1.5px;
+      letter-spacing: 1.2px;
       color: var(--accent);
       text-shadow: 0 0 8px var(--accent-glow);
       display: flex;
@@ -146,15 +159,16 @@
     .chat-container {
       flex: 1;
       overflow-y: auto;
-      padding: 16px;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px 14px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 12px;
       scroll-behavior: smooth;
     }
 
     .chat-container::-webkit-scrollbar {
-      width: 4px;
+      width: 3px;
     }
     .chat-container::-webkit-scrollbar-thumb {
       background: var(--card-border);
@@ -165,12 +179,12 @@
     .message-wrapper {
       display: flex;
       flex-direction: column;
-      max-width: 85%;
+      max-width: 88%;
       animation: fadeIn var(--anim-duration) ease-out;
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
+      from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
@@ -185,44 +199,46 @@
     }
 
     .message-sender {
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       color: var(--text-muted);
-      margin-bottom: 4px;
+      margin-bottom: 3px;
       padding: 0 4px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .message-bubble {
-      padding: 12px 16px;
-      border-radius: 16px;
-      font-size: 0.95rem;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: clamp(0.88rem, 3.5vw, 0.95rem);
       line-height: 1.45;
       word-break: break-word;
+      overflow-wrap: anywhere;
       position: relative;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .message-wrapper.user .message-bubble {
       background: var(--user-msg-bg);
       color: var(--user-msg-text);
-      border-bottom-right-radius: 4px;
+      border-bottom-right-radius: 3px;
     }
 
     .message-wrapper.ai .message-bubble {
       background: var(--ai-msg-bg);
       border: 1px solid var(--ai-msg-border);
       color: var(--text-main);
-      border-bottom-left-radius: 4px;
+      border-bottom-left-radius: 3px;
       backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
 
     /* Message Actions */
     .message-actions {
       display: flex;
       gap: 6px;
-      margin-top: 6px;
-      padding: 0 4px;
+      margin-top: 5px;
+      padding: 0 2px;
     }
 
     .action-btn {
@@ -231,7 +247,7 @@
       color: var(--text-muted);
       border-radius: 6px;
       padding: 4px 8px;
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -239,29 +255,33 @@
       transition: all var(--anim-duration) ease;
     }
 
-    .action-btn:hover {
+    .action-btn:active, .action-btn:hover {
       color: var(--accent);
       border-color: var(--accent);
-      box-shadow: 0 0 8px var(--accent-glow);
+      box-shadow: 0 0 6px var(--accent-glow);
     }
 
     /* Input Area */
     .input-container {
-      padding: 12px 16px;
+      flex-shrink: 0;
+      padding: 10px 12px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
       background: var(--card-bg);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border-top: 1px solid var(--card-border);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      width: 100%;
     }
 
     .mic-btn {
       background: var(--input-bg);
       border: 1px solid var(--card-border);
       color: var(--accent);
-      width: 46px;
-      height: 46px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -269,7 +289,6 @@
       cursor: pointer;
       flex-shrink: 0;
       transition: all var(--anim-duration) ease;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
     }
 
     .mic-btn.recording {
@@ -281,33 +300,34 @@
 
     @keyframes pulse {
       0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-      70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+      70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
       100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
 
     .input-box {
       flex: 1;
+      min-width: 0;
       background: var(--input-bg);
       border: 1px solid var(--card-border);
-      border-radius: 24px;
-      padding: 12px 18px;
+      border-radius: 22px;
+      padding: 10px 16px;
       color: var(--text-main);
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       outline: none;
       transition: border-color var(--anim-duration) ease;
     }
 
     .input-box:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 8px var(--accent-glow);
+      box-shadow: 0 0 6px var(--accent-glow);
     }
 
     .send-btn {
       background: var(--accent);
       border: none;
       color: #000;
-      width: 46px;
-      height: 46px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -316,11 +336,11 @@
       flex-shrink: 0;
       font-weight: bold;
       transition: all var(--anim-duration) ease;
-      box-shadow: 0 0 12px var(--accent-glow);
+      box-shadow: 0 0 8px var(--accent-glow);
     }
 
-    .send-btn:hover {
-      transform: scale(1.05);
+    .send-btn:active {
+      transform: scale(0.95);
     }
 
     /* Left Drawer / Settings Panel */
@@ -330,8 +350,9 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.65);
       backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       opacity: 0;
       pointer-events: none;
       transition: opacity var(--anim-duration) ease;
@@ -347,8 +368,7 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 310px;
-      max-width: 85%;
+      width: min(300px, 85vw);
       height: 100%;
       background: var(--bg-color);
       border-right: 1px solid var(--card-border);
@@ -365,17 +385,18 @@
     }
 
     .drawer-header {
-      padding: 20px 16px;
+      padding: 16px 14px;
       background: var(--card-bg);
       border-bottom: 1px solid var(--card-border);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-shrink: 0;
     }
 
     .drawer-title {
       font-family: 'Orbitron', sans-serif;
-      font-size: 1.1rem;
+      font-size: 1rem;
       color: var(--accent);
     }
 
@@ -383,31 +404,33 @@
       background: transparent;
       border: none;
       color: var(--text-muted);
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       cursor: pointer;
+      padding: 0 4px;
     }
 
     .drawer-content {
-      padding: 16px;
+      padding: 14px;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 14px;
     }
 
     .setting-group {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 12px;
-      padding: 14px;
+      border-radius: 10px;
+      padding: 12px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .setting-title {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: bold;
       color: var(--accent);
       text-transform: uppercase;
@@ -421,15 +444,15 @@
     }
 
     .setting-label {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
 
     /* Switch Component */
     .switch {
       position: relative;
       display: inline-block;
-      width: 46px;
-      height: 24px;
+      width: 44px;
+      height: 22px;
     }
 
     .switch input {
@@ -444,14 +467,14 @@
       top: 0; left: 0; right: 0; bottom: 0;
       background-color: #334155;
       transition: .3s;
-      border-radius: 24px;
+      border-radius: 22px;
     }
 
     .slider:before {
       position: absolute;
       content: "";
-      height: 18px;
-      width: 18px;
+      height: 16px;
+      width: 16px;
       left: 3px;
       bottom: 3px;
       background-color: white;
@@ -475,10 +498,10 @@
 
     /* API Management UI */
     .api-card {
-      background: rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.25);
       border: 1px solid var(--card-border);
       border-radius: 8px;
-      padding: 10px;
+      padding: 8px;
       display: flex;
       flex-direction: column;
       gap: 6px;
@@ -486,7 +509,7 @@
 
     .api-card.active {
       border-color: var(--accent);
-      box-shadow: 0 0 8px var(--accent-glow);
+      box-shadow: 0 0 6px var(--accent-glow);
     }
 
     .api-card-header {
@@ -497,48 +520,38 @@
 
     .api-name {
       font-weight: bold;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
 
     .api-input {
       background: var(--input-bg);
       border: 1px solid var(--card-border);
       color: var(--text-main);
-      padding: 6px 10px;
+      padding: 6px 8px;
       border-radius: 6px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       width: 100%;
-    }
-
-    .btn-sm {
-      background: var(--accent);
-      border: none;
-      color: #000;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: bold;
-      cursor: pointer;
-      align-self: flex-end;
+      outline: none;
     }
 
     /* Toast Notification */
     .toast {
       position: absolute;
-      bottom: 75px;
+      bottom: 70px;
       left: 50%;
       transform: translateX(-50%) translateY(20px);
       background: var(--accent);
       color: #000;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 0.8rem;
+      padding: 6px 14px;
+      border-radius: 16px;
+      font-size: 0.78rem;
       font-weight: bold;
       opacity: 0;
       pointer-events: none;
       transition: all 0.3s ease;
       z-index: 300;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      white-space: nowrap;
     }
 
     .toast.show {
@@ -566,7 +579,7 @@
         <div class="status-dot"></div>
         JARVIS AI
       </div>
-      <div style="width: 26px;"></div> <!-- Spacer for center alignment -->
+      <div style="width: 24px;"></div>
     </header>
 
     <!-- Main Chat Interface -->
@@ -582,7 +595,7 @@
           <line x1="8" y1="23" x2="16" y2="23"></line>
         </svg>
       </button>
-      <input type="text" class="input-box" id="user-input" placeholder="Type a command or message..." />
+      <input type="text" class="input-box" id="user-input" placeholder="Type a command or message..." autocomplete="off" />
       <button class="send-btn" id="send-btn" title="Send Message">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -605,7 +618,7 @@
             <div class="setting-title">Animation Speed</div>
             <div class="setting-row">
               <span class="setting-label">Transition Speed:</span>
-              <span id="anim-speed-val" style="font-weight: bold; font-size: 0.85rem;">0.3s</span>
+              <span id="anim-speed-val" style="font-weight: bold; font-size: 0.8rem;">0.3s</span>
             </div>
             <input type="range" class="range-slider" id="anim-speed-slider" min="0.1" max="1.0" step="0.1" value="0.3" />
           </div>
@@ -625,10 +638,10 @@
           <!-- API Upload & Management -->
           <div class="setting-group">
             <div class="setting-title">API Management (Up to 3)</div>
-            <p style="font-size: 0.75rem; color: var(--text-muted);">
-              Add custom API keys/endpoints to power Jarvis online capabilities.
+            <p style="font-size: 0.72rem; color: var(--text-muted);">
+              Configure up to 3 custom APIs. Switch anytime.
             </p>
-            <div id="api-list-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+            <div id="api-list-container" style="display:flex; flex-direction:column; gap:8px;"></div>
           </div>
 
         </div>
@@ -640,34 +653,77 @@
   </div>
 
   <script>
-    /* Global Application State */
+    /* Responsive Viewport Height Fix for All Devices */
+    function updateViewportHeight() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    window.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('orientationchange', updateViewportHeight);
+    updateViewportHeight();
+
+    /* Robust Storage Wrapper (Fixes Storage Access Errors in WebViews / Restricted Browsers) */
+    const inMemoryStorage = {};
+    const safeStorage = {
+      getItem: (key) => {
+        try {
+          return localStorage.getItem(key);
+        } catch (e) {
+          return inMemoryStorage[key] || null;
+        }
+      },
+      setItem: (key, value) => {
+        try {
+          localStorage.setItem(key, value);
+        } catch (e) {
+          inMemoryStorage[key] = value;
+        }
+      }
+    };
+
+    /* Application State */
+    const defaultApis = [
+      { id: 1, name: 'Primary API Slot', key: '', active: true },
+      { id: 2, name: 'Secondary API Slot', key: '', active: false },
+      { id: 3, name: 'Backup API Slot', key: '', active: false }
+    ];
+
+    let storedApis = defaultApis;
+    try {
+      const parsed = JSON.parse(safeStorage.getItem('jarvis_apis'));
+      if (Array.isArray(parsed) && parsed.length > 0) storedApis = parsed;
+    } catch (e) {}
+
+    let storedMessages = [];
+    try {
+      const parsedMsg = JSON.parse(safeStorage.getItem('jarvis_messages'));
+      if (Array.isArray(parsedMsg)) storedMessages = parsedMsg;
+    } catch(e) {}
+
     const state = {
-      theme: localStorage.getItem('jarvis_theme') || 'dark',
-      animSpeed: parseFloat(localStorage.getItem('jarvis_anim_speed')) || 0.3,
-      apis: JSON.parse(localStorage.getItem('jarvis_apis')) || [
-        { id: 1, name: 'Primary API Slot', key: '', active: true },
-        { id: 2, name: 'Secondary API Slot', key: '', active: false },
-        { id: 3, name: 'Backup API Slot', key: '', active: false }
-      ],
+      theme: safeStorage.getItem('jarvis_theme') || 'dark',
+      animSpeed: parseFloat(safeStorage.getItem('jarvis_anim_speed')) || 0.3,
+      apis: storedApis,
+      messages: storedMessages,
       isListening: false,
       speechRecognition: null,
       synth: window.speechSynthesis
     };
 
-    /* Installed Apps Simulation / Protocol Registry */
+    /* App Registry for App Launcher & Deep Linking */
     const APPS_REGISTRY = {
-      'youtube': { name: 'YouTube', scheme: 'vnd.youtube://', webUrl: 'https://www.youtube.com', searchUrl: 'https://www.youtube.com/results?search_query=' },
-      'instagram': { name: 'Instagram', scheme: 'instagram://', webUrl: 'https://www.instagram.com', searchUrl: 'https://www.instagram.com/explore/tags/', msgUrl: 'https://www.instagram.com/direct/inbox/' },
-      'facebook': { name: 'Facebook', scheme: 'fb://', webUrl: 'https://www.facebook.com', searchUrl: 'https://www.facebook.com/search/top/?q=' },
-      'whatsapp': { name: 'WhatsApp', scheme: 'whatsapp://', webUrl: 'https://web.whatsapp.com', msgUrl: 'https://api.whatsapp.com/send?text=' },
-      'telegram': { name: 'Telegram', scheme: 'tg://', webUrl: 'https://web.telegram.org', msgUrl: 'https://t.me/share/url?text=' },
-      'twitter': { name: 'Twitter', scheme: 'twitter://', webUrl: 'https://twitter.com', searchUrl: 'https://twitter.com/search?q=', msgUrl: 'https://twitter.com/intent/tweet?text=' },
-      'x': { name: 'Twitter', scheme: 'twitter://', webUrl: 'https://x.com', searchUrl: 'https://x.com/search?q=', msgUrl: 'https://x.com/intent/tweet?text=' },
-      'chrome': { name: 'Chrome', scheme: 'googlechrome://', webUrl: 'https://www.google.com', searchUrl: 'https://www.google.com/search?q=' },
-      'google': { name: 'Google', scheme: 'googlechrome://', webUrl: 'https://www.google.com', searchUrl: 'https://www.google.com/search?q=' }
+      'youtube': { name: 'YouTube', webUrl: 'https://www.youtube.com', searchUrl: 'https://www.youtube.com/results?search_query=' },
+      'instagram': { name: 'Instagram', webUrl: 'https://www.instagram.com', searchUrl: 'https://www.instagram.com/explore/tags/', msgUrl: 'https://www.instagram.com/direct/inbox/' },
+      'facebook': { name: 'Facebook', webUrl: 'https://www.facebook.com', searchUrl: 'https://www.facebook.com/search/top/?q=' },
+      'whatsapp': { name: 'WhatsApp', webUrl: 'https://web.whatsapp.com', msgUrl: 'https://api.whatsapp.com/send?text=' },
+      'telegram': { name: 'Telegram', webUrl: 'https://web.telegram.org', msgUrl: 'https://t.me/share/url?text=' },
+      'twitter': { name: 'Twitter', webUrl: 'https://twitter.com', searchUrl: 'https://twitter.com/search?q=', msgUrl: 'https://twitter.com/intent/tweet?text=' },
+      'x': { name: 'Twitter', webUrl: 'https://x.com', searchUrl: 'https://x.com/search?q=', msgUrl: 'https://x.com/intent/tweet?text=' },
+      'chrome': { name: 'Chrome', webUrl: 'https://www.google.com', searchUrl: 'https://www.google.com/search?q=' },
+      'google': { name: 'Google', webUrl: 'https://www.google.com', searchUrl: 'https://www.google.com/search?q=' }
     };
 
-    /* DOM Element References */
+    /* DOM References */
     const elements = {
       menuToggle: document.getElementById('menu-toggle'),
       drawerOverlay: document.getElementById('drawer-overlay'),
@@ -683,62 +739,58 @@
       toast: document.getElementById('toast')
     };
 
-    /* Initialize Application */
+    /* Init App */
     function initApp() {
       applyTheme(state.theme);
       applyAnimSpeed(state.animSpeed);
       renderApiManagement();
       initSpeechRecognition();
       setupEventListeners();
-      
-      // Welcome Greeting Message
-      addMessage('ai', "Hello! I am JARVIS, your personal AI Assistant. How may I assist you today?");
+
+      // Render stored chat messages or default welcome message
+      if (state.messages.length > 0) {
+        state.messages.forEach(msg => renderMessageUI(msg.sender, msg.text));
+      } else {
+        addMessage('ai', "Hello! I am JARVIS, your personal AI Assistant. How may I assist you today?");
+      }
     }
 
-    /* Event Listeners */
+    /* Event Listeners Setup */
     function setupEventListeners() {
-      // Menu Drawer
       elements.menuToggle.addEventListener('click', () => toggleDrawer(true));
       elements.drawerClose.addEventListener('click', () => toggleDrawer(false));
       elements.drawerOverlay.addEventListener('click', (e) => {
         if (e.target === elements.drawerOverlay) toggleDrawer(false);
       });
 
-      // Settings
       elements.themeToggle.addEventListener('change', (e) => {
         const theme = e.target.checked ? 'dark' : 'light';
         state.theme = theme;
-        localStorage.setItem('jarvis_theme', theme);
+        safeStorage.setItem('jarvis_theme', theme);
         applyTheme(theme);
       });
 
       elements.animSpeedSlider.addEventListener('input', (e) => {
         const speed = parseFloat(e.target.value);
         state.animSpeed = speed;
-        localStorage.setItem('jarvis_anim_speed', speed);
+        safeStorage.setItem('jarvis_anim_speed', speed);
         applyAnimSpeed(speed);
       });
 
-      // Chat Inputs
       elements.sendBtn.addEventListener('click', handleUserSubmit);
       elements.userInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') handleUserSubmit();
       });
 
-      // Mic Button
       elements.micBtn.addEventListener('click', toggleSpeechRecognition);
     }
 
-    /* Drawer Controls */
+    /* Drawer & Theme Helpers */
     function toggleDrawer(open) {
-      if (open) {
-        elements.drawerOverlay.classList.add('open');
-      } else {
-        elements.drawerOverlay.classList.remove('open');
-      }
+      if (open) elements.drawerOverlay.classList.add('open');
+      else elements.drawerOverlay.classList.remove('open');
     }
 
-    /* Theme & Animation Controls */
     function applyTheme(theme) {
       if (theme === 'light') {
         document.body.classList.add('light-mode');
@@ -755,21 +807,21 @@
       elements.animSpeedSlider.value = speed;
     }
 
-    /* API Management UI Render */
+    /* Render API Management UI */
     function renderApiManagement() {
       elements.apiListContainer.innerHTML = '';
-      state.apis.forEach((api, index) => {
+      state.apis.forEach((api) => {
         const card = document.createElement('div');
         card.className = `api-card ${api.active ? 'active' : ''}`;
         card.innerHTML = `
           <div class="api-card-header">
-            <span class="api-name">${api.name}</span>
-            <label style="font-size: 0.75rem; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+            <span class="api-name">${escapeHtml(api.name)}</span>
+            <label style="font-size: 0.72rem; display: flex; align-items: center; gap: 4px; cursor: pointer;">
               <input type="radio" name="active_api" ${api.active ? 'checked' : ''} onchange="setActiveApi(${api.id})" /> Active
             </label>
           </div>
-          <input type="text" class="api-input" placeholder="API Key / Endpoint" value="${api.key}" onchange="updateApiKey(${api.id}, this.value)" />
-          <input type="text" class="api-input" placeholder="Custom API Name" value="${api.name}" onchange="updateApiName(${api.id}, this.value)" style="margin-top: 4px;" />
+          <input type="text" class="api-input" placeholder="API Key / Endpoint" value="${escapeHtml(api.key)}" onchange="updateApiKey(${api.id}, this.value)" />
+          <input type="text" class="api-input" placeholder="Custom API Name" value="${escapeHtml(api.name)}" onchange="updateApiName(${api.id}, this.value)" style="margin-top: 2px;" />
         `;
         elements.apiListContainer.appendChild(card);
       });
@@ -792,79 +844,87 @@
     };
 
     function saveApis() {
-      localStorage.setItem('jarvis_apis', JSON.stringify(state.apis));
+      safeStorage.setItem('jarvis_apis', JSON.stringify(state.apis));
     }
 
-    /* Toast Alert */
+    function saveMessages() {
+      safeStorage.setItem('jarvis_messages', JSON.stringify(state.messages.slice(-50))); // Store last 50
+    }
+
     function showToast(message) {
       elements.toast.textContent = message;
       elements.toast.classList.add('show');
       setTimeout(() => elements.toast.classList.remove('show'), 2000);
     }
 
-    /* Text-to-Speech */
     function speakText(text) {
       if (!state.synth) return;
-      state.synth.cancel(); // Stop any ongoing speech
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      state.synth.speak(utterance);
+      try {
+        state.synth.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        state.synth.speak(utterance);
+      } catch(e) {}
     }
 
-    /* Copy to Clipboard */
     function copyText(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        showToast('Copied to clipboard!');
-      }).catch(() => {
-        showToast('Failed to copy text.');
-      });
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!'))
+        .catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
     }
 
-    /* Speech Recognition Setup */
+    function fallbackCopy(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        showToast('Copied to clipboard!');
+      } catch (err) {
+        showToast('Copy failed!');
+      }
+      document.body.removeChild(textArea);
+    }
+
+    /* Speech Recognition */
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        console.warn("Speech recognition not supported in this browser.");
-        return;
-      }
-      
-      state.speechRecognition = new SpeechRecognition();
-      state.speechRecognition.continuous = false;
-      state.speechRecognition.interimResults = false;
-      state.speechRecognition.lang = 'en-US';
+      if (!SpeechRecognition) return;
 
-      state.speechRecognition.onstart = () => {
-        state.isListening = true;
-        elements.micBtn.classList.add('recording');
-      };
+      try {
+        state.speechRecognition = new SpeechRecognition();
+        state.speechRecognition.continuous = false;
+        state.speechRecognition.interimResults = false;
+        state.speechRecognition.lang = 'en-US';
 
-      state.speechRecognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        elements.userInput.value = transcript;
-        handleUserSubmit();
-      };
+        state.speechRecognition.onstart = () => {
+          state.isListening = true;
+          elements.micBtn.classList.add('recording');
+        };
 
-      state.speechRecognition.onerror = (e) => {
-        console.error("Speech recognition error:", e);
-        stopSpeechRecognition();
-      };
+        state.speechRecognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          elements.userInput.value = transcript;
+          handleUserSubmit();
+        };
 
-      state.speechRecognition.onend = () => {
-        stopSpeechRecognition();
-      };
+        state.speechRecognition.onerror = stopSpeechRecognition;
+        state.speechRecognition.onend = stopSpeechRecognition;
+      } catch(e) {}
     }
 
     function toggleSpeechRecognition() {
       if (!state.speechRecognition) {
-        alert("Speech Recognition is not supported on this device/browser.");
+        showToast("Speech Recognition unavailable");
         return;
       }
-      if (state.isListening) {
-        state.speechRecognition.stop();
-      } else {
-        state.speechRecognition.start();
-      }
+      if (state.isListening) state.speechRecognition.stop();
+      else state.speechRecognition.start();
     }
 
     function stopSpeechRecognition() {
@@ -872,8 +932,14 @@
       elements.micBtn.classList.remove('recording');
     }
 
-    /* Add Message to UI */
+    /* Render Message UI & Storage */
     function addMessage(sender, text) {
+      state.messages.push({ sender, text });
+      saveMessages();
+      renderMessageUI(sender, text);
+    }
+
+    function renderMessageUI(sender, text) {
       const wrapper = document.createElement('div');
       wrapper.className = `message-wrapper ${sender}`;
 
@@ -909,7 +975,7 @@
       elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
     }
 
-    /* Main Processing Engine for Voice & Text Commands */
+    /* Message Submission */
     function handleUserSubmit() {
       const query = elements.userInput.value.trim();
       if (!query) return;
@@ -917,12 +983,12 @@
       addMessage('user', query);
       elements.userInput.value = '';
 
-      // Process input
       setTimeout(() => {
         processCommandOrQuery(query);
-      }, 300);
+      }, 250);
     }
 
+    /* Command Processing Engine */
     function processCommandOrQuery(input) {
       const text = input.toLowerCase().trim();
 
@@ -952,11 +1018,11 @@
         return;
       }
 
-      // 5. GENERAL QUERY / AI RESPONDER
+      // 5. GENERAL AI RESPONDER
       handleGeneralAiResponse(input);
     }
 
-    /* Command Handler: Open Apps */
+    /* Command: Open App */
     function handleOpenApp(appName) {
       const key = appName.toLowerCase();
       const matchedApp = APPS_REGISTRY[key];
@@ -965,22 +1031,19 @@
         const reply = `Opening ${matchedApp.name}...`;
         addMessage('ai', reply);
         speakText(reply);
-        
-        // Attempt protocol launch or fall back to web
+
         setTimeout(() => {
           window.open(matchedApp.webUrl, '_blank');
-        }, 800);
+        }, 600);
       } else {
-        // App non-recognized / uninstalled message
         const reply = "This app is not installed on your device.";
         addMessage('ai', reply);
         speakText(reply);
       }
     }
 
-    /* Command Handler: Search */
+    /* Command: Search */
     function handleSearchCommand(text) {
-      // Examples: "search on instagram sunset", "search youtube lofi music", "search for quantum computing"
       let searchTarget = 'chrome';
       let searchQuery = '';
 
@@ -998,19 +1061,18 @@
 
       const app = APPS_REGISTRY[searchTarget] || APPS_REGISTRY['chrome'];
       const targetUrl = app.searchUrl ? (app.searchUrl + encodeURIComponent(searchQuery)) : (APPS_REGISTRY['chrome'].searchUrl + encodeURIComponent(searchQuery));
-      
+
       const reply = `Searching for "${searchQuery}" on ${app.name}...`;
       addMessage('ai', reply);
       speakText(reply);
 
       setTimeout(() => {
         window.open(targetUrl, '_blank');
-      }, 800);
+      }, 600);
     }
 
-    /* Command Handler: Messaging */
+    /* Command: Send Message */
     function handleMessagingCommand(text) {
-      // Examples: "send this message hello to whatsapp", "send message Good morning to Telegram"
       let targetAppKey = null;
 
       for (const appKey in APPS_REGISTRY) {
@@ -1030,18 +1092,18 @@
 
       const targetUrl = app.msgUrl ? (app.msgUrl + encodeURIComponent(msgBody)) : app.webUrl;
       const reply = `Opening ${app.name} to send your message...`;
-      
+
       addMessage('ai', reply);
       speakText(reply);
 
       setTimeout(() => {
         window.open(targetUrl, '_blank');
-      }, 800);
+      }, 600);
 
       return true;
     }
 
-    /* Command Handler: Calling */
+    /* Command: Call */
     function handleCallingCommand(recipient) {
       const cleanNum = recipient.replace(/[^0-9+]/g, '');
       const reply = `Initiating call to ${recipient}...`;
@@ -1054,10 +1116,10 @@
         } else {
           window.location.href = `tel:${recipient}`;
         }
-      }, 800);
+      }, 600);
     }
 
-    /* General Intelligent Response Engine */
+    /* General AI Query Handler */
     async function handleGeneralAiResponse(prompt) {
       const activeApi = state.apis.find(a => a.active && a.key.trim() !== '');
 
@@ -1076,8 +1138,9 @@
             })
           });
 
-          // Remove "Thinking..." message
+          // Remove "Thinking..." indicator
           elements.chatMessages.removeChild(elements.chatMessages.lastChild);
+          state.messages.pop();
 
           if (response.ok) {
             const data = await response.json();
@@ -1087,14 +1150,14 @@
             return;
           }
         } catch (err) {
-          console.error("API Fetch Error:", err);
           if (elements.chatMessages.lastChild && elements.chatMessages.lastChild.textContent.includes("Thinking...")) {
             elements.chatMessages.removeChild(elements.chatMessages.lastChild);
+            state.messages.pop();
           }
         }
       }
 
-      // Offline Dynamic Response Engine
+      // Offline Assistant Engine
       const reply = generateLocalJarvisReply(prompt);
       addMessage('ai', reply);
       speakText(reply);
@@ -1104,28 +1167,29 @@
       const query = input.toLowerCase();
 
       if (query.includes('hello') || query.includes('hi') || query.includes('hey')) {
-        return "Greetings! How can I assist you with your system or queries today?";
+        return "Greetings! How can I assist you today?";
       }
       if (query.includes('who are you') || query.includes('your name')) {
-        return "I am JARVIS, your advanced artificial intelligence assistant.";
+        return "I am JARVIS, your personal artificial intelligence assistant.";
       }
       if (query.includes('who created you') || query.includes('who made you')) {
-        return "This application is designed and developed by Naitik Rakesh Kumar Jain Dhalawat.";
+        return "This website is made by Naitik Rakesh Kumar Jain Dhalawat.";
       }
-      if (query.includes('time') || query.includes('clock')) {
+      if (query.includes('time')) {
         return `The current time is ${new Date().toLocaleTimeString()}.`;
       }
-      if (query.includes('date') || query.includes('day')) {
+      if (query.includes('date')) {
         return `Today is ${new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`;
       }
-      if (query.includes('how are you')) {
-        return "All systems are operational and functioning at 100% capacity, thank you!";
-      }
 
-      return `I have processed your request regarding "${input}". To enable online AI capabilities, you can configure an active API key in the Settings menu.`;
+      return `I have processed your request: "${input}". To connect live AI models, please add your API Key in Settings.`;
     }
 
-    // Start App on Page Load
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Launch Application
     document.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
