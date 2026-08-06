@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hotel & Food Delivery App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updatePassword, sendPasswordResetEmail, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYh83XSYKVdUnKh1OgBzuPOJRb9kNTxno",
+            authDomain: "my-hotel-b7e45.firebaseapp.com",
+            projectId: "my-hotel-b7e45",
+            storageBucket: "my-hotel-b7e45.firebasestorage.app",
+            messagingSenderId: "766471367677",
+            appId: "1:766471367677:web:6cb895ceecd170185a4794"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.appState = {
+            currentUser: null, currentRole: null, cart: {}, currentHotel: null,
+            hotels: [], dishes: [], hostAccounts: [], deliveryAccounts: [],
+            notifications: [], ownerProfile: null, filterPrice: null, searchQuery: ''
+        };
+
+        window.showToast = (msg, type = 'info') => {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg z-[9999] text-white font-medium ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        };
+
+        window.generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+        window.formatCurrency = (amount) => '₹' + parseFloat(amount).toFixed(2);
+
+        window.showScreen = (screenId) => {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+            window.scrollTo(0, 0);
+        };
+
+        window.showRoleSelection = () => showScreen('role-selection');
+
+        window.logout = async () => {
+            await signOut(auth);
+            window.appState.currentUser = null;
+            window.appState.currentRole = null;
+            window.appState.cart = {};
+            showRoleSelection();
+            showToast('Logged out successfully', 'success');
+        };
+
+        // USER AUTH
+        window.showUserLogin = () => showScreen('user-login-screen');
+        window.showUserRegister = () => showScreen('user-register-screen');
+        window.showUserForgot = () => showScreen('user-forgot-screen');
+
+        window.sendUserOTP = () => {
+            const phone = document.getElementById('reg-phone').value;
+            if (!phone || phone.length < 10) { showToast('Please enter valid mobile number', 'error'); return; }
+            const otp = generateOTP();
+            window.pendingOTP = otp;
+            window.pendingPhone = phone;
+            showToast(`OTP sent to ${phone}: ${otp}`, 'success');
+            document.getElementById('otp-section').classList.remove('hidden');
+        };
+
+        window.registerUser = async () => {
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const phone = document.getElementById('reg-phone').value;
+            const otp = document.getElementById('reg-otp').value;
+            if (!name || !email || !password || !phone) { showToast('Please fill all fields', 'error'); return; }
+            if (otp !== window.pendingOTP) { showToast('Invalid OTP', 'error'); return; }
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, password);
+                await setDoc(doc(db, 'users', cred.user.uid), { name, email, phone, role: 'user', createdAt: serverTimestamp() });
+                showToast('Account created successfully!', 'success');
+                showUserPanel();
+            } catch (e) { showToast(e.message, 'error'); }
+        };
+
+        window.loginUser = async () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showToast('Login successful!', 'success');
+                showUserPanel();
+            } catch (e) { showToast(e.message, 'error'); }
+        };
+
+        window.resetUserPassword = async () => {
+            const email = document.getElementById('forgot-email').value;
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showToast('Password reset email sent!', 'success');
+                showUserLogin();
+            } catch (e) { showToast(e.message, 'error'); }
+        };
+
+        // HOST AUTH
+        window.showHostLogin = () => showScreen('host-login-screen');
+        window.loginHost = async () => {
+            const id = document.getElementById('host-id').value;
+            const password = document.getElementById('host-password').value;
+            const q = query(collection(db, 'hostAccounts'), where('id', '==', id), where('password', '==', password));
+            const snap = await getDocs(q);
+            if (snap.empty) { showToast('Invalid Host ID or Password', 'error'); return; }
+            const data = snap.docs[0].data();
+            if (data.banned) { showToast('Account temporarily banned', 'error'); return; }
+            window.appState.currentRole = 'host';
+            window.appState.currentUser = { ...data, docId: snap.docs[0].id };
+            showToast('Host login successful!', 'success');
+            showHostPanel();
+        };
+
+        // DELIVERY AUTH
+        window.showDeliveryLogin = () => showScreen('delivery-login-screen');
+        window.loginDelivery = async () => {
+            const id = document.getElementById('delivery-id').value;
+            const password = document.getElementById('delivery-password').value;
+            const q = query(collection(db, 'deliveryAccounts'), where('id', '==', id), where('password', '==', password));
+            const snap = await getDocs(q);
+            if (snap.empty) { showToast('Invalid Delivery ID or Password', 'error'); return; }
+            const data = snap.docs[0].data();
+            if (data.banned) { showToast('Account temporarily banned', 'error'); return; }
+            window.appState.currentRole = 'delivery';
+            window.appState.currentUser = { ...data, docId: snap.docs[0].id };
+            showToast('Delivery login successful!', 'success');
+            showDeliveryPanel();
+        };
+
+        // OWNER AUTH
+        window.showOwnerLogin = () => showScreen('owner-login-screen');
+        window.loginOwner = async () => {
+            const email = document.getElementById('owner-email').value;
+            const password = document.getElementById('owner-password').value;
+            if (email === 'naitikjain240725@gmail.com' && password === 'jain6799') {
+                window.appState.currentRole = 'owner';
+                window.appState.currentUser = { email, name: 'Owner' };
+                showToast('Owner login successful!', 'success');
+                showOwnerPanel();
+            } else { showToast('Invalid Owner credentials', 'error'); }
+        };
+
+        // USER PANEL
+        window.showUserPanel = async () => {
+            showScreen('user-panel');
+            await loadHotels();
+            renderUserHome();
+        };
+
+        window.loadHotels = async () => {
+            const snap = await getDocs(query(collection(db, 'hotels'), orderBy('createdAt', 'desc')));
+            window.appState.hotels = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        };
+
+        window.renderUserHome = () => {
+            const container = document.getElementById('user-hotel-list');
+            const search = document.getElementById('user-search')?.value.toLowerCase() || '';
+            let hotels = window.appState.hotels.filter(h => !h.hidden);
+            if (search) hotels = hotels.filter(h => h.name.toLowerCase().includes(search));
+            container.innerHTML = hotels.length ? hotels.map(h => `
+                <div onclick="openHotel('${h.id}')" class="bg-white rounded-xl shadow-md overflow-hidden cursor-pointer transform transition hover:scale-[1.02] card-hover">
+                    <img src="${h.image || 'https://via.placeholder.com/400x200?text=Hotel'}" class="w-full h-40 object-cover" alt="${h.name}">
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-gray-800">${h.name}</h3>
+                        <p class="text-sm text-gray-500 mt-1"><i class="fas fa-utensils mr-1"></i> Tap to view menu</p>
+                    </div>
+                </div>
+            `).join('') : '<div class="text-center text-gray-500 py-10">No hotels available</div>';
+        };
+
+        window.openHotel = async (hotelId) => {
+            window.appState.currentHotel = hotelId;
+            const snap = await getDocs(query(collection(db, 'dishes'), where('hotelId', '==', hotelId), orderBy('orderIndex')));
+            window.appState.dishes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            showScreen('hotel-detail-screen');
+            renderHotelDishes();
+        };
+
+        window.renderHotelDishes = () => {
+            const search = document.getElementById('dish-search')?.value.toLowerCase() || '';
+            const filter = window.appState.filterPrice;
+            let dishes = window.appState.dishes.filter(d => !d.hidden);
+            if (search) dishes = dishes.filter(d => d.name.toLowerCase().includes(search) || d.category.toLowerCase().includes(search));
+            if (filter) dishes = dishes.filter(d => parseFloat(d.price) <= filter);
+
+            const container = document.getElementById('dish-list');
+            container.innerHTML = dishes.length ? dishes.map((d, idx) => {
+                const qty = window.appState.cart[d.id] || 0;
+                return `
+                <div class="bg-white rounded-xl shadow-md p-4 flex gap-4 items-center">
+                    <div class="text-gray-400 font-bold w-6 text-center">${idx + 1}</div>
+                    <img src="${d.image || 'https://via.placeholder.com/100?text=Dish'}" class="w-20 h-20 rounded-lg object-cover" alt="${d.name}">
+                    <div class="flex-1">
+                        <h4 class="font-bold text-gray-800">${d.name}</h4>
+                        <p class="text-xs text-gray-500">${d.category}</p>
+                        <p class="text-orange-600 font-bold mt-1">${formatCurrency(d.price)}</p>
+                    </div>
+                    <div class="flex flex-col items-center gap-2">
+                        <div class="flex items-center bg-gray-100 rounded-lg">
+                            <button onclick="updateCart('${d.id}', -1, ${d.price})" class="px-3 py-1 text-gray-600 hover:bg-gray-200 rounded-l-lg">-</button>
+                            <span class="px-3 py-1 font-medium" id="qty-${d.id}">${qty}</span>
+                            <button onclick="updateCart('${d.id}', 1, ${d.price})" class="px-3 py-1 text-gray-600 hover:bg-gray-200 rounded-r-lg">+</button>
+                        </div>
+                        ${qty > 0 ? `<button onclick="claimItem('${d.id}')" class="text-xs bg-green-500 text-white px-3 py-1 rounded-full">Claim</button>` : ''}
+                    </div>
+                </div>`;
+            }).join('') : '<div class="text-center text-gray-500 py-10">No dishes found</div>';
+
+            updateCartSummary();
+        };
+
+        window.updateCart = (dishId, delta, price) => {
+            const current = window.appState.cart[dishId] || 0;
+            const newQty = Math.max(0, current + delta);
+            if (newQty === 0) delete window.appState.cart[dishId];
+            else window.appState.cart[dishId] = newQty;
+            renderHotelDishes();
+        };
+
+        window.claimItem = (dishId) => { showToast('Item claimed!', 'success'); };
+
+        window.setPriceFilter = (price) => {
+            window.appState.filterPrice = price;
+            renderHotelDishes();
+        };
+
+        window.updateCartSummary = () => {
+            const items = Object.values(window.appState.cart);
+            const totalItems = items.reduce((a, b) => a + b, 0);
+            const totalPrice = Object.entries(window.appState.cart).reduce((sum, [id, qty]) => {
+                const dish = window.appState.dishes.find(d => d.id === id);
+                return sum + (dish ? parseFloat(dish.price) * qty : 0);
+            }, 0);
+            document.getElementById('cart-summary').innerHTML = totalItems > 0 ? `
+                <div class="flex justify-between items-center bg-orange-500 text-white p-4 rounded-t-xl">
+                    <div>
+                        <p class="text-sm">${totalItems} Items</p>
+                        <p class="font-bold text-lg">${formatCurrency(totalPrice)}</p>
+                    </div>
+                    <button onclick="showCheckout()" class="bg-white text-orange-600 px-6 py-2 rounded-full font-bold">BUY</button>
+                </div>
+            ` : '';
+        };
+
+        window.showCheckout = () => {
+            const items = Object.entries(window.appState.cart).map(([id, qty]) => {
+                const dish = window.appState.dishes.find(d => d.id === id);
+                return { ...dish, qty };
+            });
+            const total = items.reduce((sum, i) => sum + parseFloat(i.price) * i.qty, 0);
+
+            document.getElementById('checkout-items').innerHTML = items.map(i => `
+                <div class="flex justify-between py-2 border-b">
+                    <div>
+                        <p class="font-medium">${i.name}</p>
+                        <p class="text-sm text-gray-500">Qty: ${i.qty}</p>
+                    </div>
+                    <p class="font-bold">${formatCurrency(i.price * i.qty)}</p>
+                </div>
+            `).join('');
+            document.getElementById('checkout-total').textContent = formatCurrency(total);
+            showScreen('checkout-screen');
+        };
+
+        window.getCurrentLocation = () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const { latitude, longitude } = pos.coords;
+                    document.getElementById('checkout-location').value = `${latitude}, ${longitude}`;
+                    showToast('Current location captured!', 'success');
+                }, () => showToast('Unable to get location', 'error'));
+            } else { showToast('Geolocation not supported', 'error'); }
+        };
+
+        window.placeOrder = async () => {
+            const location = document.getElementById('checkout-location').value;
+            const street = document.getElementById('checkout-street').value;
+            const personName = document.getElementById('checkout-name').value;
+            if (!location || !street || !personName) { showToast('Please fill all details', 'error'); return; }
+
+            const user = window.appState.currentUser || { name: 'Guest', phone: 'N/A', uid: 'guest' };
+            const items = Object.entries(window.appState.cart).map(([id, qty]) => {
+                const dish = window.appState.dishes.find(d => d.id === id);
+                return { name: dish.name, price: dish.price, qty, dishId: id };
+            });
+            const total = items.reduce((sum, i) => sum + parseFloat(i.price) * i.qty, 0);
+            const otp = generateOTP();
+
+            await addDoc(collection(db, 'orders'), {
+                userId: user.uid || 'guest', userName: personName, userPhone: user.phone || 'N/A',
+                hotelId: window.appState.currentHotel, items, total, location, street, personName,
+                status: 'placed', otp, deliveryBoyId: null, createdAt: serverTimestamp()
+            });
+
+            window.appState.cart = {};
+            showToast('Order placed successfully!', 'success');
+            showUserOrders();
+        };
+
+        window.showUserOrders = async () => {
+            showScreen('user-orders-screen');
+            if (!window.appState.currentUser?.uid) {
+                document.getElementById('user-orders-list').innerHTML = '<div class="text-center py-10 text-gray-500">Please login to view orders</div>';
+                return;
+            }
+            const q = query(collection(db, 'orders'), where('userId', '==', window.appState.currentUser.uid), orderBy('createdAt', 'desc'));
+            const snap = await getDocs(q);
+            const orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            document.getElementById('user-orders-list').innerHTML = orders.length ? orders.map(o => `
+                <div class="bg-white rounded-xl shadow-md p-4 mb-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-bold text-gray-800">Order #${o.id.slice(-6)}</p>
+                            <p class="text-sm text-gray-500">${o.items.map(i => i.name).join(', ')}</p>
+                            <p class="text-orange-600 font-bold mt-1">${formatCurrency(o.total)}</p>
+                            <p class="text-xs text-gray-400 mt-1">${o.location}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium ${o.status === 'delivered' ? 'bg-green-100 text-green-700' : o.status === 'placed' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'}">${o.status.toUpperCase()}</span>
+                    </div>
+                    ${o.status === 'placed' ? `<div class="mt-3 p-2 bg-gray-50 rounded-lg"><p class="text-xs text-gray-600">Delivery OTP: <span class="font-bold text-lg text-orange-600">${o.otp}</span></p><p class="text-xs text-gray-400">Share this with delivery boy</p></div>` : ''}
+                    ${o.status === 'delivered' ? `<div class="mt-3 p-2 bg-green-50 rounded-lg"><p class="text-xs text-green-600 font-medium"><i class="fas fa-check-circle mr-1"></i> Your order has been delivered! Coupon Applied</p></div>` : ''}
+                </div>
+            `).join('') : '<div class="text-center py-10 text-gray-500">No orders yet</div>';
+        };
+
+        window.showUserProfile = async () => {
+            showScreen('user-profile-screen');
+            const user = window.appState.currentUser;
+            if (user) {
+                const docSnap = await getDoc(doc(db, 'users', user.uid));
+                const data = docSnap.data() || {};
+                document.getElementById('user-profile-info').innerHTML = `
+                    <div class="text-center">
+                        <div class="w-24 h-24 bg-orange-100 rounded-full mx-auto flex items-center justify-center text-3xl text-orange-600 font-bold mb-4">${data.name?.[0] || 'U'}</div>
+                        <h3 class="font-bold text-xl">${data.name || 'User'}</h3>
+                        <p class="text-gray-500">${data.email || ''}</p>
+                        <p class="text-gray-500">${data.phone || ''}</p>
+                        <button onclick="logout()" class="mt-6 bg-red-500 text-white px-6 py-2 rounded-full">Logout</button>
+                    </div>
+                `;
+            } else {
+                document.getElementById('user-profile-info').innerHTML = `
+                    <div class="text-center py-10">
+                        <p class="text-gray-500 mb-4">Please login to view your profile</p>
+                        <button onclick="showUserLogin()" class="bg-orange-500 text-white px-6 py-2 rounded-full">Login</button>
+                    </div>
+                `;
+            }
+        };
+
+        // HOST PANEL
+        window.showHostPanel = async () => {
+            showScreen('host-panel');
+            await loadHostOrders();
+        };
+
+        window.loadHostOrders = async () => {
+            const q = query(collection(db, 'orders'), where('status', 'in', ['placed', 'assigned']), orderBy('createdAt', 'desc'));
+            onSnapshot(q, snap => {
+                const orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                document.getElementById('host-new-orders').innerHTML = orders.length ? orders.map(o => `
+                    <div class="bg-white rounded-xl shadow-md p-4 mb-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-bold">Order #${o.id.slice(-6)}</p>
+                                <p class="text-sm text-gray-600">${o.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
+                                <p class="text-orange-600 font-bold">${formatCurrency(o.total)}</p>
+                            </div>
+                            <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">NEW</span>
+                        </div>
+                        <div class="mt-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                            <p><i class="fas fa-user mr-2"></i>${o.personName}</p>
+                            <p><i class="fas fa-phone mr-2"></i>${o.userPhone}</p>
+                            <p><i class="fas fa-map-marker-alt mr-2"></i>${o.location}</p>
+                            <p><i class="fas fa-road mr-2"></i>${o.street}</p>
+                        </div>
+                    </div>
+                `).join('') : '<div class="text-center py-10 text-gray-500">No new orders</div>';
+            });
+
+            const hq = query(collection(db, 'orders'), where('status', '==', 'delivered'), orderBy('createdAt', 'desc'));
+            onSnapshot(hq, snap => {
+                const orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                document.getElementById('host-order-history').innerHTML = orders.length ? orders.map(o => `
+                    <div class="bg-white rounded-xl shadow-md p-4 mb-4 opacity-75">
+                        <div class="flex justify-between">
+                            <div>
+                                <p class="font-bold">Order #${o.id.slice(-6)}</p>
+                                <p class="text-sm text-gray-600">${o.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
+                                <p class="text-orange-600 font-bold">${formatCurrency(o.total)}</p>
+                            </div>
+                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">DELIVERED</span>
+                        </div>
+                    </div>
+                `).join('') : '<div class="text-center py-10 text-gray-500">No history</div>';
+            });
+        };
+
+        // DELIVERY PANEL
+        window.showDeliveryPanel = async () => {
+            showScreen('delivery-panel');
+            await loadDeliveryOrders();
+        };
+
+        window.loadDeliveryOrders = async () => {
+            const q = query(collection(db, 'orders'), where('status', 'in', ['placed', 'assigned']), orderBy('createdAt', 'desc'));
+            onSnapshot(q, snap => {
+                const orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                document.getElementById('delivery-new-orders').innerHTML = orders.length ? orders.map(o => `
+                    <div class="bg-white rounded-xl shadow-md p-4 mb-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-bold">Order #${o.id.slice(-6)}</p>
+                                <p class="text-sm text-gray-600">${o.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
+                                <p class="text-orange-600 font-bold">${formatCurrency(o.total)}</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+                            <p><i class="fas fa-user mr-2"></i>${o.personName}</p>
+                            <p><i class="fas fa-map-marker-alt mr-2"></i>${o.location}</p>
+                            <p><i class="fas fa-road mr-2"></i>${o.street}</p>
+                        </div>
+                        <div class="mt-3 flex gap-2">
+                            <button onclick="openMap('${o.location}')" class="flex-1 bg-blue-500 text-white py-2 rounded-lg font-medium"><i class="fas fa-map-marked-alt mr-1"></i> Go</button>
+                            <button onclick="sendDeliveryOTP('${o.id}', '${o.userPhone}')" class="flex-1 bg-orange-500 text-white py-2 rounded-lg font-medium"><i class="fas fa-paper-plane mr-1"></i> OTP</button>
+                        </div>
+                        <div id="otp-verify-${o.id}" class="mt-3 hidden">
+                            <input type="text" id="otp-input-${o.id}" placeholder="Enter OTP" class="w-full border p-2 rounded-lg mb-2">
+                            <button onclick="verifyDeliveryOTP('${o.id}')" class="w-full bg-green-500 text-white py-2 rounded-lg">Verify & Complete</button>
+                        </div>
+                    </div>
+                `).join('') : '<div class="text-center py-10 text-gray-500">No new orders</div>';
+            });
+
+            const hq = query(collection(db, 'orders'), where('status', '==', 'delivered'), where('deliveryBoyId', '==', window.appState.currentUser?.docId || ''), orderBy('createdAt', 'desc'));
+            onSnapshot(hq, snap => {
+                const orders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                document.getElementById('delivery-order-history').innerHTML = orders.length ? orders.map(o => `
+                    <div class="bg-white rounded-xl shadow-md p-4 mb-4 opacity-75">
+                        <div class="flex justify-between">
+                            <div>
+                                <p class="font-bold">Order #${o.id.slice(-6)}</p>
+                                <p class="text-sm text-gray-600">${o.items.map(i => `${i.name} x${i.qty}`).join(', ')}</p>
+                                <p class="text-orange-600 font-bold">${formatCurrency(o.total)}</p>
+                            </div>
+                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">DONE</span>
+                        </div>
+                    </div>
+                `).join('') : '<div class="text-center py-10 text-gray-500">No history</div>';
+            });
+        };
+
+        window.openMap = (location) => {
+            const coords = location.split(',');
+            if (coords.length === 2) {
+                window.open(`https://www.google.com/maps/dir/?api=1&destination=${coords[0].trim()},${coords[1].trim()}`, '_blank');
+            } else {
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`, '_blank');
+            }
+        };
+
+        window.sendDeliveryOTP = async (orderId, phone) => {
+            const otp = generateOTP();
+            await updateDoc(doc(db, 'orders', orderId), { otp, status: 'assigned', deliveryBoyId: window.appState.currentUser.docId });
+            document.getElementById(`otp-verify-${orderId}`).classList.remove('hidden');
+            showToast(`OTP sent to user: ${otp}`, 'success');
+        };
+
+        window.verifyDeliveryOTP = async (orderId) => {
+            const input = document.getElementById(`otp-input-${orderId}`).value;
+            const docSnap = await getDoc(doc(db, 'orders', orderId));
+            const data = docSnap.data();
+            if (data.otp === input) {
+                await updateDoc(doc(db, 'orders', orderId), { status: 'delivered', deliveredAt: serverTimestamp() });
+                showToast('Delivery completed!', 'success');
+            } else { showToast('Invalid OTP', 'error'); }
+        };
+
+        // OWNER PANEL
+        window.showOwnerPanel = async () => {
+            showScreen('owner-panel');
+            await loadOwnerHotels();
+        };
+
+        window.loadOwnerHotels = async () => {
+            const snap = await getDocs(query(collection(db, 'hotels'), orderBy('createdAt', 'desc')));
+            window.appState.hotels = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderOwnerHotels();
+        };
+
+        window.renderOwnerHotels = () => {
+            const container = document.getElementById('owner-hotel-list');
+            container.innerHTML = window.appState.hotels.map(h => `
+                <div class="bg-white rounded-xl shadow-md p-4 mb-4">
+                    <div class="flex gap-4 items-start">
+                        <img src="${h.image || 'https://via.placeholder.com/100?text=Hotel'}" class="w-20 h-20 rounded-lg object-cover">
+                        <div class="flex-1">
+                            <h4 class="font-bold">${h.name}</h4>
+                            <p class="text-xs text-gray-500">${h.hidden ? 'Hidden' : 'Visible'} to users</p>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <button onclick="toggleHotel('${h.id}', ${!h.hidden})" class="text-xs px-3 py-1 rounded-full ${h.hidden ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${h.hidden ? 'Unhide' : 'Hide'}</button>
+                            <button onclick="openOwnerHotel('${h.id}')" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full">Open</button>
+                            <button onclick="deleteHotel('${h.id}')" class="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-full">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.addHotel = async () => {
+            const name = document.getElementById('new-hotel-name').value;
+            const image = document.getElementById('new-hotel-image').value;
+            if (!name) { showToast('Enter hotel name', 'error'); return; }
+            await addDoc(collection(db, 'hotels'), { name, image: image || '', hidden: false, createdAt: serverTimestamp() });
+            document.getElementById('new-hotel-name').value = '';
+            document.getElementById('new-hotel-image').value = '';
+            showToast('Hotel added!', 'success');
+            await loadOwnerHotels();
+        };
+
+        window.toggleHotel = async (id, hidden) => {
+            await updateDoc(doc(db, 'hotels', id), { hidden });
+            showToast(hidden ? 'Hotel hidden' : 'Hotel visible', 'success');
+            await loadOwnerHotels();
+        };
+
+        window.deleteHotel = async (id) => {
+            if (!confirm('Delete this hotel?')) return;
+            await deleteDoc(doc(db, 'hotels', id));
+            const dishesSnap = await getDocs(query(collection(db, 'dishes'), where('hotelId', '==', id)));
+            const batch = writeBatch(db);
+            dishesSnap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            showToast('Hotel deleted', 'success');
+            await loadOwnerHotels();
+        };
+
+        window.openOwnerHotel = async (hotelId) => {
+            window.appState.currentHotel = hotelId;
+            const hotel = window.appState.hotels.find(h => h.id === hotelId);
+            document.getElementById('owner-hotel-title').textContent = hotel.name;
+            await loadOwnerDishes();
+            showScreen('owner-dishes-screen');
+        };
+
+        window.loadOwnerDishes = async () => {
+            const snap = await getDocs(query(collection(db, 'dishes'), where('hotelId', '==', window.appState.currentHotel), orderBy('orderIndex')));
+            window.appState.dishes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderOwnerDishes();
+        };
+
+        window.renderOwnerDishes = () => {
+            const container = document.getElementById('owner-dish-list');
+            container.innerHTML = window.appState.dishes.map((d, idx) => `
+                <div class="bg-white rounded-xl shadow-md p-4 mb-4">
+                    <div class="flex gap-4 items-center">
+                        <div class="text-gray-400 font-bold w-6">${idx + 1}</div>
+                        <img src="${d.image || 'https://via.placeholder.com/80?text=Dish'}" class="w-16 h-16 rounded-lg object-cover">
+                        <div class="flex-1">
+                            <h4 class="font-bold">${d.name}</h4>
+                            <p class="text-xs text-gray-500">${d.category}</p>
+                            <p class="text-orange-600 font-bold">${formatCurrency(d.price)}</p>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <button onclick="moveDish('${d.id}', -1)" class="text-gray-500 hover:bg-gray-100 p-1 rounded" ${idx === 0 ? 'disabled style=opacity:0.3' : ''}><i class="fas fa-arrow-up"></i></button>
+                            <button onclick="moveDish('${d.id}', 1)" class="text-gray-500 hover:bg-gray-100 p-1 rounded" ${idx === window.appState.dishes.length - 1 ? 'disabled style=opacity:0.3' : ''}><i class="fas fa-arrow-down"></i></button>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <button onclick="editDishPrompt('${d.id}')" class="flex-1 bg-blue-100 text-blue-700 py-1 rounded text-xs">Edit</button>
+                        <button onclick="toggleDish('${d.id}', ${!d.hidden})" class="flex-1 ${d.hidden ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'} py-1 rounded text-xs">${d.hidden ? 'Unhide' : 'Hide'}</button>
+                        <button onclick="deleteDish('${d.id}')" class="flex-1 bg-red-100 text-red-700 py-1 rounded text-xs">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.addDish = async () => {
+            const name = document.getElementById('dish-name').value;
+            const category = document.getElementById('dish-category').value;
+            const image = document.getElementById('dish-image').value;
+            const price = document.getElementById('dish-price').value;
+            if (!name || !price) { showToast('Fill required fields', 'error'); return; }
+            const snap = await getDocs(query(collection(db, 'dishes'), where('hotelId', '==', window.appState.currentHotel)));
+            const orderIndex = snap.size;
+            await addDoc(collection(db, 'dishes'), {
+                hotelId: window.appState.currentHotel, name, category: category || '', image: image || '',
+                price: parseFloat(price), hidden: false, orderIndex, createdAt: serverTimestamp()
+            });
+            document.getElementById('dish-name').value = '';
+            document.getElementById('dish-category').value = '';
+            document.getElementById('dish-image').value = '';
+            document.getElementById('dish-price').value = '';
+            showToast('Dish added!', 'success');
+            await loadOwnerDishes();
+        };
+
+        window.moveDish = async (dishId, direction) => {
+            const idx = window.appState.dishes.findIndex(d => d.id === dishId);
+            const swapIdx = idx + direction;
+            if (swapIdx < 0 || swapIdx >= window.appState.dishes.length) return;
+            const batch = writeBatch(db);
+            const current = window.appState.dishes[idx];
+            const swap = window.appState.dishes[swapIdx];
+            batch.update(doc(db, 'dishes', current.id), { orderIndex: swap.orderIndex });
+            batch.update(doc(db, 'dishes', swap.id), { orderIndex: current.orderIndex });
+            await batch.commit();
+            await loadOwnerDishes();
+        };
+
+        window.toggleDish = async (id, hidden) => {
+            await updateDoc(doc(db, 'dishes', id), { hidden });
+            showToast(hidden ? 'Dish hidden' : 'Dish visible', 'success');
+            await loadOwnerDishes();
+        };
+
+        window.deleteDish = async (id) => {
+            if (!confirm('Delete this dish?')) return;
+            await deleteDoc(doc(db, 'dishes', id));
+            showToast('Dish deleted', 'success');
+            await loadOwnerDishes();
+        };
+
+        window.editDishPrompt = async (id) => {
+            const dish = window.appState.dishes.find(d => d.id === id);
+            const newName = prompt('Dish Name:', dish.name);
+            if (newName === null) return;
+            const newCategory = prompt('Category:', dish.category);
+            const newImage = prompt('Image URL:', dish.image);
+            const newPrice = prompt('Price:', dish.price);
+            await updateDoc(doc(db, 'dishes', id), {
+                name: newName || dish.name, category: newCategory !== null ? newCategory : dish.category,
+                image: newImage !== null ? newImage : dish.image, price: newPrice !== null ? parseFloat(newPrice) : dish.price
+            });
+            showToast('Dish updated!', 'success');
+            await loadOwnerDishes();
+        };
+
+        // OWNER PASSWORDS
+        window.showOwnerPasswords = async () => {
+            showScreen('owner-passwords-screen');
+            await loadPasswordAccounts();
+        };
+
+        window.loadPasswordAccounts = async () => {
+            const hostSnap = await getDocs(collection(db, 'hostAccounts'));
+            const delSnap = await getDocs(collection(db, 'deliveryAccounts'));
+
+            document.getElementById('host-accounts-list').innerHTML = hostSnap.docs.map(d => {
+                const data = d.data();
+                return `
+                <div class="bg-white rounded-xl shadow-md p-4 mb-3 flex justify-between items-center">
+                    <div>
+                        <p class="font-bold">${data.id}</p>
+                        <p class="text-xs text-gray-500">${data.name || ''}</p>
+                        ${data.banned ? '<span class="text-xs text-red-500 font-bold">BANNED</span>' : ''}
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="editAccount('host', '${d.id}')" class="text-blue-500 p-2"><i class="fas fa-edit"></i></button>
+                        <button onclick="toggleBan('host', '${d.id}', ${!data.banned})" class="${data.banned ? 'text-green-500' : 'text-yellow-500'} p-2"><i class="fas fa-ban"></i></button>
+                        <button onclick="deleteAccount('host', '${d.id}')" class="text-red-500 p-2"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>`;
+            }).join('') || '<p class="text-gray-500 text-center py-4">No host accounts</p>';
+
+            document.getElementById('delivery-accounts-list').innerHTML = delSnap.docs.map(d => {
+                const data = d.data();
+                return `
+                <div class="bg-white rounded-xl shadow-md p-4 mb-3 flex justify-between items-center">
+                    <div>
+                        <p class="font-bold">${data.id}</p>
+                        <p class="text-xs text-gray-500">${data.name || ''}</p>
+                        ${data.banned ? '<span class="text-xs text-red-500 font-bold">BANNED</span>' : ''}
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="editAccount('delivery', '${d.id}')" class="text-blue-500 p-2"><i class="fas fa-edit"></i></button>
+                        <button onclick="toggleBan('delivery', '${d.id}', ${!data.banned})" class="${data.banned ? 'text-green-500' : 'text-yellow-500'} p-2"><i class="fas fa-ban"></i></button>
+                        <button onclick="deleteAccount('delivery', '${d.id}')" class="text-red-500 p-2"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>`;
+            }).join('') || '<p class="text-gray-500 text-center py-4">No delivery accounts</p>';
+        };
+
+        window.createHostAccount = async () => {
+            const id = document.getElementById('new-host-id').value;
+            const password = document.getElementById('new-host-password').value;
+            const name = document.getElementById('new-host-name').value;
+            if (!id || !password) { showToast('Fill all fields', 'error'); return; }
+            await addDoc(collection(db, 'hostAccounts'), { id, password, name: name || '', banned: false, createdAt: serverTimestamp() });
+            document.getElementById('new-host-id').value = '';
+            document.getElementById('new-host-password').value = '';
+            document.getElementById('new-host-name').value = '';
+            showToast('Host account created!', 'success');
+            await loadPasswordAccounts();
+        };
+
+        window.createDeliveryAccount = async () => {
+            const id = document.getElementById('new-delivery-id').value;
+            const password = document.getElementById('new-delivery-password').value;
+            const name = document.getElementById('new-delivery-name').value;
+            if (!id || !password) { showToast('Fill all fields', 'error'); return; }
+            await addDoc(collection(db, 'deliveryAccounts'), { id, password, name: name || '', banned: false, createdAt: serverTimestamp() });
+            document.getElementById('new-delivery-id').value = '';
+            document.getElementById('new-delivery-password').value = '';
+            document.getElementById('new-delivery-name').value = '';
+            showToast('Delivery account created!', 'success');
+            await loadPasswordAccounts();
+        };
+
+        window.editAccount = async (type, docId) => {
+            const newId = prompt('New ID:');
+            if (newId === null) return;
+            const newPassword = prompt('New Password:');
+            const newName = prompt('New Name:');
+            const updates = {};
+            if (newId !== null) updates.id = newId;
+            if (newPassword !== null) updates.password = newPassword;
+            if (newName !== null) updates.name = newName;
+            await updateDoc(doc(db, type === 'host' ? 'hostAccounts' : 'deliveryAccounts', docId), updates);
+            showToast('Account updated!', 'success');
+            await loadPasswordAccounts();
+        };
+
+        window.toggleBan = async (type, docId, banned) => {
+            await updateDoc(doc(db, type === 'host' ? 'hostAccounts' : 'deliveryAccounts', docId), { banned });
+            showToast(banned ? 'Account banned' : 'Account unbanned', 'success');
+            await loadPasswordAccounts();
+        };
+
+        window.deleteAccount = async (type, docId) => {
+            if (!confirm('Delete this account?')) return;
+            await deleteDoc(doc(db, type === 'host' ? 'hostAccounts' : 'deliveryAccounts', docId));
+            showToast('Account deleted', 'success');
+            await loadPasswordAccounts();
+        };
+
+        window.changeOwnerPassword = () => {
+            const current = document.getElementById('owner-current-pass').value;
+            const newPass = document.getElementById('owner-new-pass').value;
+            if (current !== 'jain6799') { showToast('Current password incorrect', 'error'); return; }
+            showToast('Password changed successfully!', 'success');
+        };
+
+        // OWNER PROFILE
+        window.showOwnerProfile = () => {
+            showScreen('owner-profile-screen');
+            renderOwnerProfile();
+        };
+
+        window.renderOwnerProfile = async () => {
+            const docSnap = await getDoc(doc(db, 'ownerProfile', 'main'));
+            const data = docSnap.data() || {};
+            document.getElementById('owner-profile-form').innerHTML = `
+                <div class="space-y-4">
+                    <div class="text-center">
+                        <img src="${data.image || 'https://via.placeholder.com/150?text=Owner'}" class="w-32 h-32 rounded-full mx-auto object-cover mb-4 shadow-lg">
+                        <input type="text" id="owner-profile-image" value="${data.image || ''}" placeholder="Image URL" class="w-full border p-3 rounded-lg text-sm">
+                    </div>
+                    <input type="text" id="owner-profile-name" value="${data.name || ''}" placeholder="Name" class="w-full border p-3 rounded-lg">
+                    <textarea id="owner-profile-details" placeholder="Details" class="w-full border p-3 rounded-lg h-24">${data.details || ''}</textarea>
+                    <input type="text" id="owner-whatsapp" value="${data.whatsapp || ''}" placeholder="WhatsApp Link" class="w-full border p-3 rounded-lg">
+                    <input type="text" id="owner-instagram" value="${data.instagram || ''}" placeholder="Instagram Link" class="w-full border p-3 rounded-lg">
+                    <input type="text" id="owner-telegram" value="${data.telegram || ''}" placeholder="Telegram Link" class="w-full border p-3 rounded-lg">
+                    <input type="text" id="owner-twitter" value="${data.twitter || ''}" placeholder="Twitter Link" class="w-full border p-3 rounded-lg">
+                    <button onclick="saveOwnerProfile()" class="w-full bg-purple-600 text-white py-3 rounded-full font-bold shadow-lg">Save Profile</button>
+
+                    <div class="flex justify-center gap-4 mt-6">
+                        ${data.whatsapp ? `<a href="${data.whatsapp}" target="_blank" class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white text-xl shadow-md hover:scale-110 transition"><i class="fab fa-whatsapp"></i></a>` : ''}
+                        ${data.instagram ? `<a href="${data.instagram}" target="_blank" class="w-12 h-12 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xl shadow-md hover:scale-110 transition"><i class="fab fa-instagram"></i></a>` : ''}
+                        ${data.telegram ? `<a href="${data.telegram}" target="_blank" class="w-12 h-12 bg-blue-400 rounded-full flex items-center justify-center text-white text-xl shadow-md hover:scale-110 transition"><i class="fab fa-telegram"></i></a>` : ''}
+                        ${data.twitter ? `<a href="${data.twitter}" target="_blank" class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white text-xl shadow-md hover:scale-110 transition"><i class="fab fa-twitter"></i></a>` : ''}
+                    </div>
+                </div>
+            `;
+        };
+
+        window.saveOwnerProfile = async () => {
+            const data = {
+                image: document.getElementById('owner-profile-image').value,
+                name: document.getElementById('owner-profile-name').value,
+                details: document.getElementById('owner-profile-details').value,
+                whatsapp: document.getElementById('owner-whatsapp').value,
+                instagram: document.getElementById('owner-instagram').value,
+                telegram: document.getElementById('owner-telegram').value,
+                twitter: document.getElementById('owner-twitter').value
+            };
+            await setDoc(doc(db, 'ownerProfile', 'main'), data);
+            showToast('Profile saved!', 'success');
+            renderOwnerProfile();
+        };
+
+        // INIT
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const docSnap = await getDoc(doc(db, 'users', user.uid));
+                if (docSnap.exists()) {
+                    window.appState.currentUser = { uid: user.uid, ...docSnap.data() };
+                }
+            }
+        });
+
+        Object.assign(window, {
+            showScreen, showRoleSelection, showUserPanel, showUserLogin, showUserRegister, showUserForgot,
+            showHostLogin, showHostPanel, showDeliveryLogin, showDeliveryPanel, showOwnerLogin, showOwnerPanel,
+            showOwnerPasswords, showOwnerProfile, showUserOrders, showUserProfile, showCheckout, placeOrder,
+            getCurrentLocation, openHotel, renderUserHome, renderHotelDishes, updateCart, claimItem, setPriceFilter,
+            sendUserOTP, registerUser, loginUser, resetUserPassword, loginHost, loginDelivery, loginOwner,
+            logout, addHotel, toggleHotel, deleteHotel, openOwnerHotel, loadOwnerDishes, renderOwnerDishes,
+            addDish, moveDish, toggleDish, deleteDish, editDishPrompt, createHostAccount, createDeliveryAccount,
+            editAccount, toggleBan, deleteAccount, changeOwnerPassword, saveOwnerProfile, renderOwnerProfile,
+            openMap, sendDeliveryOTP, verifyDeliveryOTP, loadPasswordAccounts, loadOwnerHotels, renderOwnerHotels,
+            loadHostOrders, loadDeliveryOrders, updateCartSummary, loadHotels
+        });
+    </script>
+    <style>
+        * { font-family: 'Poppins', sans-serif; }
+        body { background-color: #f3f4f6; }
+        .screen { min-height: 100vh; padding-bottom: 80px; }
+        .hidden { display: none !important; }
+        .bottom-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: flex; justify-content: space-around; padding: 10px 0; z-index: 100;
+        }
+        .bottom-bar button {
+            display: flex; flex-direction: column; align-items: center;
+            font-size: 12px; color: #6b7280; background: none; border: none; cursor: pointer;
+        }
+        .bottom-bar button.active { color: #f97316; }
+        .bottom-bar i { font-size: 20px; margin-bottom: 2px; }
+        input, select, textarea { outline: none; }
+        .card-hover { transition: all 0.2s; }
+        .card-hover:active { transform: scale(0.98); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body>
+
+<!-- ROLE SELECTION -->
+<div id="role-selection" class="screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-orange-400 to-red-500">
+    <div class="text-center mb-10">
+        <div class="w-24 h-24 bg-white rounded-full mx-auto flex items-center justify-center text-4xl shadow-lg mb-4">🍽️</div>
+        <h1 class="text-3xl font-bold text-white mb-2">Food Delivery</h1>
+        <p class="text-white/80">Select your role to continue</p>
+    </div>
+    <div class="w-full max-w-sm space-y-4">
+        <button onclick="showUserPanel()" class="w-full bg-white text-orange-600 py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 card-hover">
+            <i class="fas fa-user"></i> User
+        </button>
+        <button onclick="showHostLogin()" class="w-full bg-white text-blue-600 py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 card-hover">
+            <i class="fas fa-store"></i> Host
+        </button>
+        <button onclick="showDeliveryLogin()" class="w-full bg-white text-green-600 py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 card-hover">
+            <i class="fas fa-motorcycle"></i> Delivery Boy
+        </button>
+        <button onclick="showOwnerLogin()" class="w-full bg-white text-purple-600 py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 card-hover">
+            <i class="fas fa-crown"></i> Owner
+        </button>
+    </div>
+</div>
+
+<!-- USER LOGIN -->
+<div id="user-login-screen" class="screen hidden flex flex-col p-6 bg-gray-50">
+    <div class="flex items-center mb-8">
+        <button onclick="showRoleSelection()" class="text-gray-600 mr-4"><i class="fas fa-arrow-left text-xl"></i></button>
+        <h2 class="text-2xl font-bold text-gray-800">User Login</h2>
+    </div>
+    <div class="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+        <div>
+            <label class="text-sm text-gray-600 font-medium">Email ID</label>
+            <input type="email" id="login-email" class="w-full border border-gray-300 p-3 rounded-lg mt-1 focus:border-orange-500" placeholder="Enter email">
+        </div>
+        <div>
+            <label class="text-sm text-gray-600 font-medium">Password</label>
+            <input type="password" id="login-password" class="w-full border border-gray-300 p-3 rounded-lg mt-1 focus:border-orange-500" placeholder="Enter password">
+        </div>
+        <button onclick="loginUser()" class="w-full bg-orange-500 text-white py-3 rounded-full font-bold shadow-lg">Enter</button>
+        <button onclick="showUserForgot()" class="w-full text-orange-500 font-medium text-sm">Forget Password?</button>
+        <div class="text-center text-gray-500 text-sm">or</div>
+        <button onclick="showUserRegister()" class="w-full border-2 border-orange-500 text-orange-500 py-3 rounded-full font-bold">Create Account</button>
+    </div>
+</div>
+
+<!-- USER REGISTER -->
+<div id="user-register-screen" class="screen hidden flex flex-col p-6 bg-gray-50">
+    <div class="flex items-center mb-6">
+        <button onclick="showUserLogin()" class="text-gray-600 mr-4"><i class="fas fa-arrow-left text-xl"></i></button>
+        <h2 class="text-2xl font-bold text-gray-800">Create Account</h2>
+    </div>
+    <div class="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+        <input type="text" id="reg-name" class="w-full border border-gray-300 p-3 rounded-lg focus:border-orange-500" placeholder="Full Name">
+        <input type="email" id="reg-email" class="w-full border border-gray-300 p-3 rounded-lg focus:border-orange-500" placeholder="Email ID">
+        <input type="password" id="reg-password" class="w-full border border-gray-300 p-3 rounded-lg focus:border-orange-500" placeholder="Password">
+        <div class="flex gap-2">
+            <input type="tel" id="reg-phone" class="flex-1 border border-gray-300 p-3 rounded-lg focus:border-orange-500" placeholder="Mobile Number">
+            <button onclick="sendUserOTP()" class="bg-blue-500 text-white px-4 rounded-lg font-medium text-sm">Send OTP</button>
+        </div>
+        <div id="otp-section" class="hidden">
+            <input type="text" id="reg-otp" class="w-full border border-gray-300 p-3 rounded-lg focus:border-orange-500" placeholder="Enter OTP">
+        </div>
+        <button onclick="registerUser()" class="w-full bg-green-500 text-white py-3 rounded-full font-bold shadow-lg">Create Account</button>
+    </div>
+</div>
+
+<!-- USER FORGOT PASSWORD -->
+<div id="user-forgot-screen" class="screen hidden flex flex-col p-6 bg-gray-50">
+    <div class="flex items-center mb-6">
+        <button onclick="showUserLogin()" class="text-gray-600 mr-4"><i class="fas fa-arrow-left text-xl"></i></button>
+        <h2 class="text-2xl font-bold text-gray-800">Reset Password</h2>
+    </div>
+    <div class="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+        <input type="email" id="forgot-email" class="w-full border border-gray-300 p-3 rounded-lg focus:border-orange-500" placeholder="Enter your email">
+        <button onclick="resetUserPassword()" class="w-full bg-orange-500 text-white py-3 rounded-full font-bold shadow-lg">Send Reset Link</button>
+    </div>
+</div>
+
+<!-- USER PANEL - HOME -->
+<div id="user-panel" class="screen hidden bg-gray-50">
+    <div class="bg-orange-500 text-white p-4 pt-6 sticky top-0 z-50 shadow-md">
+        <h1 class="text-xl font-bold mb-3">Restaurants</h1>
+        <div class="relative">
+            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <input type="text" id="user-search" oninput="renderUserHome()" class="w-full pl-10 pr-4 py-2 rounded-full text-gray-800 focus:outline-none" placeholder="Search restaurants...">
+        </div>
+    </div>
+    <div id="user-hotel-list" class="p-4 space-y-4"></div>
+    <div class="bottom-bar">
+        <button onclick="showUserPanel()" class="active"><i class="fas fa-home"></i>Home</button>
+        <button onclick="showUserOrders()"><i class="fas fa-shopping-bag"></i>Orders</button>
+        <button onclick="showUserProfile()"><i class="fas fa-user"></i>Profile</button>
+    </div>
+</div>
+
+<!-- HOTEL DETAIL -->
+<div id="hotel-detail-screen" class="screen hidden bg-gray-50">
+    <div class="bg-white p-4 sticky top-0 z-50 shadow-md flex items-center gap-4">
+        <button onclick="showUserPanel()" class="text-gray-600"><i class="fas fa-arrow-left text-xl"></i></button>
+        <div class="flex-1 relative">
+            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <input type="text" id="dish-search" oninput="renderHotelDishes()" class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 text-sm" placeholder="Search dishes...">
+        </div>
+    </div>
+    <div class="p-4 flex gap-2 overflow-x-auto">
+        <button onclick="setPriceFilter(null)" class="px-4 py-1 rounded-full bg-gray-200 text-sm whitespace-nowrap">All</button>
+        <button onclick="setPriceFilter(50)" class="px-4 py-1 rounded-full bg-gray-200 text-sm whitespace-nowrap">Under ₹50</button>
+        <button onclick="setPriceFilter(100)" class="px-4 py-1 rounded-full bg-gray-200 text-sm whitespace-nowrap">Under ₹100</button>
+        <button onclick="setPriceFilter(200)" class="px-4 py-1 rounded-full bg-gray-200 text-sm whitespace-nowrap">Under ₹200</button>
+    </div>
+    <div id="dish-list" class="p-4 space-y-4 pb-24"></div>
+    <div id="cart-summary" class="fixed bottom-0 left-0 right-0 z-50"></div>
+</div>
+
+<!-- CHECKOUT -->
+<div id="checkout-screen" class="screen hidden flex flex-col p-6 bg-gray-50">
+    <div class="flex items-center mb-6">
+        <button onclick="showScreen('hotel-detail-screen')" class="text-gray-600 mr-4"><i class="fas fa-arrow-left text-xl"></i></button>
+        <h2 class="text-2xl font-bold text-gray-800">Order Details</h2>
+    </div>
+    <div class="bg-white rounded-2xl shadow-lg p-6 space-y-4 flex-1">
+        <div id="checkout-items" class="space-y-2 mb-4"></div>
+        <div class="border-t pt-4 flex justify-between items-center">
+            <p class="font-bold text-lg">Total</p>
+            <p id="checkout-total" class="font-bold text-xl text-orange-600">₹0.00</p>
+        </div>
+        <div class="space-y-3 mt-4">
+            <div class="flex gap-2">
+                <input type="text" id="checkout-location" class="flex-1 border border-gray-300 p-3 rounded-lg" placeholder="Location">
+                <button onclick="getCurrentLocation()" class="bg-blue-500 text-white px-4 rounded-lg text-sm"><i class="fas fa-location-arrow"></i> Current</button>
+            </div>
+            <input type="text" id="checkout-street" class="w-full border border-gray-300 p-3 rounded-lg" placeholder="Street / Address">
+            <input type="text" id="checkout-name" class="w-full border border-gray-300 p-3 rounded-lg" placeholder="Person Name">
+        </div>
+        <button onclick="placeOrder()" class="w-full bg-green-500 text-white py-3 rounded-full font-bold shadow-lg mt-4">Order Place</button>
+    </div>
+</div>
+
+<!-- USER ORDERS -->
+<div id="user-orders-screen" class="screen hidden bg-gray-50">
+    <div class="bg-white p-4 sticky top-0 z-50 shadow-md">
+        <h2 class="text-xl font-bold text-gray-800">My Orders</h2>
+    </div>
+    <div id="user-orders-list" class="p-4 space-y-4 pb-24"></div>
+    <div class="bottom-bar">
+        <button onclick="showUserPanel()"><i class="fas fa-home"></i>Home</button>
+        <button onclick="showUserOrders()" class="active"><i class="fas fa-shopping-bag"></i>Orders</button>
+        <button onclick="showUserProfile()"><i class="fas fa-user"></i>Profile</button>
+    </div>
+</div>
+
+<!-- USER PROFILE -->
+<div id="user-profile-screen" class="screen hidden bg-gray-50">
+    <div class="bg-white p-4 sticky top-0 z-50 shadow-md">
+        <h2 class="text-xl font-bold text-gray-800">Profile</h2>
+    </div>
+    <div id="user-profile-info" class="p-6"></div>
+    <div class="bottom-bar">
+        <button onclick="showUserPanel()"><i class="fas fa-home"></i>Home</button>
+        <button onclick="showUserOrders()"><i class="fas fa-shopping-bag"></i>Orders</button>
+        <button onclick="showUserProfile()" class="active"><i class="fas fa-user"></i>Profile</button>
+    </div>
+</div>
+
+<!-- HOST LOGIN -->
+<div id="host-login-screen" class="screen hidden flex flex-col p-6 bg-gray-50">
+    <div class="flex items-center mb-8">
+        <button onclick="showRoleSelection()" class="text-gray-600 mr-4"><i class="fas fa-arrow-left text-xl"></i></button>
+        <h2 class="text-2xl font-bold text-blue-600">Host Login</h2>
+    </div>
+    <div class="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+        <div>
+            <label class="text-sm text-gray-600 font-medium">Host ID</label>
+            <input type="text" id="host-id" class="w-full border border-gray-300 p-3 rounded-lg mt-1 focus:border-blue-500" placeholder="Enter Host ID">
+        </div>
+        <div>
+            <label class="text-sm text-gray-600 font-medium">Password</label>
+            <input type="password" id="host-password" class="w-full border border-gray-300 p-3 rounded-lg mt-1 focus:border-blue-500" placeholder="Enter Password">
+        </div>
+        <button onclick="loginHost()" class="w-full bg-blue-600 text-white py-3 rounded-full font-bold shadow-lg">Login</button>
+    </div>
+</div>
+
+<!-- HOST PANEL -->
+<div id="host-panel" class="screen hidden bg-gray-50">
+    <div class="bg-blue-600 text-white p-4 pt-6 sticky top-0 z-50 shadow-md">
+        <h1 class="text-xl font-bold">Host Dashboard</h1>
+    </div>
+    <div class="p-4 pb-24">
+        <div class="flex gap-2 mb-4">
+            <button onclick="document.getElementById('host-new-orders').classList.remove('hidden'); document.getElementById('host-history-section').classList.add('hidden');" class="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg font-medium">New Orders</button>
+            <button onclick="document.getElementById('host-new-orders').classList.add('hidden'); document.getElementById('host-history-section').classList.remove('hidden');" class="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg font-medium">History</button>
+        </div>
+        <div id="host-new-orders"></div>
+        <div id="host-history-section" class="hidden">
+            <div id="host-order-history"></div>
+        </div>
+    </div>
+    <div class="bottom-bar">
+        <button onclick="document.getElementById('host-new-orders').classList.remove('hidden'); document.getElementById('host-history-section').classList.add('hidden');" class="active"><i class="fas fa-clock"></i>New Orders</button>
+        <button onclick="document.getElementById('host-new-orders').classList.add('hidden'); document.getElementById('host-history-section').classList.remove('hidden');"><i class="fas fa-history"></i>History</button>
+    </div>
+</div>
+
+<!-- DELIVERY LOGIN -->
+<div id="delivery-login-screen" class="screen hidden flex flex-col p-6 bg-gray-50">
+    <div class="flex items-center mb-8">
+        <button onclick="showRoleSelection()" class="text-gray-600 mr-4"><i class="fas fa-arrow-left text-xl"></i></button>
+        <h2 class="text-2xl font-bold text-green-600">Delivery Login</h2>
+    </div>
+    <div class="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+        <div>
+            <label class="text-sm text-gray-600 font-medium">Delivery ID</label>
+            <input type="text" id="delivery-id" class="w-full border border-gray-300 p-3 rounded-lg mt-1 focus:border-green-500" placeholder="Enter Delivery ID">
+        </div>
+        <div>
+            <label class="text-sm text-gray-600 font-medium">Password</label>
+            <input type="password" id="delivery-password" class="w-full border border-gray-300 p-3 rounded-lg mt-1 focus:border-green-500" placeholder="Enter Password">
+        </div>
+        <button onclick="loginDelivery()" class="w-full bg-green-600 text-white py-3 rounded-full font-bold shadow-lg">Login</button>
+    </div>
+</div>
+
+<!-- DELIVERY PANEL -->
+<div id="delivery-panel" class="screen hidden bg-gray-50">
+    <div class="bg-green-600 text-white p-4 pt-6 sticky top-0 z-50 shadow-md">
+        <h1 class="text-xl font-bold">Delivery Dashboard</h1>
+    </div>
+    <div class="p-4 pb-24">
+        <div class="flex gap-2 mb-4">
+            <button onclick="document.getElementById('delivery-new-orders').classList.remove('hidden'); document.getElementById('delivery-history-section').classList.add('hidden');" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg font-medium">New Orders</button>
+            <button onclick="document.getElementById('delivery-new-orders').classList.add('hidden'); document.getElementById('delivery-history-section').classList.remove('hidden');" class="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg font-medium">History</button>
+        </div>
+        <div id="delivery-new-orders"></div>
+        <div id="delivery-history-section" class="hidden">
+            <div id="delivery-order-history"></div>
+        </div>
+    </div>
+    <div class="bottom-bar">
+        <button onclick="document.getElementById('delivery-new-orders').classList.remove('hidden'); document.getElementById('delivery-history-section').classList.add('hidden');" class="active"><i class="fas fa-clock"></i>New Orders</button>
+        <button onclick="document.getElementById('delivery-new-orders').classList.add('hidden'); document.getElementById('delivery-history-section').classList.remove('hidden');"><i class="fas fa-history"></i>History</button>
+    </div>
+</div>
+
+<!-- OWNER LOGIN -->
+<div id="owner-login-screen" class="screen hidden flex flex-col p-6 bg-gray-50">
+    <div class="flex items-center mb-8">
+        <button onclick="showRoleSelection()" class="text-gray-600 mr-4"><i class="fas fa-arrow-left text-xl"></i></button>
+        <h2 class="text-2xl font-bold text-purple-600">Owner Login</h2>
+    </div>
+    <div class="bg-white rounded-2xl shadow-lg p-6 space-y-4">
+        <div>
+            <label class="text-sm text-gray-600 font-medium">Email ID</label>
+            <input type="email" id="owner-email" class="w-full border border-gray-300 p-3 rounded-lg mt-1 focus:border-purple-500" placeholder="Enter Email">
+        </div>
+        <div>
+            <label class="text-sm text-gray-600 font-medium">Password</label>
+            <input type="password" id="owner-password" class="w-full border border-gray-300 p-3 rounded-lg mt-1 focus:border-purple-500" placeholder="Enter Password">
+        </div>
+        <button onclick="loginOwner()" class="w-full bg-purple-600 text-white py-3 rounded-full font-bold shadow-lg">Login</button>
+    </div>
+</div>
+
+<!-- OWNER PANEL - HOME -->
+<div id="owner-panel" class="screen hidden bg-gray-50">
+    <div class="bg-purple-600 text-white p-4 pt-6 sticky top-0 z-50 shadow-md">
+        <h1 class="text-xl font-bold">Owner Dashboard</h1>
+    </div>
+    <div class="p-4 pb-24">
+        <div class="bg-white rounded-xl shadow-md p-4 mb-6">
+            <h3 class="font-bold text-gray-800 mb-3">Add New Hotel</h3>
+            <input type="text" id="new-hotel-name" class="w-full border border-gray-300 p-3 rounded-lg mb-2" placeholder="Hotel Name">
+            <input type="text" id="new-hotel-image" class="w-full border border-gray-300 p-3 rounded-lg mb-3" placeholder="Image URL">
+            <button onclick="addHotel()" class="w-full bg-purple-600 text-white py-2 rounded-lg font-bold">Add Hotel</button>
+        </div>
+        <h3 class="font-bold text-gray-800 mb-3">Hotels</h3>
+        <div id="owner-hotel-list"></div>
+    </div>
+    <div class="bottom-bar">
+        <button onclick="showOwnerPanel()" class="active"><i class="fas fa-home"></i>Home</button>
+        <button onclick="showOwnerPasswords()"><i class="fas fa-key"></i>Passwords</button>
+        <button onclick="showOwnerProfile()"><i class="fas fa-user"></i>Profile</button>
+    </div>
+</div>
+
+<!-- OWNER DISHES -->
+<div id="owner-dishes-screen" class="screen hidden bg-gray-50">
+    <div class="bg-purple-600 text-white p-4 pt-6 sticky top-0 z-50 shadow-md flex items-center gap-4">
+        <button onclick="showOwnerPanel()" class="text-white"><i class="fas fa-arrow-left text-xl"></i></button>
+        <h1 id="owner-hotel-title" class="text-xl font-bold">Hotel Menu</h1>
+    </div>
+    <div class="p-4 pb-24">
+        <div class="bg-white rounded-xl shadow-md p-4 mb-6">
+            <h3 class="font-bold text-gray-800 mb-3">Add Dish</h3>
+            <input type="text" id="dish-name" class="w-full border border-gray-300 p-3 rounded-lg mb-2" placeholder="Dish Name (e.g. Pizza)">
+            <input type="text" id="dish-category" class="w-full border border-gray-300 p-3 rounded-lg mb-2" placeholder="Category (e.g. Cheese Pizza)">
+            <input type="text" id="dish-image" class="w-full border border-gray-300 p-3 rounded-lg mb-2" placeholder="Image URL">
+            <input type="number" id="dish-price" class="w-full border border-gray-300 p-3 rounded-lg mb-3" placeholder="Price">
+            <button onclick="addDish()" class="w-full bg-purple-600 text-white py-2 rounded-lg font-bold">Add Dish</button>
+        </div>
+        <h3 class="font-bold text-gray-800 mb-3">Dishes</h3>
+        <div id="owner-dish-list"></div>
+    </div>
+</div>
+
+<!-- OWNER PASSWORDS -->
+<div id="owner-passwords-screen" class="screen hidden bg-gray-50">
+    <div class="bg-purple-600 text-white p-4 pt-6 sticky top-0 z-50 shadow-md flex items-center gap-4">
+        <button onclick="showOwnerPanel()" class="text-white"><i class="fas fa-arrow-left text-xl"></i></button>
+        <h1 class="text-xl font-bold">Passwords</h1>
+    </div>
+    <div class="p-4 pb-24 space-y-6">
+        <!-- Owner Password Change -->
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <h3 class="font-bold text-gray-800 mb-3">Owner Password</h3>
+            <p class="text-xs text-gray-500 mb-2">Current: jain6799</p>
+            <input type="password" id="owner-current-pass" class="w-full border border-gray-300 p-3 rounded-lg mb-2" placeholder="Current Password">
+            <input type="password" id="owner-new-pass" class="w-full border border-gray-300 p-3 rounded-lg mb-3" placeholder="New Password">
+            <button onclick="changeOwnerPassword()" class="w-full bg-purple-600 text-white py-2 rounded-lg font-bold">Change Password</button>
+        </div>
+
+        <!-- Host Accounts -->
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <h3 class="font-bold text-gray-800 mb-3">Host Accounts</h3>
+            <div class="space-y-2 mb-4">
+                <input type="text" id="new-host-id" class="w-full border border-gray-300 p-3 rounded-lg" placeholder="Host ID">
+                <input type="password" id="new-host-password" class="w-full border border-gray-300 p-3 rounded-lg" placeholder="Password">
+                <input type="text" id="new-host-name" class="w-full border border-gray-300 p-3 rounded-lg" placeholder="Name">
+                <button onclick="createHostAccount()" class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold">Create Host</button>
+            </div>
+            <div id="host-accounts-list"></div>
+        </div>
+
+        <!-- Delivery Accounts -->
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <h3 class="font-bold text-gray-800 mb-3">Delivery Accounts</h3>
+            <div class="space-y-2 mb-4">
+                <input type="text" id="new-delivery-id" class="w-full border border-gray-300 p-3 rounded-lg" placeholder="Delivery ID">
+                <input type="password" id="new-delivery-password" class="w-full border border-gray-300 p-3 rounded-lg" placeholder="Password">
+                <input type="text" id="new-delivery-name" class="w-full border border-gray-300 p-3 rounded-lg" placeholder="Name">
+                <button onclick="createDeliveryAccount()" class="w-full bg-green-600 text-white py-2 rounded-lg font-bold">Create Delivery</button>
+            </div>
+            <div id="delivery-accounts-list"></div>
+        </div>
+    </div>
+    <div class="bottom-bar">
+        <button onclick="showOwnerPanel()"><i class="fas fa-home"></i>Home</button>
+        <button onclick="showOwnerPasswords()" class="active"><i class="fas fa-key"></i>Passwords</button>
+        <button onclick="showOwnerProfile()"><i class="fas fa-user"></i>Profile</button>
+    </div>
+</div>
+
+<!-- OWNER PROFILE -->
+<div id="owner-profile-screen" class="screen hidden bg-gray-50">
+    <div class="bg-purple-600 text-white p-4 pt-6 sticky top-0 z-50 shadow-md flex items-center gap-4">
+        <button onclick="showOwnerPanel()" class="text-white"><i class="fas fa-arrow-left text-xl"></i></button>
+        <h1 class="text-xl font-bold">Owner Profile</h1>
+    </div>
+    <div class="p-4 pb-24">
+        <div id="owner-profile-form" class="bg-white rounded-xl shadow-md p-6"></div>
+    </div>
+    <div class="bottom-bar">
+        <button onclick="showOwnerPanel()"><i class="fas fa-home"></i>Home</button>
+        <button onclick="showOwnerPasswords()"><i class="fas fa-key"></i>Passwords</button>
+        <button onclick="showOwnerProfile()" class="active"><i class="fas fa-user"></i>Profile</button>
+    </div>
+</div>
+
+<script>
+    // Initialize - show role selection on load
+    document.addEventListener('DOMContentLoaded', () => {
+        showRoleSelection();
+    });
+</script>
+
+</body>
+</html>
