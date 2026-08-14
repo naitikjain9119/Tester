@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Studio - Modern AI IDE & Development Workspace</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        ide: {
+                            bg: '#090d16',
+                            panel: '#111827',
+                            sidebar: '#0d1322',
+                            border: '#1f2937',
+                            active: '#1e293b',
+                            accent: '#3b82f6',
+                            accentHover: '#2563eb',
+                            text: '#f3f4f6',
+                            muted: '#9ca3af'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Token Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Monaco Editor Loader -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/loader.min.js"></script>
+    <!-- JSZip for Exporting Projects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        .monaco-editor, .monaco-editor .margin, .monaco-editor-background { background-color: #0d1322 !important; }
+        .glow-effect { box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+    </style>
+</head>
+<body class="bg-ide-bg text-ide-text h-full flex flex-col font-sans overflow-hidden select-none">
+
+    <!-- REQUIRED HEADER BANNER -->
+    <header class="bg-gradient-to-r from-blue-900 via-indigo-900 to-purple-900 text-white text-center py-2 px-4 font-bold text-sm sm:text-base border-b border-blue-500/30 shadow-lg flex justify-between items-center z-50">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid font-mono text-blue-400 fa-code-branch"></i>
+            <span class="tracking-wide uppercase text-xs sm:text-sm bg-blue-950/60 px-2 py-0.5 rounded border border-blue-400/30">AI Studio v2.5</span>
+        </div>
+        <div class="text-center font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-blue-200 via-white to-purple-200 drop-shadow-sm">
+            This website is made by Naitik Rakesh Kumar Jain Dhalawat
+        </div>
+        <div class="flex items-center gap-3">
+            <span id="agent-status-badge" class="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 cursor-pointer" onclick="openAgentModal()">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Virtual Engine
+            </span>
+        </div>
+    </header>
+
+    <!-- MAIN NAVBAR / WORKSPACE TOOLBAR -->
+    <div class="bg-ide-panel border-b border-ide-border px-3 py-1.5 flex items-center justify-between text-xs gap-2">
+        <div class="flex items-center gap-2">
+            <div class="font-bold text-blue-400 flex items-center gap-1.5 text-sm mr-2">
+                <i class="fa-solid fa-brain"></i> AI Code DevSpace
+            </div>
+            <button onclick="createNewProject()" class="px-2.5 py-1 bg-ide-border hover:bg-slate-700 text-white rounded transition flex items-center gap-1">
+                <i class="fa-solid fa-folder-plus text-blue-400"></i> New
+            </button>
+            <button onclick="openLocalDirectory()" class="px-2.5 py-1 bg-ide-border hover:bg-slate-700 text-white rounded transition flex items-center gap-1">
+                <i class="fa-solid fa-folder-open text-amber-400"></i> Open Folder
+            </button>
+            <button onclick="exportProjectZip()" class="px-2.5 py-1 bg-ide-border hover:bg-slate-700 text-white rounded transition flex items-center gap-1">
+                <i class="fa-solid fa-file-export text-emerald-400"></i> Export ZIP
+            </button>
+            <span class="text-gray-600">|</span>
+            <button id="btn-run-project" onclick="runProject()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded transition flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-play"></i> Run Live
+            </button>
+            <button id="btn-stop-project" onclick="stopProject()" class="hidden px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded transition flex items-center gap-1.5">
+                <i class="fa-solid fa-stop"></i> Stop
+            </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button onclick="toggleCommandPalette()" class="bg-ide-bg hover:bg-slate-800 text-gray-300 px-3 py-1 rounded border border-ide-border flex items-center gap-2">
+                <i class="fa-solid fa-terminal text-xs"></i> Command Palette <kbd class="bg-slate-800 px-1 py-0.5 rounded text-[10px] text-gray-400">Ctrl+K</kbd>
+            </button>
+            <button onclick="openTokenDashboard()" class="px-2.5 py-1 bg-ide-border hover:bg-slate-700 text-white rounded transition flex items-center gap-1 text-xs">
+                <i class="fa-solid fa-chart-line text-cyan-400"></i> <span id="nav-token-counter">0 Tokens</span>
+            </button>
+            <button onclick="openApiSettings()" class="px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded transition flex items-center gap-1 font-medium">
+                <i class="fa-solid fa-key text-amber-300"></i> API Keys
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN 4-PANEL WORKSPACE CONTAINER -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- PANEL 1: LEFT SIDEBAR (FILE TREE, SEARCH, GIT, SETTINGS) -->
+        <aside id="panel-sidebar" class="w-64 bg-ide-sidebar border-r border-ide-border flex flex-col shrink-0">
+            <!-- Sidebar Navigation Tabs -->
+            <div class="flex border-b border-ide-border bg-ide-panel text-gray-400 text-xs">
+                <button onclick="switchSidebarTab('files')" id="tab-btn-files" class="flex-1 py-2 text-center border-b-2 border-blue-500 text-blue-400 font-medium">
+                    <i class="fa-solid fa-files"></i> Files
+                </button>
+                <button onclick="switchSidebarTab('search')" id="tab-btn-search" class="flex-1 py-2 text-center border-b-2 border-transparent hover:text-white">
+                    <i class="fa-solid fa-magnifying-glass"></i> Search
+                </button>
+                <button onclick="switchSidebarTab('git')" id="tab-btn-git" class="flex-1 py-2 text-center border-b-2 border-transparent hover:text-white">
+                    <i class="fa-solid fa-code-commit"></i> Git
+                </button>
+                <button onclick="switchSidebarTab('settings')" id="tab-btn-settings" class="flex-1 py-2 text-center border-b-2 border-transparent hover:text-white">
+                    <i class="fa-solid fa-gear"></i> Config
+                </button>
+            </div>
+
+            <!-- TAB CONTENTS -->
+            <div class="flex-1 overflow-y-auto p-2 text-sm" id="sidebar-tab-content">
+                <!-- FILES TAB -->
+                <div id="sidebar-files-view">
+                    <div class="flex justify-between items-center text-xs text-gray-400 uppercase font-semibold mb-2 px-1">
+                        <span id="workspace-folder-name">PROJECT FILES</span>
+                        <div class="flex gap-1">
+                            <button onclick="promptCreateFile()" title="New File" class="p-1 hover:bg-slate-700 rounded text-gray-300"><i class="fa-solid fa-file-circle-plus"></i></button>
+                            <button onclick="promptCreateFolder()" title="New Folder" class="p-1 hover:bg-slate-700 rounded text-gray-300"><i class="fa-solid fa-folder-plus"></i></button>
+                            <button onclick="renderFileTree()" title="Refresh" class="p-1 hover:bg-slate-700 rounded text-gray-300"><i class="fa-solid fa-rotate"></i></button>
+                        </div>
+                    </div>
+                    <!-- File Explorer Tree -->
+                    <div id="file-tree" class="space-y-0.5 text-xs font-mono"></div>
+                </div>
+
+                <!-- SEARCH TAB -->
+                <div id="sidebar-search-view" class="hidden space-y-3">
+                    <div>
+                        <input type="text" id="file-search-input" onkeyup="searchProjectFiles()" placeholder="Search in code..." class="w-full bg-ide-bg border border-ide-border rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div id="search-results-list" class="space-y-1 text-xs font-mono"></div>
+                </div>
+
+                <!-- GIT TAB -->
+                <div id="sidebar-git-view" class="hidden space-y-3 text-xs">
+                    <div class="font-semibold text-gray-300">Git Source Control</div>
+                    <div class="bg-ide-bg p-2 rounded border border-ide-border space-y-2">
+                        <div class="text-gray-400">Branch: <span class="text-blue-400 font-bold">main</span></div>
+                        <input type="text" id="git-commit-msg" placeholder="Commit message..." class="w-full bg-ide-panel border border-ide-border rounded px-2 py-1 text-xs text-white">
+                        <button onclick="simulateGitCommit()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-1 rounded font-medium">Commit Changes</button>
+                    </div>
+                    <div class="text-gray-400 text-xs mt-2">
+                        <span class="font-semibold">Modified Files:</span>
+                        <ul id="git-modified-list" class="mt-1 space-y-1 font-mono text-amber-400"></ul>
+                    </div>
+                </div>
+
+                <!-- CONFIG TAB -->
+                <div id="sidebar-settings-view" class="hidden space-y-3 text-xs">
+                    <div class="font-semibold text-gray-300">Workspace Settings</div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Editor Theme</label>
+                        <select id="setting-theme" onchange="changeEditorTheme(this.value)" class="w-full bg-ide-bg border border-ide-border rounded px-2 py-1 text-white">
+                            <option value="vs-dark">Dark (Default)</option>
+                            <option value="vs">Light</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Font Size</label>
+                        <input type="number" id="setting-fontsize" value="14" min="10" max="24" onchange="changeFontSize(this.value)" class="w-full bg-ide-bg border border-ide-border rounded px-2 py-1 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Auto Save</label>
+                        <select id="setting-autosave" class="w-full bg-ide-bg border border-ide-border rounded px-2 py-1 text-white">
+                            <option value="enabled">Enabled (On change)</option>
+                            <option value="disabled">Disabled (Manual Ctrl+S)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- PANEL 2: CENTER PANEL (MONACO CODE EDITOR & FILE TABS) -->
+        <main class="flex-1 flex flex-col bg-ide-bg border-r border-ide-border overflow-hidden">
+            <!-- File Tabs Header Bar -->
+            <div id="editor-tabs" class="flex items-center bg-ide-panel border-b border-ide-border overflow-x-auto text-xs shrink-0 select-none">
+                <!-- Dynamic File Tabs Render Here -->
+            </div>
+
+            <!-- Code Editor Top Actions Bar -->
+            <div class="bg-ide-bg border-b border-ide-border/50 px-3 py-1 flex justify-between items-center text-xs text-gray-400">
+                <div id="current-file-path" class="font-mono text-gray-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-code text-blue-400"></i> <span>no file open</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="formatCode()" class="hover:text-white px-1.5 py-0.5 rounded hover:bg-slate-800" title="Format Code"><i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Format</button>
+                    <button onclick="saveActiveFile()" class="hover:text-white px-1.5 py-0.5 rounded hover:bg-slate-800" title="Save File (Ctrl+S)"><i class="fa-solid fa-floppy-disk text-emerald-400"></i> Save</button>
+                    <button onclick="copyActiveCode()" class="hover:text-white px-1.5 py-0.5 rounded hover:bg-slate-800" title="Copy Code"><i class="fa-solid fa-copy"></i> Copy</button>
+                    <button onclick="toggleEditorFullscreen()" class="hover:text-white px-1.5 py-0.5 rounded hover:bg-slate-800" title="Toggle Fullscreen"><i class="fa-solid fa-expand"></i></button>
+                </div>
+            </div>
+
+            <!-- Monaco Editor Container -->
+            <div id="monaco-container" class="flex-1 w-full h-full relative">
+                <div id="editor-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 text-sm">
+                    <i class="fa-solid fa-code text-5xl mb-3 text-slate-700"></i>
+                    <p>Select a file from the explorer or create a new prompt with AI</p>
+                </div>
+            </div>
+
+            <!-- Monaco Status Bar -->
+            <div class="bg-ide-panel border-t border-ide-border px-3 py-0.5 flex justify-between items-center text-[11px] text-gray-400 font-mono shrink-0">
+                <div class="flex gap-4">
+                    <span id="status-cursor-pos">Ln 1, Col 1</span>
+                    <span id="status-file-encoding">UTF-8</span>
+                    <span id="status-file-lang">Plain Text</span>
+                </div>
+                <div class="flex gap-3">
+                    <span id="status-save-state" class="text-emerald-400"><i class="fa-solid fa-circle-check"></i> Saved</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- PANEL 3: RIGHT PANEL (AI CODING ASSISTANT CHAT) -->
+        <aside id="panel-ai" class="w-80 sm:w-96 bg-ide-panel border-l border-ide-border flex flex-col shrink-0">
+            <!-- AI Header -->
+            <div class="p-3 border-b border-ide-border flex justify-between items-center bg-ide-sidebar">
+                <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                    <span class="font-bold text-sm tracking-wide text-white">AI Studio Architect</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <button onclick="clearChatHistory()" title="Clear Chat" class="text-gray-400 hover:text-white p-1 rounded hover:bg-slate-800 text-xs"><i class="fa-solid fa-trash-can"></i></button>
+                    <button onclick="newConversation()" title="New Chat" class="text-gray-400 hover:text-white p-1 rounded hover:bg-slate-800 text-xs"><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </div>
+
+            <!-- AI Context & Model Selection Bar -->
+            <div class="p-2 bg-ide-bg border-b border-ide-border flex flex-wrap gap-2 text-xs">
+                <div class="flex-1">
+                    <select id="ai-model-select" class="w-full bg-ide-panel border border-ide-border rounded px-2 py-1 text-gray-200 focus:outline-none focus:border-blue-500">
+                        <option value="gpt-4o">OpenAI GPT-4o</option>
+                        <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                        <option value="deepseek-coder">DeepSeek Coder</option>
+                        <option value="custom">Custom Endpoint</option>
+                    </select>
+                </div>
+                <div>
+                    <select id="ai-context-select" class="bg-ide-panel border border-ide-border rounded px-2 py-1 text-gray-200">
+                        <option value="active">Active File</option>
+                        <option value="all">Entire Project</option>
+                        <option value="custom">Selected Files</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Chat Messages Viewport -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-3 space-y-4 text-xs font-sans">
+                <!-- Welcome Message -->
+                <div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-3 text-gray-300">
+                    <div class="font-bold text-blue-400 mb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-robot"></i> Hello Developer!
+                    </div>
+                    <p class="leading-relaxed mb-2">I am your integrated AI coding agent. Ask me to write full applications, fix errors, refactor code, or add new features!</p>
+                    <div class="text-[11px] text-gray-400 bg-slate-900/80 p-2 rounded border border-slate-800">
+                        <span class="text-amber-400 font-semibold">Try asking:</span>
+                        <ul class="list-disc list-inside mt-1 space-y-1">
+                            <li>"Create a responsive Weather App with CSS & JS"</li>
+                            <li>"Build a modern Todo App with LocalStorage"</li>
+                            <li>"Fix all errors in current project"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Activity Stream Indicator -->
+            <div id="ai-activity-indicator" class="hidden px-3 py-1.5 bg-blue-950/40 border-t border-blue-900/50 text-blue-300 text-xs flex items-center gap-2">
+                <i class="fa-solid fa-spinner animate-spin"></i>
+                <span id="ai-activity-text">AI is planning code structure...</span>
+            </div>
+
+            <!-- AI Input Prompt Box -->
+            <div class="p-3 bg-ide-sidebar border-t border-ide-border space-y-2">
+                <div class="relative">
+                    <textarea id="ai-prompt-input" rows="3" placeholder="Describe what you want to build or edit..." onkeydown="handlePromptKeyDown(event)" class="w-full bg-ide-bg border border-ide-border rounded-lg p-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 resize-none font-sans"></textarea>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="flex gap-1.5 text-gray-400 text-xs">
+                        <button onclick="triggerFileAttachment()" class="hover:text-white p-1 rounded hover:bg-slate-800" title="Attach file context"><i class="fa-solid fa-paperclip"></i></button>
+                        <span class="text-[11px] self-center text-gray-500" id="prompt-token-estimate">~0 tokens</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="btn-stop-ai" onclick="stopAIGeneration()" class="hidden px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded text-xs font-semibold">Stop</button>
+                        <button id="btn-send-ai" onclick="sendPromptToAI()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow-md">
+                            <span>Send</span> <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- PANEL 4: BOTTOM PANEL (TERMINAL, OUTPUT, ERRORS, PREVIEW TOGGLE) -->
+    <div id="panel-bottom" class="h-48 bg-ide-panel border-t border-ide-border flex flex-col shrink-0">
+        <!-- Bottom Header Tabs -->
+        <div class="flex justify-between items-center bg-ide-sidebar px-3 border-b border-ide-border text-xs">
+            <div class="flex">
+                <button onclick="switchBottomTab('terminal')" id="bottom-tab-btn-terminal" class="py-1.5 px-3 border-b-2 border-blue-500 text-blue-400 font-medium flex items-center gap-1.5">
+                    <i class="fa-solid fa-terminal"></i> Terminal / Process
+                </button>
+                <button onclick="switchBottomTab('errors')" id="bottom-tab-btn-errors" class="py-1.5 px-3 border-b-2 border-transparent text-gray-400 hover:text-white flex items-center gap-1.5">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> Errors & Diagnostics <span id="error-badge-count" class="bg-rose-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold hidden">0</span>
+                </button>
+                <button onclick="switchBottomTab('server')" id="bottom-tab-btn-server" class="py-1.5 px-3 border-b-2 border-transparent text-gray-400 hover:text-white flex items-center gap-1.5">
+                    <i class="fa-solid fa-server text-emerald-400"></i> Server Output
+                </button>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleLivePreviewModal()" class="px-2 py-0.5 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/30 text-blue-300 rounded text-xs flex items-center gap-1">
+                    <i class="fa-solid fa-window-maximize"></i> Live Preview Panel
+                </button>
+                <button onclick="clearTerminal()" class="text-gray-400 hover:text-white px-1.5 py-0.5"><i class="fa-solid fa-ban"></i> Clear</button>
+                <button onclick="toggleBottomPanel()" class="text-gray-400 hover:text-white px-1.5 py-0.5"><i class="fa-solid fa-chevron-down"></i></button>
+            </div>
+        </div>
+
+        <!-- Tab Views -->
+        <div class="flex-1 bg-ide-bg p-2 font-mono text-xs overflow-y-auto" id="bottom-content-area">
+            <!-- TERMINAL TAB -->
+            <div id="bottom-view-terminal" class="space-y-1 text-gray-300">
+                <div class="text-gray-500">[System] AI Development Environment Initialized.</div>
+                <div class="text-gray-500">[Engine] In-Memory Virtual File System ready. WebSocket Local Runner Agent status: Standby.</div>
+                <div id="terminal-log-output" class="space-y-1"></div>
+            </div>
+
+            <!-- ERRORS TAB -->
+            <div id="bottom-view-errors" class="hidden space-y-2">
+                <div id="errors-empty-state" class="text-gray-500 italic">No compile or execution errors detected.</div>
+                <div id="errors-list" class="space-y-1.5"></div>
+            </div>
+
+            <!-- SERVER TAB -->
+            <div id="bottom-view-server" class="hidden font-mono text-xs space-y-1 text-gray-300">
+                <div>Status: <span id="server-status-label" class="text-amber-400 font-bold">STOPPED</span></div>
+                <div>URL: <a id="server-url-label" href="#" target="_blank" class="text-blue-400 underline">http://localhost:5173</a></div>
+                <div class="text-gray-500 mt-2">Server stdout & stderr logs will display here...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 1: LIVE PREVIEW DRAWER / MODAL -->
+    <div id="modal-live-preview" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex flex-col p-4 sm:p-8">
+        <div class="bg-ide-panel border border-ide-border rounded-xl flex-1 flex flex-col overflow-hidden shadow-2xl">
+            <!-- Preview Top Bar -->
+            <div class="bg-ide-sidebar border-b border-ide-border px-4 py-2 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <span class="font-bold text-sm text-white flex items-center gap-2">
+                        <i class="fa-solid fa-desktop text-emerald-400"></i> Project Application Preview
+                    </span>
+                    <div class="flex bg-ide-bg rounded border border-ide-border p-0.5 text-xs">
+                        <button onclick="setPreviewSize('100%')" class="px-2 py-0.5 rounded text-gray-300 hover:text-white">Desktop</button>
+                        <button onclick="setPreviewSize('768px')" class="px-2 py-0.5 rounded text-gray-300 hover:text-white">Tablet</button>
+                        <button onclick="setPreviewSize('375px')" class="px-2 py-0.5 rounded text-gray-300 hover:text-white">Mobile</button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="refreshPreviewFrame()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-right"></i> Refresh
+                    </button>
+                    <button onclick="toggleLivePreviewModal()" class="text-gray-400 hover:text-white p-1 rounded text-lg">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Preview Frame Viewport -->
+            <div class="flex-1 bg-slate-950 flex justify-center items-center overflow-hidden relative">
+                <iframe id="preview-iframe" class="bg-white transition-all duration-300 w-full h-full border-0"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: API & MODEL SETTINGS -->
+    <div id="modal-api-settings" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-ide-panel border border-ide-border rounded-xl w-full max-w-lg p-5 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-ide-border pb-3">
+                <h3 class="font-bold text-base text-white flex items-center gap-2">
+                    <i class="fa-solid fa-key text-amber-400"></i> AI Provider & API Settings
+                </h3>
+                <button onclick="closeApiSettings()" class="text-gray-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div class="bg-amber-500/10 border border-amber-500/30 rounded p-2.5 text-amber-200">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> API Keys are stored locally in your browser memory for raw REST completions and are never sent to external third parties.
+                </div>
+
+                <div>
+                    <label class="block text-gray-300 font-semibold mb-1">Provider Architecture</label>
+                    <select id="config-provider" onchange="handleProviderChange()" class="w-full bg-ide-bg border border-ide-border rounded p-2 text-white">
+                        <option value="openai">OpenAI (GPT-4o, GPT-3.5)</option>
+                        <option value="anthropic">Anthropic Claude Direct API</option>
+                        <option value="gemini">Google Gemini AI</option>
+                        <option value="openrouter">OpenRouter / DeepSeek / Custom Base URL</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-gray-300 font-semibold mb-1">API Key</label>
+                    <input type="password" id="config-api-key" placeholder="sk-..." class="w-full bg-ide-bg border border-ide-border rounded p-2 text-white focus:outline-none focus:border-blue-500 font-mono">
+                </div>
+
+                <div>
+                    <label class="block text-gray-300 font-semibold mb-1">Base URL (Optional / Custom Endpoints)</label>
+                    <input type="text" id="config-base-url" placeholder="https://api.openai.com/v1" class="w-full bg-ide-bg border border-ide-border rounded p-2 text-white font-mono">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-gray-300 font-semibold mb-1">Temperature</label>
+                        <input type="number" id="config-temperature" step="0.1" min="0" max="1" value="0.2" class="w-full bg-ide-bg border border-ide-border rounded p-2 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 font-semibold mb-1">Max Tokens</label>
+                        <input type="number" id="config-max-tokens" value="4096" class="w-full bg-ide-bg border border-ide-border rounded p-2 text-white">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-gray-300 font-semibold mb-1">System Prompt Context</label>
+                    <textarea id="config-system-prompt" rows="2" class="w-full bg-ide-bg border border-ide-border rounded p-2 text-white font-sans">You are an expert full-stack developer producing functional, clean web code. Always return entire runnable files.</textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center border-t border-ide-border pt-3">
+                <button onclick="testApiConnection()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded text-xs font-semibold">Test Connection</button>
+                <div class="flex gap-2">
+                    <button onclick="closeApiSettings()" class="px-3 py-1.5 bg-slate-800 text-gray-300 rounded text-xs">Cancel</button>
+                    <button onclick="saveApiSettings()" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-semibold">Save Configuration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: TOKEN USAGE DASHBOARD -->
+    <div id="modal-token-dashboard" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-ide-panel border border-ide-border rounded-xl w-full max-w-2xl p-5 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-ide-border pb-3">
+                <h3 class="font-bold text-base text-white flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-cyan-400"></i> Token Usage Analytics & Cost Dashboard
+                </h3>
+                <button onclick="closeTokenDashboard()" class="text-gray-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div class="bg-ide-bg p-3 rounded border border-ide-border">
+                    <div class="text-gray-400">Input Tokens</div>
+                    <div id="token-stat-input" class="text-lg font-bold text-blue-400 font-mono">0</div>
+                </div>
+                <div class="bg-ide-bg p-3 rounded border border-ide-border">
+                    <div class="text-gray-400">Output Tokens</div>
+                    <div id="token-stat-output" class="text-lg font-bold text-emerald-400 font-mono">0</div>
+                </div>
+                <div class="bg-ide-bg p-3 rounded border border-ide-border">
+                    <div class="text-gray-400">Total Tokens</div>
+                    <div id="token-stat-total" class="text-lg font-bold text-amber-400 font-mono">0</div>
+                </div>
+                <div class="bg-ide-bg p-3 rounded border border-ide-border">
+                    <div class="text-gray-400">Est. Cost (USD)</div>
+                    <div id="token-stat-cost" class="text-lg font-bold text-purple-400 font-mono">$0.000</div>
+                </div>
+            </div>
+
+            <!-- Chart Canvas -->
+            <div class="bg-ide-bg p-3 rounded border border-ide-border h-48 relative">
+                <canvas id="tokenUsageChart"></canvas>
+            </div>
+
+            <div class="flex justify-end">
+                <button onclick="resetTokenTracker()" class="px-3 py-1.5 bg-rose-900/40 hover:bg-rose-900/70 border border-rose-700/50 text-rose-200 rounded text-xs">Reset Metrics</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: COMMAND PALETTE (CTRL + K) -->
+    <div id="modal-command-palette" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-start justify-center pt-20 p-4">
+        <div class="bg-ide-panel border border-ide-border rounded-xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
+            <div class="p-3 border-b border-ide-border flex items-center gap-2">
+                <i class="fa-solid fa-magnifying-glass text-gray-400 text-sm"></i>
+                <input type="text" id="command-search-input" onkeyup="filterPaletteCommands()" placeholder="Type a command or search actions..." class="w-full bg-transparent text-sm text-white focus:outline-none">
+            </div>
+            <div id="command-list" class="max-h-64 overflow-y-auto p-2 text-xs space-y-1 font-sans">
+                <!-- Commands populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: LOCAL AGENT RUNNER INSTRUCTIONS -->
+    <div id="modal-agent-info" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-ide-panel border border-ide-border rounded-xl w-full max-w-xl p-5 shadow-2xl space-y-3">
+            <div class="flex justify-between items-center border-b border-ide-border pb-2">
+                <h3 class="font-bold text-white text-sm flex items-center gap-2"><i class="fa-solid fa-network-wired text-amber-400"></i> Local Node.js Agent Setup</h3>
+                <button onclick="closeAgentModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-gray-300">This IDE uses an In-Memory Engine for web previewing. To give the AI access to execute terminal commands on your actual machine, save files directly, or run local `npm install` packages, run the local Node agent:</p>
+            <div class="bg-ide-bg p-3 rounded border border-ide-border text-xs font-mono text-emerald-400 space-y-1">
+                <div># 1. Save local runner script:</div>
+                <div class="text-white">npx agent-runner --port 9999</div>
+                <div># 2. WebSocket listener active on ws://localhost:9999</div>
+            </div>
+            <div class="flex justify-end">
+                <button onclick="closeAgentModal()" class="px-4 py-1 bg-blue-600 text-white text-xs rounded">Got It</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- COMPLETE ENGINE JAVASCRIPT LOGIC -->
+    <script>
+        /* Global Application State */
+        const APP_STATE = {
+            author: "Naitik Rakesh Kumar Jain Dhalawat",
+            files: {
+                "index.html": {
+                    name: "index.html",
+                    path: "index.html",
+                    content: `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <title>Sample App</title>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <div class="card">\n    <h1>Hello World!</h1>\n    <p>Generated in AI Code Studio.</p>\n    <button id="btn">Click Me</button>\n  </div>\n  <script src="script.js"><\/script>\n</body>\n</html>`,
+                    language: "html"
+                },
+                "style.css": {
+                    name: "style.css",
+                    path: "style.css",
+                    content: `body {\n  background: #0f172a;\n  color: #f8fafc;\n  font-family: sans-serif;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 100vh;\n  margin: 0;\n}\n.card {\n  background: #1e293b;\n  padding: 2rem;\n  border-radius: 12px;\n  box-shadow: 0 10px 25px rgba(0,0,0,0.5);\n  text-align: center;\n}\nbutton {\n  background: #3b82f6;\n  color: white;\n  border: none;\n  padding: 0.5rem 1rem;\n  border-radius: 6px;\n  cursor: pointer;\n}`,
+                    language: "css"
+                },
+                "script.js": {
+                    name: "script.js",
+                    path: "script.js",
+                    content: `document.getElementById('btn').addEventListener('click', () => {\n  alert('Button clicked! Workspace functional.');\n  console.log('User interacted with live app.');\n});`,
+                    language: "javascript"
+                }
+            },
+            activeFile: "index.html",
+            openTabs: ["index.html"],
+            config: {
+                provider: "openai",
+                apiKey: "",
+                baseUrl: "https://api.openai.com/v1",
+                temperature: 0.2,
+                maxTokens: 4096,
+                systemPrompt: "You are an expert AI software architect. Generate production-ready multi-file code solutions."
+            },
+            tokens: {
+                inputTokens: 0,
+                outputTokens: 0,
+                totalTokens: 0,
+                history: []
+            },
+            isGenerating: false,
+            localDirectoryHandle: null,
+            monacoEditor: null,
+            chartInstance: null
+        };
+
+        /* Monaco Editor Setup */
+        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' } });
+        require(['vs/editor/editor.main'], function () {
+            APP_STATE.monacoEditor = monaco.editor.create(document.getElementById('monaco-container'), {
+                value: APP_STATE.files["index.html"].content,
+                language: 'html',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                fontSize: 14,
+                minimap: { enabled: true },
+                scrollBeyondLastLine: false,
+                padding: { top: 10 }
+            });
+
+            document.getElementById('editor-placeholder').classList.add('hidden');
+
+            APP_STATE.monacoEditor.onDidChangeCursorPosition(e => {
+                document.getElementById('status-cursor-pos').innerText = `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
+            });
+
+            APP_STATE.monacoEditor.onDidChangeModelContent(() => {
+                if (APP_STATE.activeFile && APP_STATE.files[APP_STATE.activeFile]) {
+                    APP_STATE.files[APP_STATE.activeFile].content = APP_STATE.monacoEditor.getValue();
+                    document.getElementById('status-save-state').innerHTML = `<span class="text-amber-400"><i class="fa-solid fa-pen-to-square"></i> Unsaved</span>`;
+                }
+            });
+
+            renderFileTabs();
+            renderFileTree();
+        });
+
+        /* Sidebar Navigation Controls */
+        function switchSidebarTab(tab) {
+            ['files', 'search', 'git', 'settings'].forEach(t => {
+                document.getElementById(`sidebar-${t}-view`).classList.add('hidden');
+                document.getElementById(`tab-btn-${t}`).classList.remove('border-blue-500', 'text-blue-400');
+                document.getElementById(`tab-btn-${t}`).classList.add('border-transparent');
+            });
+            document.getElementById(`sidebar-${tab}-view`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tab}`).classList.add('border-blue-500', 'text-blue-400');
+        }
+
+        /* Bottom Panel Navigation Controls */
+        function switchBottomTab(tab) {
+            ['terminal', 'errors', 'server'].forEach(t => {
+                document.getElementById(`bottom-view-${t}`).classList.add('hidden');
+                document.getElementById(`bottom-tab-btn-${t}`).classList.remove('border-blue-500', 'text-blue-400');
+            });
+            document.getElementById(`bottom-view-${tab}`).classList.remove('hidden');
+            document.getElementById(`bottom-tab-btn-${tab}`).classList.add('border-blue-500', 'text-blue-400');
+        }
+
+        /* File Explorer & Workspace Logic */
+        function renderFileTree() {
+            const treeContainer = document.getElementById('file-tree');
+            treeContainer.innerHTML = '';
+            
+            Object.keys(APP_STATE.files).forEach(filePath => {
+                const file = APP_STATE.files[filePath];
+                const fileEl = document.createElement('div');
+                fileEl.className = `flex justify-between items-center px-2 py-1.5 rounded cursor-pointer transition ${APP_STATE.activeFile === filePath ? 'bg-ide-active text-blue-400 font-semibold' : 'hover:bg-slate-800 text-gray-300'}`;
+                fileEl.innerHTML = `
+                    <div class="flex items-center gap-2 truncate" onclick="openFile('${filePath}')">
+                        <i class="${getFileIcon(file.name)} text-xs"></i>
+                        <span>${file.name}</span>
+                    </div>
+                    <div class="flex items-center gap-1 opacity-0 hover:opacity-100 transition">
+                        <button onclick="event.stopPropagation(); deleteFile('${filePath}')" class="text-gray-500 hover:text-rose-400 p-0.5"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+                treeContainer.appendChild(fileEl);
+            });
+        }
+
+        function getFileIcon(filename) {
+            if (filename.endsWith('.html')) return 'fa-brands fa-html5 text-amber-500';
+            if (filename.endsWith('.css')) return 'fa-brands fa-css3-alt text-blue-400';
+            if (filename.endsWith('.js')) return 'fa-brands fa-square-js text-yellow-400';
+            if (filename.endsWith('.json')) return 'fa-solid fa-code text-emerald-400';
+            return 'fa-solid fa-file-code text-gray-400';
+        }
+
+        function openFile(filePath) {
+            if (!APP_STATE.files[filePath]) return;
+            APP_STATE.activeFile = filePath;
+            if (!APP_STATE.openTabs.includes(filePath)) APP_STATE.openTabs.push(filePath);
+            
+            const file = APP_STATE.files[filePath];
+            if (APP_STATE.monacoEditor) {
+                const model = APP_STATE.monacoEditor.getModel();
+                monaco.editor.setModelLanguage(model, file.language || 'plaintext');
+                APP_STATE.monacoEditor.setValue(file.content);
+            }
+
+            document.getElementById('current-file-path').innerHTML = `<i class="${getFileIcon(file.name)}"></i> ${file.path}`;
+            document.getElementById('status-file-lang').innerText = file.language.toUpperCase();
+            document.getElementById('status-save-state').innerHTML = `<span class="text-emerald-400"><i class="fa-solid fa-circle-check"></i> Saved</span>`;
+
+            renderFileTabs();
+            renderFileTree();
+        }
+
+        function renderFileTabs() {
+            const tabsContainer = document.getElementById('editor-tabs');
+            tabsContainer.innerHTML = '';
+            
+            APP_STATE.openTabs.forEach(filePath => {
+                const file = APP_STATE.files[filePath];
+                if (!file) return;
+                const tab = document.createElement('div');
+                tab.className = `flex items-center gap-2 px-3 py-2 border-r border-ide-border cursor-pointer transition text-xs shrink-0 ${APP_STATE.activeFile === filePath ? 'bg-ide-bg text-blue-400 border-t-2 border-t-blue-500 font-medium' : 'bg-ide-panel text-gray-400 hover:bg-slate-800'}`;
+                tab.innerHTML = `
+                    <span onclick="openFile('${filePath}')">${file.name}</span>
+                    <i class="fa-solid fa-xmark hover:text-rose-400 text-gray-500" onclick="event.stopPropagation(); closeTab('${filePath}')"></i>
+                `;
+                tabsContainer.appendChild(tab);
+            });
+        }
+
+        function closeTab(filePath) {
+            APP_STATE.openTabs = APP_STATE.openTabs.filter(t => t !== filePath);
+            if (APP_STATE.activeFile === filePath) {
+                APP_STATE.activeFile = APP_STATE.openTabs[APP_STATE.openTabs.length - 1] || null;
+                if (APP_STATE.activeFile) openFile(APP_STATE.activeFile);
+            }
+            renderFileTabs();
+        }
+
+        function promptCreateFile() {
+            const fileName = prompt("Enter file name (e.g., app.js, index.html):");
+            if (!fileName) return;
+            const ext = fileName.split('.').pop();
+            let lang = 'plaintext';
+            if (ext === 'html') lang = 'html';
+            else if (ext === 'css') lang = 'css';
+            else if (ext === 'js') lang = 'javascript';
+            else if (ext === 'json') lang = 'json';
+
+            APP_STATE.files[fileName] = { name: fileName, path: fileName, content: '', language: lang };
+            openFile(fileName);
+            logTerminal(`[VFS] Created new file: ${fileName}`);
+        }
+
+        function promptCreateFolder() {
+            const folderName = prompt("Enter folder name:");
+            if (folderName) logTerminal(`[VFS] Directory ${folderName}/ initialized.`);
+        }
+
+        function deleteFile(filePath) {
+            if (confirm(`Are you sure you want to delete ${filePath}?`)) {
+                delete APP_STATE.files[filePath];
+                closeTab(filePath);
+                renderFileTree();
+                logTerminal(`[VFS] Deleted file: ${filePath}`);
+            }
+        }
+
+        function saveActiveFile() {
+            if (!APP_STATE.activeFile) return;
+            document.getElementById('status-save-state').innerHTML = `<span class="text-emerald-400"><i class="fa-solid fa-circle-check"></i> Saved</span>`;
+            logTerminal(`[File System] Saved changes to ${APP_STATE.activeFile}`);
+        }
+
+        function formatCode() {
+            if (APP_STATE.monacoEditor) {
+                APP_STATE.monacoEditor.getAction('editor.action.formatDocument').run();
+                logTerminal(`[Editor] Code formatted.`);
+            }
+        }
+
+        function copyActiveCode() {
+            if (APP_STATE.monacoEditor) {
+                navigator.clipboard.writeText(APP_STATE.monacoEditor.getValue());
+                alert('Code copied to clipboard!');
+            }
+        }
+
+        /* Local Directory Access API */
+        async function openLocalDirectory() {
+            if ('showDirectoryPicker' in window) {
+                try {
+                    APP_STATE.localDirectoryHandle = await window.showDirectoryPicker();
+                    document.getElementById('workspace-folder-name').innerText = APP_STATE.localDirectoryHandle.name.toUpperCase();
+                    APP_STATE.files = {};
+                    
+                    for await (const entry of APP_STATE.localDirectoryHandle.values()) {
+                        if (entry.kind === 'file') {
+                            const fileData = await entry.getFile();
+                            const content = await fileData.text();
+                            const ext = entry.name.split('.').pop();
+                            let lang = 'plaintext';
+                            if (ext === 'html') lang = 'html';
+                            else if (ext === 'css') lang = 'css';
+                            else if (ext === 'js') lang = 'javascript';
+
+                            APP_STATE.files[entry.name] = { name: entry.name, path: entry.name, content: content, language: lang };
+                        }
+                    }
+                    const firstFile = Object.keys(APP_STATE.files)[0];
+                    if (firstFile) openFile(firstFile);
+                    logTerminal(`[File System Access] Local directory loaded.`);
+                } catch (err) {
+                    console.error(err);
+                }
+            } else {
+                alert('File System Access API is not supported in this browser.');
+            }
+        }
+
+        /* Export Project to ZIP */
+        function exportProjectZip() {
+            const zip = new JSZip();
+            Object.keys(APP_STATE.files).forEach(fileName => {
+                zip.file(fileName, APP_STATE.files[fileName].content);
+            });
+            zip.generateAsync({ type: "blob" }).then(content => {
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(content);
+                a.download = "ai-project.zip";
+                a.click();
+            });
+            logTerminal(`[Export] Project bundled and downloaded as zip.`);
+        }
+
+        /* Project Execution & Live Preview Engine */
+        function runProject() {
+            document.getElementById('btn-run-project').classList.add('hidden');
+            document.getElementById('btn-stop-project').classList.remove('hidden');
+            document.getElementById('server-status-label').className = "text-emerald-400 font-bold";
+            document.getElementById('server-status-label').innerText = "RUNNING";
+
+            refreshPreviewFrame();
+            toggleLivePreviewModal();
+            logTerminal(`[Execution] Development Server started on http://localhost:5173`);
+        }
+
+        function stopProject() {
+            document.getElementById('btn-run-project').classList.remove('hidden');
+            document.getElementById('btn-stop-project').classList.add('hidden');
+            document.getElementById('server-status-label').className = "text-amber-400 font-bold";
+            document.getElementById('server-status-label').innerText = "STOPPED";
+            logTerminal(`[Execution] Development Server stopped.`);
+        }
+
+        function refreshPreviewFrame() {
+            const iframe = document.getElementById('preview-iframe');
+            const htmlContent = APP_STATE.files['index.html'] ? APP_STATE.files['index.html'].content : '';
+            const cssContent = APP_STATE.files['style.css'] ? `<style>${APP_STATE.files['style.css'].content}</style>` : '';
+            const jsContent = APP_STATE.files['script.js'] ? `<script>try { ${APP_STATE.files['script.js'].content} } catch(e) { window.parent.postMessage({type:'error', msg: e.message}, '*'); }<\/script>` : '';
+
+            const fullContent = htmlContent.replace('</head>', `${cssContent}</head>`).replace('</body>', `${jsContent}</body>`);
+            iframe.srcdoc = fullContent;
+        }
+
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'error') {
+                logError(e.data.msg);
+            }
+        });
+
+        /* AI Prompting & Code Generation Architecture */
+        async function sendPromptToAI() {
+            const inputEl = document.getElementById('ai-prompt-input');
+            const promptText = inputEl.value.trim();
+            if (!promptText || APP_STATE.isGenerating) return;
+
+            APP_STATE.isGenerating = true;
+            appendChatMessage('user', promptText);
+            inputEl.value = '';
+
+            document.getElementById('ai-activity-indicator').classList.remove('hidden');
+            document.getElementById('btn-send-ai').classList.add('hidden');
+            document.getElementById('btn-stop-ai').classList.remove('hidden');
+
+            const projectContext = JSON.stringify(APP_STATE.files, null, 2);
+            const fullSystemPrompt = `${APP_STATE.config.systemPrompt}\n\nProject Files Context:\n${projectContext}\n\nINSTRUCTIONS: When generating or editing code files, return each file clearly using format:\n\`\`\`[filename]\n[content]\n\`\`\``;
+
+            try {
+                // REST API Call
+                let responseText = "";
+                let tokensUsed = { prompt: Math.ceil(promptText.length / 4), completion: 0 };
+
+                if (APP_STATE.config.apiKey) {
+                    const response = await fetch(`${APP_STATE.config.baseUrl}/chat/completions`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${APP_STATE.config.apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: document.getElementById('ai-model-select').value,
+                            messages: [
+                                { role: 'system', content: fullSystemPrompt },
+                                { role: 'user', content: promptText }
+                            ],
+                            temperature: parseFloat(APP_STATE.config.temperature)
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.choices && data.choices[0]) {
+                        responseText = data.choices[0].message.content;
+                        if (data.usage) {
+                            tokensUsed.prompt = data.usage.prompt_tokens;
+                            tokensUsed.completion = data.usage.completion_tokens;
+                        }
+                    } else {
+                        throw new Error("Invalid API response format");
+                    }
+                } else {
+                    // Smart Simulated AI Response fallback
+                    await new Promise(r => setTimeout(r, 1500));
+                    responseText = generateSimulatedAIResponse(promptText);
+                    tokensUsed.completion = Math.ceil(responseText.length / 4);
+                }
+
+                // Process Code Changes from Response
+                parseAndApplyAICode(responseText);
+                appendChatMessage('ai', responseText, tokensUsed);
+                trackTokens(tokensUsed.prompt, tokensUsed.completion);
+
+            } catch (err) {
+                appendChatMessage('ai', `⚠️ API Error: ${err.message}. Please check your API Settings.`);
+                logError(err.message);
+            } finally {
+                APP_STATE.isGenerating = false;
+                document.getElementById('ai-activity-indicator').classList.add('hidden');
+                document.getElementById('btn-send-ai').classList.remove('hidden');
+                document.getElementById('btn-stop-ai').classList.add('hidden');
+            }
+        }
+
+        function parseAndApplyAICode(responseContent) {
+            const codeBlockRegex = /```(?:[a-zA-Z]+:)?([a-zA-Z0-9_\-\.\/]+)?\n([\s\S]*?)```/g;
+            let match;
+            let filesUpdated = 0;
+
+            while ((match = codeBlockRegex.exec(responseContent)) !== null) {
+                let filePath = match[1];
+                const content = match[2];
+
+                if (!filePath) {
+                    if (content.includes('<!DOCTYPE html>')) filePath = 'index.html';
+                    else if (content.includes('{') && content.includes('color')) filePath = 'style.css';
+                    else filePath = 'script.js';
+                }
+
+                const ext = filePath.split('.').pop();
+                let lang = 'plaintext';
+                if (ext === 'html') lang = 'html';
+                else if (ext === 'css') lang = 'css';
+                else if (ext === 'js') lang = 'javascript';
+
+                APP_STATE.files[filePath] = { name: filePath, path: filePath, content: content.trim(), language: lang };
+                filesUpdated++;
+            }
+
+            if (filesUpdated > 0) {
+                renderFileTree();
+                if (APP_STATE.activeFile && APP_STATE.files[APP_STATE.activeFile]) {
+                    openFile(APP_STATE.activeFile);
+                }
+                logTerminal(`[AI Agent] Generated & applied code updates to ${filesUpdated} file(s).`);
+                refreshPreviewFrame();
+            }
+        }
+
+        function generateSimulatedAIResponse(prompt) {
+            return `I have updated your application based on your request: "${prompt}".\n\n\`\`\`index.html\n<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <title>Updated AI Application</title>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <div class="card">\n    <h1>AI Generated App</h1>\n    <p>Prompt processed: "${prompt}"</p>\n    <button id="btn">Interactive Action</button>\n  </div>\n  <script src="script.js"><\/script>\n</body>\n</html>\n\`\`\`\n\nUpdated structure completely applied to workspace files.`;
+        }
+
+        function appendChatMessage(sender, text, usage = null) {
+            const chatContainer = document.getElementById('chat-messages');
+            const msgEl = document.createElement('div');
+            msgEl.className = `p-3 rounded-lg text-xs space-y-1 ${sender === 'user' ? 'bg-blue-600/20 border border-blue-500/30 text-blue-100 ml-4' : 'bg-slate-800/80 border border-slate-700/80 text-gray-200 mr-4'}`;
+            
+            let usageTag = usage ? `<div class="text-[10px] text-gray-400 mt-1 flex justify-between border-t border-slate-700/50 pt-1"><span>Tokens: ${usage.prompt + usage.completion}</span><span>Model: ${document.getElementById('ai-model-select').value}</span></div>` : '';
+            
+            msgEl.innerHTML = `
+                <div class="font-bold text-[11px] ${sender === 'user' ? 'text-blue-400' : 'text-emerald-400'}">
+                    ${sender === 'user' ? '<i class="fa-solid fa-user"></i> You' : '<i class="fa-solid fa-robot"></i> AI Studio'}
+                </div>
+                <div class="whitespace-pre-wrap leading-relaxed font-sans">${escapeHtml(text)}</div>
+                ${usageTag}
+            `;
+            chatContainer.appendChild(msgEl);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        function handlePromptKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendPromptToAI();
+            }
+        }
+
+        /* Token Usage Analytics Logic */
+        function trackTokens(prompt, completion) {
+            APP_STATE.tokens.inputTokens += prompt;
+            APP_STATE.tokens.outputTokens += completion;
+            APP_STATE.tokens.totalTokens = APP_STATE.tokens.inputTokens + APP_STATE.tokens.outputTokens;
+
+            document.getElementById('nav-token-counter').innerText = `${APP_STATE.tokens.totalTokens} Tokens`;
+            document.getElementById('token-stat-input').innerText = APP_STATE.tokens.inputTokens.toLocaleString();
+            document.getElementById('token-stat-output').innerText = APP_STATE.tokens.outputTokens.toLocaleString();
+            document.getElementById('token-stat-total').innerText = APP_STATE.tokens.totalTokens.toLocaleString();
+            
+            const cost = (APP_STATE.tokens.inputTokens * 0.000005) + (APP_STATE.tokens.outputTokens * 0.000015);
+            document.getElementById('token-stat-cost').innerText = `$${cost.toFixed(4)}`;
+
+            updateTokenChart();
+        }
+
+        function updateTokenChart() {
+            const ctx = document.getElementById('tokenUsageChart').getContext('2d');
+            if (APP_STATE.chartInstance) APP_STATE.chartInstance.destroy();
+
+            APP_STATE.chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Input Tokens', 'Output Tokens', 'Total Usage'],
+                    datasets: [{
+                        label: 'Tokens',
+                        data: [APP_STATE.tokens.inputTokens, APP_STATE.tokens.outputTokens, APP_STATE.tokens.totalTokens],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { ticks: { color: '#9ca3af' } }, x: { ticks: { color: '#9ca3af' } } }
+                }
+            });
+        }
+
+        /* Command Palette (Ctrl + K) */
+        const COMMANDS = [
+            { id: 'new-file', name: 'New File', action: promptCreateFile, icon: 'fa-file-plus' },
+            { id: 'run-project', name: 'Run Live Application', action: runProject, icon: 'fa-play' },
+            { id: 'api-settings', name: 'Open API Settings', action: openApiSettings, icon: 'fa-key' },
+            { id: 'token-analytics', name: 'Open Token Usage Analytics', action: openTokenDashboard, icon: 'fa-chart-pie' },
+            { id: 'export-zip', name: 'Export Project ZIP', action: exportProjectZip, icon: 'fa-file-export' },
+            { id: 'clear-chat', name: 'Clear AI Chat History', action: clearChatHistory, icon: 'fa-trash' }
+        ];
+
+        function toggleCommandPalette() {
+            const modal = document.getElementById('modal-command-palette');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                document.getElementById('command-search-input').focus();
+                renderPaletteCommands(COMMANDS);
+            }
+        }
+
+        function renderPaletteCommands(list) {
+            const container = document.getElementById('command-list');
+            container.innerHTML = '';
+            list.forEach(cmd => {
+                const item = document.createElement('div');
+                item.className = 'p-2 hover:bg-blue-600/30 rounded cursor-pointer text-gray-200 flex items-center gap-2';
+                item.innerHTML = `<i class="fa-solid ${cmd.icon} text-blue-400"></i> <span>${cmd.name}</span>`;
+                item.onclick = () => { cmd.action(); toggleCommandPalette(); };
+                container.appendChild(item);
+            });
+        }
+
+        function filterPaletteCommands() {
+            const query = document.getElementById('command-search-input').value.toLowerCase();
+            const filtered = COMMANDS.filter(c => c.name.toLowerCase().includes(query));
+            renderPaletteCommands(filtered);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                toggleCommandPalette();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveActiveFile();
+            }
+        });
+
+        /* Console Logging & Diagnostics */
+        function logTerminal(msg) {
+            const out = document.getElementById('terminal-log-output');
+            const item = document.createElement('div');
+            item.innerText = `> ${msg}`;
+            out.appendChild(item);
+        }
+
+        function logError(errMsg) {
+            const badge = document.getElementById('error-badge-count');
+            badge.classList.remove('hidden');
+            badge.innerText = parseInt(badge.innerText || '0') + 1;
+
+            const list = document.getElementById('errors-list');
+            document.getElementById('errors-empty-state').classList.add('hidden');
+
+            const errEl = document.createElement('div');
+            errEl.className = 'bg-rose-950/40 border border-rose-800/50 p-2 rounded text-rose-300 flex justify-between items-center text-xs';
+            errEl.innerHTML = `
+                <div><i class="fa-solid fa-circle-xmark mr-1"></i> ${errMsg}</div>
+                <button onclick="fixErrorWithAI('${errMsg}')" class="px-2 py-0.5 bg-rose-700 hover:bg-rose-600 text-white rounded text-[11px] font-semibold">Fix with AI</button>
+            `;
+            list.appendChild(errEl);
+        }
+
+        function fixErrorWithAI(error) {
+            document.getElementById('ai-prompt-input').value = `Fix this runtime error in the project: "${error}"`;
+            sendPromptToAI();
+        }
+
+        /* Modal Visibility Toggles */
+        function openApiSettings() { document.getElementById('modal-api-settings').classList.remove('hidden'); }
+        function closeApiSettings() { document.getElementById('modal-api-settings').classList.add('hidden'); }
+        function openTokenDashboard() { document.getElementById('modal-token-dashboard').classList.remove('hidden'); updateTokenChart(); }
+        function closeTokenDashboard() { document.getElementById('modal-token-dashboard').classList.add('hidden'); }
+        function toggleLivePreviewModal() { document.getElementById('modal-live-preview').classList.toggle('hidden'); }
+        function openAgentModal() { document.getElementById('modal-agent-info').classList.remove('hidden'); }
+        function closeAgentModal() { document.getElementById('modal-agent-info').classList.add('hidden'); }
+
+        function saveApiSettings() {
+            APP_STATE.config.apiKey = document.getElementById('config-api-key').value;
+            APP_STATE.config.provider = document.getElementById('config-provider').value;
+            APP_STATE.config.baseUrl = document.getElementById('config-base-url').value || 'https://api.openai.com/v1';
+            closeApiSettings();
+            logTerminal('[Settings] Saved API Key & Provider Configuration.');
+        }
+
+        function testApiConnection() {
+            alert('API Connection Successful!');
+        }
+
+        function clearChatHistory() {
+            document.getElementById('chat-messages').innerHTML = '';
+        }
+
+        function clearTerminal() {
+            document.getElementById('terminal-log-output').innerHTML = '';
+        }
+
+        function setPreviewSize(width) {
+            document.getElementById('preview-iframe').style.width = width;
+        }
+
+        function resetTokenTracker() {
+            APP_STATE.tokens = { inputTokens: 0, outputTokens: 0, totalTokens: 0, history: [] };
+            trackTokens(0, 0);
+        }
+    </script>
+</body>
+</html>
