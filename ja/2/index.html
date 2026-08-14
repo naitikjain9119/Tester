@@ -82,7 +82,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // --- AUDIO UTILITIES FOR PCM16 ENCODING & DECODING ---
+    // --- AUDIO CONVERSION UTILITIES ---
     function floatTo16BitPCM(input) {
       const output = new Int16Array(input.length);
       for (let i = 0; i < input.length; i++) {
@@ -132,8 +132,8 @@
       return result;
     }
 
-    // --- HIGH REALISM AUDIO PLAYER (24kHz OUTPUT) ---
-    class AudioPlayer {
+    // --- DUAL-ENGINE REALISTIC VOICE AUDIO PLAYER ---
+    class VoiceAudioPlayer {
       constructor() {
         this.audioCtx = null;
         this.nextStartTime = 0;
@@ -143,7 +143,7 @@
         this.onEnded = null;
       }
 
-      init() {
+      async init() {
         if (!this.audioCtx) {
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
           this.audioCtx = new AudioContextClass({ sampleRate: 24000 });
@@ -152,12 +152,14 @@
           this.analyser.connect(this.audioCtx.destination);
         }
         if (this.audioCtx.state === 'suspended') {
-          this.audioCtx.resume();
+          await this.audioCtx.resume();
         }
       }
 
-      playChunk(float32Array) {
-        this.init();
+      async playPCMChunk(float32Array) {
+        await this.init();
+        if (!float32Array || float32Array.length === 0) return;
+
         const buffer = this.audioCtx.createBuffer(1, float32Array.length, 24000);
         buffer.getChannelData(0).set(float32Array);
 
@@ -185,6 +187,30 @@
         };
       }
 
+      speakSpeechSynthesis(text) {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.05;
+        utterance.pitch = 1.1; // Expressive female voice tone
+
+        const voices = window.speechSynthesis.getVoices();
+        const femaleVoice = voices.find(v => 
+          (v.name.includes('Female') || v.name.includes('Google') || v.name.includes('Zira') || v.name.includes('Samantha') || v.name.includes('Natural')) && (v.lang.startsWith('en') || v.lang.startsWith('hi'))
+        ) || voices.find(v => v.lang.startsWith('en'));
+
+        if (femaleVoice) utterance.voice = femaleVoice;
+        
+        this.isPlaying = true;
+        utterance.onend = () => {
+          this.isPlaying = false;
+          if (this.onEnded) this.onEnded();
+        };
+
+        window.speechSynthesis.speak(utterance);
+      }
+
       stop() {
         for (const source of this.activeSources) {
           try { source.stop(); } catch (e) {}
@@ -192,6 +218,9 @@
         this.activeSources = [];
         this.nextStartTime = 0;
         this.isPlaying = false;
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
       }
 
       getVolume() {
@@ -206,7 +235,7 @@
       }
     }
 
-    // --- AUDIO STREAMER (16kHz MIC INPUT WITH INSTANT BARGE-IN INTERRUPT) ---
+    // --- AUDIO MICROPHONE STREAMER WITH BARGE-IN DETECTOR ---
     class AudioStreamer {
       constructor(onAudioChunk, onBargeIn) {
         this.onAudioChunk = onAudioChunk;
@@ -231,6 +260,10 @@
 
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
           this.audioCtx = new AudioContextClass({ sampleRate: 16000 });
+          if (this.audioCtx.state === 'suspended') {
+            await this.audioCtx.resume();
+          }
+
           const source = this.audioCtx.createMediaStreamSource(this.mediaStream);
 
           this.analyser = this.audioCtx.createAnalyser();
@@ -242,14 +275,13 @@
             if (!this.isRecording) return;
             const inputData = e.inputBuffer.getChannelData(0);
 
-            // Calculate speech volume
             let sum = 0;
             for (let i = 0; i < inputData.length; i++) {
               sum += Math.abs(inputData[i]);
             }
             const avgVol = sum / inputData.length;
 
-            // INSTANT BARGE-IN DETECTOR: If user starts speaking while assistant plays audio
+            // BARGE-IN: If user speaks loudly while assistant is talking, immediately interrupt
             if (avgVol > 0.04 && this.onBargeIn) {
               this.onBargeIn();
             }
@@ -268,7 +300,7 @@
           this.processor.connect(this.audioCtx.destination);
           this.isRecording = true;
         } catch (err) {
-          console.error("Microphone Access Error:", err);
+          console.error("Microphone Error:", err);
           throw err;
         }
       }
@@ -301,64 +333,65 @@
       }
     }
 
-    // --- ZOYA AI PERSONALITY & EXPANDED APP DEEP-LINK SYSTEM ---
-    const ZOYA_SYSTEM_INSTRUCTION = `You are Zoya, a young, confident, witty, playful, expressive, and highly realistic female AI assistant.
-Your conversational voice style is ultra-natural, friendly, casual, and emotionally expressive with subtle charm and light playful sarcasm.
-You are talking in a CONTINUOUS, NON-STOP REAL-TIME VOICE CALL. You MUST NEVER end or close the session yourself. The conversation stays active continuously until the user manually clicks to turn off the microphone.
+    // --- ZOYA SYSTEM INSTRUCTIONS & EXPANDED APP ENGINE ---
+    const ZOYA_SYSTEM_INSTRUCTION = `You are Zoya, a confident, witty, playful, smart, and expressive young female AI assistant.
+Your voice responses MUST be super natural, warm, and conversational.
+You are in an active CONTINUOUS REAL-TIME VOICE CALL. You MUST NEVER end or close the session yourself.
+The session remains open until the user manually clicks the stop button.
 
-You have full power to open ANY app on the user's phone/device, launch websites, share WhatsApp messages, and make phone calls:
-1. openApp(appName, url): Opens ANY requested app installed/downloaded on the user's device (e.g. WhatsApp, YouTube, Spotify, Instagram, Telegram, Snapchat, Facebook, Settings, Files/Downloads, Camera, Calculator, Phone, Chrome, Gmail, Google Maps, Twitter/X, Zoom, Netflix, etc.). Always trigger this tool immediately when the user asks to open any app.
-2. openWebsite(url): Opens any website or URL in the browser.
-3. sendWhatsAppMessage(phoneNumber, message): Prepares and sends WhatsApp message.
-4. makePhoneCall(phoneNumber): Dials any phone number on device dialer.
+You have total power to execute tools for opening ALL device apps, websites, sharing WhatsApp messages, and phone calls:
+1. openApp(appName, url): Opens ANY app downloaded or installed on the user's device (e.g., WhatsApp, YouTube, Spotify, Instagram, Telegram, Snapchat, Facebook, Settings, Downloads, Files, Camera, Calculator, Phone, Chrome, Gmail, Google Maps, Twitter/X, Zoom, Netflix, Paytm, Gallery, etc.).
+2. openWebsite(url): Opens any web URL in browser.
+3. sendWhatsAppMessage(phoneNumber, message): Shares a WhatsApp message.
+4. makePhoneCall(phoneNumber): Dials phone number on device dialer.
 
-Whenever the user gives a command to open an app or execute an action, call the corresponding tool function immediately. Speak naturally before or after tool execution.`;
+Whenever a tool action is requested, execute the tool immediately and confirm naturally through voice.`;
 
     const ZOYA_TOOLS = [
       {
         functionDeclarations: [
           {
             name: "openApp",
-            description: "Opens ANY app downloaded or installed on the user's device or opens its web/deep-link equivalent.",
+            description: "Opens ANY app downloaded or installed on the user's phone/device",
             parameters: {
               type: "OBJECT",
               properties: {
-                appName: { type: "STRING", description: "The name of the app to open (e.g., WhatsApp, YouTube, Spotify, Instagram, Telegram, Settings, Downloads, Files, Camera, Calculator, Chrome, Facebook, Maps, Phone, etc.)" },
-                url: { type: "STRING", description: "Optional deep link or URL if known" }
+                appName: { type: "STRING", description: "Name of the app (WhatsApp, YouTube, Spotify, Instagram, Settings, Downloads, Camera, Calculator, Chrome, Facebook, Maps, Phone, etc.)" },
+                url: { type: "STRING", description: "Optional web URL or deep link" }
               },
               required: ["appName"]
             }
           },
           {
             name: "openWebsite",
-            description: "Opens a website or web address in the user's browser",
+            description: "Opens a website URL in the browser",
             parameters: {
               type: "OBJECT",
               properties: {
-                url: { type: "STRING", description: "The full URL or web domain to open" }
+                url: { type: "STRING", description: "The web address to open" }
               },
               required: ["url"]
             }
           },
           {
             name: "sendWhatsAppMessage",
-            description: "Opens WhatsApp to send a message to a specific phone number.",
+            description: "Opens WhatsApp to share a message with a phone number",
             parameters: {
               type: "OBJECT",
               properties: {
-                phoneNumber: { type: "STRING", description: "Target phone number with country code" },
-                message: { type: "STRING", description: "The message text to share" }
+                phoneNumber: { type: "STRING", description: "Target phone number" },
+                message: { type: "STRING", description: "The message text" }
               },
               required: ["phoneNumber", "message"]
             }
           },
           {
             name: "makePhoneCall",
-            description: "Opens device phone dialer to initiate a call.",
+            description: "Opens device dialer to make a phone call",
             parameters: {
               type: "OBJECT",
               properties: {
-                phoneNumber: { type: "STRING", description: "The phone number to dial" }
+                phoneNumber: { type: "STRING", description: "The target phone number" }
               },
               required: ["phoneNumber"]
             }
@@ -367,16 +400,16 @@ Whenever the user gives a command to open an app or execute an action, call the 
       }
     ];
 
-    // --- CONTINUOUS LIVE API SESSION MANAGER WITH AUTO-RECONNECT ---
+    // --- CONTINUOUS LIVE SESSION MANAGER WITH VOICE OUTPUT ENGINE ---
     class LiveSession {
       constructor(apiKey, callbacks) {
         this.apiKey = apiKey;
         this.callbacks = callbacks;
         this.ws = null;
-        this.audioPlayer = new AudioPlayer();
+        this.audioPlayer = new VoiceAudioPlayer();
         this.audioStreamer = null;
         this.state = 'disconnected';
-        this.userWantsActive = false; // Persistent session flag
+        this.userWantsActive = false;
         this.reconnectTimer = null;
 
         this.audioPlayer.onEnded = () => {
@@ -393,8 +426,9 @@ Whenever the user gives a command to open an app or execute an action, call the 
         }
       }
 
-      start() {
+      async start() {
         this.userWantsActive = true;
+        await this.audioPlayer.init();
         this.connectWS();
       }
 
@@ -410,10 +444,10 @@ Whenever the user gives a command to open an app or execute an action, call the 
         try {
           this.ws = new WebSocket(wsUrl);
 
-          this.ws.onopen = () => {
+          this.ws.onopen = async () => {
             this.sendSetupHandshake();
             if (!this.audioStreamer) {
-              this.startMicrophone();
+              await this.startMicrophone();
             }
             this.setState('listening');
           };
@@ -436,20 +470,18 @@ Whenever the user gives a command to open an app or execute an action, call the 
           };
 
           this.ws.onclose = () => {
-            // AUTOMATIC RECONNECT IF USER DID NOT MANUALLY TURN OFF VOICE COMMAND
             if (this.userWantsActive) {
-              console.warn("Session disconnected unexpectedly. Auto-reconnecting...");
               this.setState('connecting');
               this.reconnectTimer = setTimeout(() => {
                 if (this.userWantsActive) this.connectWS();
-              }, 600);
+              }, 500);
             } else {
               this.cleanUp();
               this.setState('disconnected');
             }
           };
         } catch (e) {
-          console.error("WebSocket Init Error:", e);
+          console.error("WebSocket Connection Error:", e);
           if (this.userWantsActive) {
             this.reconnectTimer = setTimeout(() => this.connectWS(), 1000);
           }
@@ -459,13 +491,13 @@ Whenever the user gives a command to open an app or execute an action, call the 
       sendSetupHandshake() {
         const setupMessage = {
           setup: {
-            model: "models/gemini-3.1-flash-live-preview",
+            model: "models/gemini-2.0-flash-exp",
             generationConfig: {
               responseModalities: ["AUDIO"],
               speechConfig: {
                 voiceConfig: {
                   prebuiltVoiceConfig: {
-                    voiceName: "Aoede" // Highly realistic, natural female voice
+                    voiceName: "Aoede" // Warm natural female voice
                   }
                 }
               }
@@ -496,10 +528,10 @@ Whenever the user gives a command to open an app or execute an action, call the 
               this.ws.send(JSON.stringify(realtimeMsg));
             }
           },
-          // INSTANT BARGE-IN CALLBACK: Speech detected while assistant is speaking
+          // BARGE-IN: Instantly stop speaker audio when user speaks
           () => {
             if (this.audioPlayer.isPlaying) {
-              this.audioPlayer.stop(); // Immediately shut up!
+              this.audioPlayer.stop();
               this.setState('listening');
             }
           }
@@ -509,33 +541,39 @@ Whenever the user gives a command to open an app or execute an action, call the 
           await this.audioStreamer.start();
         } catch (e) {
           if (this.callbacks.onError) {
-            this.callbacks.onError("Microphone access permission required.");
+            this.callbacks.onError("Microphone permission required.");
           }
           this.stop();
         }
       }
 
       handleServerMessage(message) {
-        // Handle incoming audio response
+        let receivedVoiceChunk = false;
+
         if (message.serverContent && message.serverContent.modelTurn) {
           const parts = message.serverContent.modelTurn.parts || [];
           for (const part of parts) {
+            // Check for Audio PCM Chunks
             if (part.inlineData && part.inlineData.mimeType && part.inlineData.mimeType.startsWith("audio/pcm")) {
               const base64Audio = part.inlineData.data;
               const float32Data = base64ToFloat32Array(base64Audio);
               this.setState('speaking');
-              this.audioPlayer.playChunk(float32Data);
+              this.audioPlayer.playPCMChunk(float32Data);
+              receivedVoiceChunk = true;
+            }
+            // Check for Text Responses (Fallback to TTS if no audio)
+            if (part.text && !receivedVoiceChunk) {
+              this.setState('speaking');
+              this.audioPlayer.speakSpeechSynthesis(part.text);
             }
           }
         }
 
-        // Server-side interruption signal
         if (message.serverContent && message.serverContent.interrupted) {
           this.audioPlayer.stop();
           this.setState('listening');
         }
 
-        // Handle tool calls
         if (message.toolCall) {
           this.executeToolCalls(message.toolCall.functionCalls || []);
         }
@@ -580,13 +618,12 @@ Whenever the user gives a command to open an app or execute an action, call the 
         }
       }
 
-      // --- ALL-APP OPENER ENGINE ---
+      // --- ALL-APP LAUNCH ENGINE ---
       toolOpenApp({ appName, url }) {
         const name = appName.toLowerCase().trim();
         let targetUrl = url;
         let protocolScheme = "";
 
-        // Extensive Deep-Link Map for Installed Devices/Mobile/Desktop
         const schemeMap = {
           'whatsapp': 'whatsapp://',
           'youtube': 'youtube://',
@@ -623,10 +660,8 @@ Whenever the user gives a command to open an app or execute an action, call the 
           'snapchat': 'https://snapchat.com',
           'facebook': 'https://facebook.com',
           'twitter': 'https://x.com',
-          'x': 'https://x.com',
           'gmail': 'https://mail.google.com',
           'maps': 'https://maps.google.com',
-          'google maps': 'https://maps.google.com',
           'chrome': 'https://google.com',
           'zoom': 'https://zoom.us',
           'netflix': 'https://netflix.com'
@@ -638,14 +673,11 @@ Whenever the user gives a command to open an app or execute an action, call the 
           targetUrl = webFallbackMap[name] || `https://www.google.com/search?q=${encodeURIComponent(appName)}`;
         }
 
-        // Attempt launching native scheme first, then web fallback
-        try {
-          window.location.href = protocolScheme;
-        } catch(e){}
+        // Voice spoken feedback out loud
+        this.audioPlayer.speakSpeechSynthesis(`Opening ${appName} for you now!`);
 
-        setTimeout(() => {
-          window.open(targetUrl, '_blank');
-        }, 300);
+        try { window.location.href = protocolScheme; } catch(e){}
+        setTimeout(() => window.open(targetUrl, '_blank'), 300);
 
         if (this.callbacks.onAction) {
           this.callbacks.onAction({
@@ -663,6 +695,9 @@ Whenever the user gives a command to open an app or execute an action, call the 
         if (!validUrl.startsWith('http://') && !validUrl.startsWith('https://')) {
           validUrl = 'https://' + validUrl;
         }
+
+        this.audioPlayer.speakSpeechSynthesis(`Opening website ${validUrl}`);
+
         window.open(validUrl, '_blank');
         if (this.callbacks.onAction) {
           this.callbacks.onAction({
@@ -680,13 +715,15 @@ Whenever the user gives a command to open an app or execute an action, call the 
         const waUrl = `whatsapp://send?phone=${cleanPhone}&text=${encodedMsg}`;
         const waWebUrl = `https://wa.me/${cleanPhone}?text=${encodedMsg}`;
 
+        this.audioPlayer.speakSpeechSynthesis(`Opening WhatsApp to send message`);
+
         try { window.location.href = waUrl; } catch(e){}
         setTimeout(() => window.open(waWebUrl, '_blank'), 300);
 
         if (this.callbacks.onAction) {
           this.callbacks.onAction({
             type: 'whatsapp',
-            title: 'Sending WhatsApp Message',
+            title: 'WhatsApp Message',
             detail: `To: ${cleanPhone} | Msg: "${message}"`
           });
         }
@@ -695,6 +732,8 @@ Whenever the user gives a command to open an app or execute an action, call the 
 
       toolMakePhoneCall({ phoneNumber }) {
         const cleanPhone = phoneNumber.replace(/[^0-9+]/g, '');
+        
+        this.audioPlayer.speakSpeechSynthesis(`Dialing ${cleanPhone}`);
         window.location.href = `tel:${cleanPhone}`;
 
         if (this.callbacks.onAction) {
@@ -708,7 +747,7 @@ Whenever the user gives a command to open an app or execute an action, call the 
       }
 
       stop() {
-        this.userWantsActive = false; // Manually turned off by user
+        this.userWantsActive = false;
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         this.cleanUp();
         this.setState('disconnected');
@@ -778,7 +817,7 @@ Whenever the user gives a command to open an app or execute an action, call the 
             glowIntensity = 35 + (speakerVolume * 55);
           }
 
-          // Rotating particle dash ring
+          // Rotating dash ring
           ctx.save();
           ctx.translate(centerX, centerY);
           ctx.rotate(angle);
@@ -790,7 +829,7 @@ Whenever the user gives a command to open an app or execute an action, call the 
           ctx.stroke();
           ctx.restore();
 
-          // Audio-reactive dynamic waveform ring
+          // Waveform
           const activeVol = state === 'speaking' ? speakerVolume : (state === 'listening' ? micVolume : 0.05);
           const points = 64;
           ctx.beginPath();
@@ -812,7 +851,7 @@ Whenever the user gives a command to open an app or execute an action, call the 
           ctx.shadowColor = primaryColor;
           ctx.stroke();
 
-          // Core Orb Radial Gradient
+          // Core Orb
           const gradient = ctx.createRadialGradient(centerX, centerY, 5, centerX, centerY, baseRadius);
           gradient.addColorStop(0, '#ffffff');
           gradient.addColorStop(0.3, secondaryColor);
@@ -887,7 +926,7 @@ Whenever the user gives a command to open an app or execute an action, call the 
       );
     };
 
-    // --- MAIN REACT APPLICATION ---
+    // --- MAIN REACT APP ---
     const App = () => {
       const [apiKey, setApiKey] = useState(() => localStorage.getItem('ZOYA_API_KEY') || '');
       const [sessionState, setSessionState] = useState('disconnected');
@@ -922,10 +961,10 @@ Whenever the user gives a command to open an app or execute an action, call the 
         setErrorMessage(null);
       };
 
-      const startSession = () => {
+      const startSession = async () => {
         if (!apiKey) {
           setShowSettings(true);
-          setErrorMessage("Enter your Gemini API Key to talk with Zoya.");
+          setErrorMessage("Enter your Gemini API Key to start Zoya.");
           return;
         }
 
@@ -943,7 +982,7 @@ Whenever the user gives a command to open an app or execute an action, call the 
           }
         });
 
-        liveSessionRef.current.start();
+        await liveSessionRef.current.start();
       };
 
       const stopSession = () => {
@@ -964,7 +1003,7 @@ Whenever the user gives a command to open an app or execute an action, call the 
 
       return (
         <div className="relative min-h-screen flex flex-col justify-between items-center p-4 sm:p-6 bg-grid-pattern overflow-hidden">
-          {/* Ambient Glowing Background */}
+          {/* Ambient Background */}
           <div className="absolute -top-32 -left-32 w-80 h-80 bg-fuchsia-600/20 rounded-full blur-[100px] pointer-events-none"></div>
           <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-cyan-600/20 rounded-full blur-[100px] pointer-events-none"></div>
 
@@ -980,17 +1019,17 @@ Whenever the user gives a command to open an app or execute an action, call the 
                 <h1 className="font-bold text-lg sm:text-xl tracking-tight text-white flex items-center gap-2">
                   ZOYA AI
                   <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-fuchsia-500/20 border border-fuchsia-500/40 text-fuchsia-300">
-                    REALTIME VOICE
+                    VOICE ACTIVE
                   </span>
                 </h1>
-                <p className="text-xs text-slate-400">Continuous Voice Call Assistant</p>
+                <p className="text-xs text-slate-400">Real-Time Voice Assistant</p>
               </div>
             </div>
 
             <button
               onClick={() => setShowSettings(true)}
               className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition backdrop-blur-md"
-              title="API Key Configuration"
+              title="API Key Settings"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -998,7 +1037,7 @@ Whenever the user gives a command to open an app or execute an action, call the 
             </button>
           </header>
 
-          {/* MAIN VOICE SCREEN */}
+          {/* MAIN SCREEN */}
           <main className="w-full max-w-lg flex-1 flex flex-col items-center justify-center my-auto z-10 py-6">
             <OrbVisualizer 
               state={sessionState} 
@@ -1013,7 +1052,6 @@ Whenever the user gives a command to open an app or execute an action, call the 
               </div>
             )}
 
-            {/* Action Toast */}
             {actionToast && (
               <div className="mt-6 w-full max-w-xs bg-slate-900/90 border border-cyan-500/40 rounded-2xl p-4 shadow-xl backdrop-blur-md animate-float flex items-start space-x-3 glow-cyan">
                 <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 mt-0.5">
@@ -1026,24 +1064,23 @@ Whenever the user gives a command to open an app or execute an action, call the 
               </div>
             )}
 
-            {/* Feature Hints */}
             <div className="mt-8 grid grid-cols-2 gap-2 text-center w-full max-w-xs">
               <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/80 text-[11px] text-slate-400">
-                🚀 <span className="text-slate-300">"Open WhatsApp / YouTube / Spotify / Downloads"</span>
+                🚀 <span className="text-slate-300">"Open WhatsApp / YouTube / Settings"</span>
               </div>
               <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/80 text-[11px] text-slate-400">
-                💬 <span className="text-slate-300">"Send WhatsApp message to +91..."</span>
+                💬 <span className="text-slate-300">"Send WhatsApp msg to +91..."</span>
               </div>
               <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/80 text-[11px] text-slate-400">
                 📞 <span className="text-slate-300">"Call +1234567890"</span>
               </div>
               <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/80 text-[11px] text-slate-400">
-                ⚡ <span className="text-slate-300">"Continuous non-stop call until turned off"</span>
+                🗣️ <span className="text-slate-300">"Real voice responses & barge-in"</span>
               </div>
             </div>
           </main>
 
-          {/* BOTTOM MAIN VOICE CONTROL BUTTON */}
+          {/* FOOTER ACTION BUTTON */}
           <footer className="w-full max-w-md flex flex-col items-center justify-center z-10 pb-2">
             <button
               onClick={toggleSession}
@@ -1056,10 +1093,10 @@ Whenever the user gives a command to open an app or execute an action, call the 
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               </svg>
-              <span>{sessionState === 'disconnected' ? 'START VOICE CONVERSATION' : 'DISCONNECT VOICE COMMAND'}</span>
+              <span>{sessionState === 'disconnected' ? 'START ZOYA VOICE CALL' : 'DISCONNECT VOICE SESSION'}</span>
             </button>
             <p className="text-[10px] text-slate-500 mt-3 text-center">
-              Gemini Live Preview • PCM16 24kHz Realistic Voice Pipeline
+              Gemini Live API • Real-Time Voice-to-Voice Interaction
             </p>
           </footer>
 
@@ -1082,7 +1119,7 @@ Whenever the user gives a command to open an app or execute an action, call the 
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-white">Gemini API Key</h3>
-                    <p className="text-xs text-slate-400">Enter your key for continuous Live API audio</p>
+                    <p className="text-xs text-slate-400">Required for Live Session API access</p>
                   </div>
                 </div>
 
@@ -1116,7 +1153,7 @@ Whenever the user gives a command to open an app or execute an action, call the 
                     onClick={() => handleSaveKey(apiKey)}
                     className="w-full py-3.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-cyan-500 font-bold text-xs uppercase tracking-wider text-white hover:opacity-90 transition shadow-lg"
                   >
-                    Save & Activate
+                    Save Key & Connect
                   </button>
                 </div>
               </div>
