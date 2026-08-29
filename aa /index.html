@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Generator — Google AI Studio & Gemini</title>
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: #0a0d14;
+            --bg-surface: #111726;
+            --bg-surface-elevated: #182238;
+            --bg-card: rgba(22, 31, 52, 0.75);
+            --bg-input: #0d1322;
+            
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-focus: rgba(99, 102, 241, 0.5);
+            --border-highlight: rgba(139, 92, 246, 0.3);
+
+            --accent-primary: #6366f1;
+            --accent-secondary: #8b5cf6;
+            --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+            --accent-gradient-hover: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #c026d3 100%);
+
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+            --radius-full: 9999px;
+
+            --shadow-subtle: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --shadow-elevated: 0 12px 35px rgba(0, 0, 0, 0.5);
+            --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.15), transparent 45%),
+                radial-gradient(circle at 85% 90%, rgba(217, 70, 239, 0.12), transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.8), rgba(10, 13, 20, 1));
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.5;
+        }
+
+        /* App Container */
+        .app-wrapper {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 1.5rem 1.25rem 3rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            gap: 1.75rem;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            background: var(--accent-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .brand-icon svg {
+            width: 24px;
+            height: 24px;
+            color: #ffffff;
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 40%, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-text p {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: var(--radius-full);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        .badge.active {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+
+        .badge .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Layout Grid */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 460px 1fr;
+            gap: 1.75rem;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Glass Cards */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-subtle);
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            position: relative;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            letter-spacing: -0.01em;
+        }
+
+        .card-title svg {
+            width: 18px;
+            height: 18px;
+            color: var(--accent-secondary);
+        }
+
+        /* Inputs & Form Controls */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem;
+            font-family: inherit;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: var(--transition);
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            background: #0f172a;
+        }
+
+        .input-with-actions {
+            padding-right: 5rem;
+        }
+
+        .input-actions-inside {
+            position: absolute;
+            right: 0.5rem;
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        /* Custom Textarea */
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            line-height: 1.5;
+        }
+
+        .textarea-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .prompt-tools {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Preset Chips */
+        .preset-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .preset-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .chip {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 0.3rem 0.65rem;
+            font-size: 0.75rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .chip:hover {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: rgba(99, 102, 241, 0.4);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            user-select: none;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-gradient-hover);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            padding: 0.4rem 0.6rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .btn-ghost:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.75rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .btn-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 0.75rem;
+        }
+
+        /* Config Grid */
+        .config-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.875rem;
+        }
+
+        .aspect-ratio-buttons {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.375rem;
+        }
+
+        .ar-btn {
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 0.45rem 0.2rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .ar-btn.active, .ar-btn:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--accent-primary);
+            color: #ffffff;
+        }
+
+        /* Notice Box */
+        .notice-box {
+            padding: 0.75rem;
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: var(--radius-md);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .notice-box svg {
+            width: 18px;
+            height: 18px;
+            color: var(--info);
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        /* Image Display Area */
+        .display-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .preview-card {
+            min-height: 520px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preview-viewport {
+            width: 100%;
+            height: 100%;
+            min-height: 440px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border-radius: var(--radius-md);
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px dashed var(--border-subtle);
+            overflow: hidden;
+        }
+
+        .preview-viewport.has-image {
+            border: 1px solid var(--border-subtle);
+            background: #000000;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 1rem;
+            padding: 2rem;
+            max-width: 360px;
+        }
+
+        .empty-state-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .empty-state h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .empty-state p {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        /* Rendered Image */
+        .generated-image-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .generated-img {
+            max-width: 100%;
+            max-height: 600px;
+            object-fit: contain;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-elevated);
+            animation: fadeIn 0.4s ease-out;
+            cursor: zoom-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Loading Spinner Overlay */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 13, 20, 0.85);
+            backdrop-filter: blur(8px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.25rem;
+            z-index: 10;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner-ring {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(99, 102, 241, 0.2);
+            border-top: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            letter-spacing: 0.02em;
+        }
+
+        .loading-subtext {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Action Toolbar */
+        .action-toolbar {
+            display: none;
+            width: 100%;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border-subtle);
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .action-toolbar.visible {
+            display: flex;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Modify Section Accordion */
+        .modify-panel {
+            display: none;
+            flex-direction: column;
+            gap: 0.875rem;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-focus);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            margin-top: 0.5rem;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .modify-panel.active {
+            display: flex;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* History Gallery */
+        .history-card {
+            padding: 1.25rem;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 0.875rem;
+            max-height: 250px;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        /* Custom Scrollbar */
+        .history-grid::-webkit-scrollbar,
+        textarea::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .history-grid::-webkit-scrollbar-thumb,
+        textarea::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+        }
+
+        .history-item {
+            aspect-ratio: 1 / 1;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: var(--transition);
+            background: #000;
+        }
+
+        .history-item:hover {
+            transform: scale(1.03);
+            border-color: var(--accent-secondary);
+        }
+
+        .history-item.selected {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+        }
+
+        .history-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .history-item-badge {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffffff;
+            font-size: 0.65rem;
+            padding: 2px 5px;
+            border-radius: 4px;
+            backdrop-filter: blur(4px);
+        }
+
+        .history-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            padding: 1.5rem 0;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.625rem;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .toast {
+            pointer-events: auto;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 0.75rem 1.125rem;
+            border-radius: var(--radius-md);
+            font-size: 0.8125rem;
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            box-shadow: var(--shadow-elevated);
+            animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: 380px;
+        }
+
+        .toast.success { border-color: rgba(16, 185, 129, 0.4); }
+        .toast.error { border-color: rgba(239, 68, 68, 0.4); }
+        .toast.warning { border-color: rgba(245, 158, 11, 0.4); }
+
+        .toast-icon {
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+        }
+
+        .toast.success .toast-icon { color: var(--success); }
+        .toast.error .toast-icon { color: var(--danger); }
+        .toast.warning .toast-icon { color: var(--warning); }
+        .toast.info .toast-icon { color: var(--info); }
+
+        @keyframes toastSlideIn {
+            from { opacity: 0; transform: translateY(12px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Modal Lightbox */
+        .lightbox-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.92);
+            backdrop-filter: blur(12px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            padding: 2rem;
+        }
+
+        .lightbox-modal.active {
+            display: flex;
+        }
+
+        .lightbox-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+        }
+
+        .lightbox-content img {
+            max-width: 100%;
+            max-height: 85vh;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-elevated);
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: auto;
+            text-align: center;
+            padding: 1.5rem 0 0;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+        footer a:hover {
+            color: var(--accent-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toast Notification Hub -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Lightbox Preview Modal -->
+    <div class="lightbox-modal" id="lightboxModal" onclick="closeLightbox(event)">
+        <div class="lightbox-content">
+            <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+            <img id="lightboxImg" src="" alt="Fullscreen Preview">
+        </div>
+    </div>
+
+    <!-- Main Web App -->
+    <div class="app-wrapper">
+        
+        <!-- Header -->
+        <header>
+            <div class="brand">
+                <div class="brand-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>AI Image Generator</h1>
+                    <p>Create images from your ideas using Google Imagen & Gemini</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="badge" id="apiStatusBadge">
+                    <span class="dot"></span>
+                    <span id="apiStatusText">API Key Required</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="main-layout">
+            
+            <!-- Left Column: Controls & Configuration -->
+            <section class="card">
+                
+                <!-- API Key Section -->
+                <div class="form-group">
+                    <label for="apiKeyInput">
+                        <span>Google AI Studio API Key</span>
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: var(--accent-primary); font-size: 0.75rem; text-decoration: none;">Get Key ↗</a>
+                    </label>
+                    <div class="input-group">
+                        <input 
+                            type="password" 
+                            id="apiKeyInput" 
+                            class="input-with-actions" 
+                            placeholder="Enter your API key (AIzaSy...)" 
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                        <div class="input-actions-inside">
+                            <button type="button" class="btn btn-ghost btn-sm" id="toggleApiKeyBtn" title="Show / Hide API Key">
+                                <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" id="clearApiKeyBtn" title="Clear saved key">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prompt Input Section -->
+                <div class="form-group">
+                    <label for="promptInput">
+                        <span>Image Prompt</span>
+                        <span class="prompt-tools">
+                            <button type="button" class="btn btn-ghost btn-sm" id="enhancePromptBtn" title="Optimize and enrich prompt with AI">
+                                ✨ Enhance Prompt
+                            </button>
+                        </span>
+                    </label>
+                    <textarea 
+                        id="promptInput" 
+                        placeholder="A cinematic futuristic city at night, neon lights, rain reflections, highly detailed, photorealistic, 8k resolution..."
+                        maxlength="1000"
+                    ></textarea>
+                    <div class="textarea-footer">
+                        <span>Press <kbd style="background: rgba(255,255,255,0.08); padding: 2px 4px; border-radius: 4px; font-family: 'JetBrains Mono', monospace;">Ctrl+Enter</kbd> to generate</span>
+                        <span id="charCounter">0 / 1000</span>
+                    </div>
+                </div>
+
+                <!-- Style Presets -->
+                <div class="preset-container">
+                    <label><span>Style Presets</span></label>
+                    <div class="preset-chips">
+                        <button type="button" class="chip" data-style="Photorealistic, 8k resolution, natural lighting, high dynamic range, masterpiece">Photorealistic</button>
+                        <button type="button" class="chip" data-style="Cinematic composition, dramatic atmospheric lighting, 35mm lens, movie still, high detail">Cinematic</button>
+                        <button type="button" class="chip" data-style="Vibrant anime aesthetic, Makoto Shinkai style, crisp lineart, lush colorful background">Anime</button>
+                        <button type="button" class="chip" data-style="3D Render, Octane render, raytracing, Pixar Disney style, smooth textures">3D Render</button>
+                        <button type="button" class="chip" data-style="Digital concept art, fantasy illustration, trending on ArtStation, ethereal glow">Digital Art</button>
+                        <button type="button" class="chip" data-style="Studio product photography, clean minimalist studio background, softbox lighting">Product Photo</button>
+                        <button type="button" class="chip" data-style="Epic fantasy realm, mystical aura, magical particles, ornate environment">Fantasy</button>
+                        <button type="button" class="chip" data-style="Cyberpunk style, neon city palette, holographic reflections, dark rain">Cyberpunk</button>
+                    </div>
+                </div>
+
+                <!-- Generation Settings -->
+                <div class="config-grid">
+                    <div class="form-group">
+                        <label for="modelSelect">AI Model</label>
+                        <select id="modelSelect">
+                            <option value="imagen-3.0-generate-002" selected>Imagen 3 (Standard)</option>
+                            <option value="imagen-3.0-fast-generate-001">Imagen 3 (Fast)</option>
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="formatSelect">Output Format</label>
+                        <select id="formatSelect">
+                            <option value="image/png" selected>PNG (Lossless)</option>
+                            <option value="image/jpeg">JPEG (Compact)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Aspect Ratio</label>
+                    <div class="aspect-ratio-buttons" id="aspectRatioGroup">
+                        <button type="button" class="ar-btn active" data-ar="1:1">1:1</button>
+                        <button type="button" class="ar-btn" data-ar="16:9">16:9</button>
+                        <button type="button" class="ar-btn" data-ar="9:16">9:16</button>
+                        <button type="button" class="ar-btn" data-ar="4:3">4:3</button>
+                        <button type="button" class="ar-btn" data-ar="3:4">3:4</button>
+                    </div>
+                </div>
+
+                <!-- Primary Controls -->
+                <div class="btn-row">
+                    <button type="button" class="btn btn-primary" id="generateBtn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/></svg>
+                        <span id="generateBtnText">Generate Image</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="resetBtn" title="Reset current session and prompt">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        Reset
+                    </button>
+                </div>
+
+                <!-- Security & Privacy Disclaimer Notice -->
+                <div class="notice-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    <span><strong>Privacy & Security:</strong> Your API key is executed directly from your browser to Google AI Studio REST endpoints and is never transmitted to any third-party server.</span>
+                </div>
+
+            </section>
+
+            <!-- Right Column: Image Preview & Workspace History -->
+            <section class="display-column">
+                
+                <!-- Main Preview Card -->
+                <div class="card preview-card">
+                    <div class="card-header" style="width: 100%;">
+                        <span class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            Image Preview
+                        </span>
+                        <span id="previewMeta" style="font-size: 0.75rem; color: var(--text-muted);">No image generated yet</span>
+                    </div>
+
+                    <div class="preview-viewport" id="previewViewport">
+                        
+                        <!-- Empty State -->
+                        <div class="empty-state" id="emptyState">
+                            <div class="empty-state-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            </div>
+                            <h3>Your generated image will appear here</h3>
+                            <p>Enter your Google AI Studio API key, specify your prompt, and click Generate.</p>
+                        </div>
+
+                        <!-- Active Image Container -->
+                        <div class="generated-image-container" id="imageContainer" style="display: none;">
+                            <img id="mainGeneratedImage" class="generated-img" src="" alt="AI Generated Output" title="Click to view full size">
+                        </div>
+
+                        <!-- Loading State Spinner -->
+                        <div class="loading-overlay" id="loadingOverlay">
+                            <div class="spinner-ring"></div>
+                            <div class="loading-text" id="loadingMessage">Synthesizing image with Imagen 3...</div>
+                            <div class="loading-subtext">Communicating directly with Google Generative AI endpoints</div>
+                        </div>
+
+                    </div>
+
+                    <!-- Action Toolbar -->
+                    <div class="action-toolbar" id="actionToolbar">
+                        <div class="toolbar-group">
+                            <button type="button" class="btn btn-secondary btn-sm" id="downloadBtn">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Download
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="copyBtn">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                Copy Image
+                            </button>
+                        </div>
+
+                        <div class="toolbar-group">
+                            <button type="button" class="btn btn-secondary btn-sm" id="toggleModifyBtn">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                Modify Image
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" id="expandBtn" title="View Fullscreen">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Modify Drawer -->
+                    <div class="modify-panel" id="modifyPanel">
+                        <label for="modifyInput">
+                            <span>What would you like to change?</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="modifyInput" 
+                            placeholder="e.g., Change the sky to a vibrant sunset and add glowing floating lantern lights"
+                        >
+                        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                            <button type="button" class="btn btn-ghost btn-sm" id="cancelModifyBtn">Cancel</button>
+                            <button type="button" class="btn btn-primary btn-sm" id="executeModifyBtn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+                                Generate Modification
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Session History -->
+                <div class="card history-card">
+                    <div class="history-header">
+                        <span class="card-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            Session History (<span id="historyCount">0</span>)
+                        </span>
+                        <button type="button" class="btn btn-ghost btn-sm" id="clearHistoryBtn" title="Clear session gallery">
+                            Clear Gallery
+                        </button>
+                    </div>
+                    <div class="history-grid" id="historyGrid">
+                        <div class="history-empty" id="historyEmpty">No images created in this session yet.</div>
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <p>Direct Google Generative AI REST Client • Built for high fidelity image synthesis • Client-side sandboxed execution</p>
+        </footer>
+
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        /**
+         * AI Image Generator Client
+         * Single-file Google AI Studio / Gemini REST API integration
+         */
+
+        // --- 1. CONFIGURATION & CONSTANTS ---
+        const CONFIG = {
+            API_BASE_URL: 'https://generativelanguage.googleapis.com/v1beta',
+            STORAGE_KEY_API: 'gemini_img_api_key_v1',
+            DEFAULT_MODEL: 'imagen-3.0-generate-002',
+            DEFAULT_AR: '1:1',
+            DEFAULT_MIME: 'image/png',
+            MAX_RETRIES: 1
+        };
+
+        // --- 2. APPLICATION STATE ---
+        const state = {
+            apiKey: '',
+            currentPrompt: '',
+            selectedModel: CONFIG.DEFAULT_MODEL,
+            selectedAR: CONFIG.DEFAULT_AR,
+            selectedMime: CONFIG.DEFAULT_MIME,
+            isLoading: false,
+            currentImage: null, // { dataUrl, mimeType, prompt, model, aspectRatio, timestamp }
+            history: []
+        };
+
+        // --- 3. DOM REFERENCES ---
+        const DOM = {
+            // API Key
+            apiKeyInput: document.getElementById('apiKeyInput'),
+            toggleApiKeyBtn: document.getElementById('toggleApiKeyBtn'),
+            clearApiKeyBtn: document.getElementById('clearApiKeyBtn'),
+            apiStatusBadge: document.getElementById('apiStatusBadge'),
+            apiStatusText: document.getElementById('apiStatusText'),
+            eyeIcon: document.getElementById('eyeIcon'),
+
+            // Prompt & Presets
+            promptInput: document.getElementById('promptInput'),
+            charCounter: document.getElementById('charCounter'),
+            enhancePromptBtn: document.getElementById('enhancePromptBtn'),
+            presetChips: document.querySelectorAll('.chip'),
+
+            // Config Selectors
+            modelSelect: document.getElementById('modelSelect'),
+            formatSelect: document.getElementById('formatSelect'),
+            arButtons: document.querySelectorAll('.ar-btn'),
+
+            // Action Buttons
+            generateBtn: document.getElementById('generateBtn'),
+            generateBtnText: document.getElementById('generateBtnText'),
+            resetBtn: document.getElementById('resetBtn'),
+
+            // Preview & Viewport
+            previewViewport: document.getElementById('previewViewport'),
+            emptyState: document.getElementById('emptyState'),
+            imageContainer: document.getElementById('imageContainer'),
+            mainGeneratedImage: document.getElementById('mainGeneratedImage'),
+            previewMeta: document.getElementById('previewMeta'),
+            loadingOverlay: document.getElementById('loadingOverlay'),
+            loadingMessage: document.getElementById('loadingMessage'),
+
+            // Toolbar
+            actionToolbar: document.getElementById('actionToolbar'),
+            downloadBtn: document.getElementById('downloadBtn'),
+            copyBtn: document.getElementById('copyBtn'),
+            toggleModifyBtn: document.getElementById('toggleModifyBtn'),
+            expandBtn: document.getElementById('expandBtn'),
+
+            // Modify Drawer
+            modifyPanel: document.getElementById('modifyPanel'),
+            modifyInput: document.getElementById('modifyInput'),
+            executeModifyBtn: document.getElementById('executeModifyBtn'),
+            cancelModifyBtn: document.getElementById('cancelModifyBtn'),
+
+            // History
+            historyGrid: document.getElementById('historyGrid'),
+            historyEmpty: document.getElementById('historyEmpty'),
+            historyCount: document.getElementById('historyCount'),
+            clearHistoryBtn: document.getElementById('clearHistoryBtn'),
+
+            // Lightbox & Toast
+            lightboxModal: document.getElementById('lightboxModal'),
+            lightboxImg: document.getElementById('lightboxImg'),
+            toastContainer: document.getElementById('toastContainer')
+        };
+
+        // --- 4. INITIALIZATION ---
+        function initApp() {
+            loadSavedApiKey();
+            setupEventListeners();
+            updateCharCount();
+            updateApiStatusBadge();
+        }
+
+        // --- 5. EVENT LISTENERS ---
+        function setupEventListeners() {
+            // API Key management
+            DOM.apiKeyInput.addEventListener('input', (e) => {
+                state.apiKey = e.target.value.trim();
+                saveApiKey(state.apiKey);
+                updateApiStatusBadge();
+            });
+
+            DOM.toggleApiKeyBtn.addEventListener('click', toggleApiKeyVisibility);
+            DOM.clearApiKeyBtn.addEventListener('click', clearApiKey);
+
+            // Prompt events
+            DOM.promptInput.addEventListener('input', () => {
+                updateCharCount();
+            });
+
+            DOM.promptInput.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!state.isLoading) startGenerationFlow();
+                }
+            });
+
+            DOM.enhancePromptBtn.addEventListener('click', enhancePromptWithAI);
+
+            // Preset Style Chips
+            DOM.presetChips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const style = chip.getAttribute('data-style');
+                    applyPromptPreset(style);
+                });
+            });
+
+            // Settings
+            DOM.modelSelect.addEventListener('change', (e) => {
+                state.selectedModel = e.target.value;
+            });
+
+            DOM.formatSelect.addEventListener('change', (e) => {
+                state.selectedMime = e.target.value;
+            });
+
+            DOM.arButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    DOM.arButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.selectedAR = btn.getAttribute('data-ar');
+                });
+            });
+
+            // Action triggers
+            DOM.generateBtn.addEventListener('click', startGenerationFlow);
+            DOM.resetBtn.addEventListener('click', resetSession);
+
+            // Toolbar items
+            DOM.downloadBtn.addEventListener('click', downloadCurrentPhoto);
+            DOM.copyBtn.addEventListener('click', copyPhotoToClipboard);
+            DOM.toggleModifyBtn.addEventListener('click', toggleModifyPanel);
+            DOM.expandBtn.addEventListener('click', openLightbox);
+            DOM.mainGeneratedImage.addEventListener('click', openLightbox);
+
+            // Modify Panel
+            DOM.cancelModifyBtn.addEventListener('click', () => {
+                DOM.modifyPanel.classList.remove('active');
+                DOM.modifyInput.value = '';
+            });
+
+            DOM.executeModifyBtn.addEventListener('click', executeImageModification);
+
+            DOM.modifyInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    executeImageModification();
+                }
+            });
+
+            // History Clear
+            DOM.clearHistoryBtn.addEventListener('click', clearSessionHistory);
+        }
+
+        // --- 6. API KEY MANAGEMENT ---
+        function loadSavedApiKey() {
+            const saved = localStorage.getItem(CONFIG.STORAGE_KEY_API);
+            if (saved) {
+                state.apiKey = saved;
+                DOM.apiKeyInput.value = saved;
+            }
+        }
+
+        function saveApiKey(key) {
+            if (key) {
+                localStorage.setItem(CONFIG.STORAGE_KEY_API, key);
+            } else {
+                localStorage.removeItem(CONFIG.STORAGE_KEY_API);
+            }
+        }
+
+        function clearApiKey() {
+            state.apiKey = '';
+            DOM.apiKeyInput.value = '';
+            localStorage.removeItem(CONFIG.STORAGE_KEY_API);
+            updateApiStatusBadge();
+            showToast('API Key cleared from browser storage', 'info');
+        }
+
+        function toggleApiKeyVisibility() {
+            const isPassword = DOM.apiKeyInput.type === 'password';
+            DOM.apiKeyInput.type = isPassword ? 'text' : 'password';
+            DOM.eyeIcon.innerHTML = isPassword
+                ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+                : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+        }
+
+        function updateApiStatusBadge() {
+            if (state.apiKey && state.apiKey.length > 10) {
+                DOM.apiStatusBadge.className = 'badge active';
+                DOM.apiStatusText.textContent = 'API Key Configured';
+            } else {
+                DOM.apiStatusBadge.className = 'badge';
+                DOM.apiStatusText.textContent = 'API Key Required';
+            }
+        }
+
+        // --- 7. INPUT HELPERS ---
+        function updateCharCount() {
+            const len = DOM.promptInput.value.length;
+            DOM.charCounter.textContent = `${len} / 1000`;
+        }
+
+        function applyPromptPreset(styleTag) {
+            const current = DOM.promptInput.value.trim();
+            if (!current) {
+                DOM.promptInput.value = styleTag;
+            } else if (!current.toLowerCase().includes(styleTag.toLowerCase())) {
+                DOM.promptInput.value = `${current}, ${styleTag}`;
+            }
+            updateCharCount();
+            DOM.promptInput.focus();
+            showToast('Style preset appended to prompt', 'info');
+        }
+
+        // --- 8. PROMPT ENHANCEMENT ---
+        async function enhancePromptWithAI() {
+            const prompt = DOM.promptInput.value.trim();
+            if (!prompt) {
+                showToast('Please write a basic idea first to enhance it.', 'warning');
+                DOM.promptInput.focus();
+                return;
+            }
+
+            if (!state.apiKey) {
+                showToast('Please enter your Google AI Studio API key to enable AI prompt enhancement.', 'warning');
+                return;
+            }
+
+            const originalBtnHtml = DOM.enhancePromptBtn.innerHTML;
+            DOM.enhancePromptBtn.disabled = true;
+            DOM.enhancePromptBtn.innerHTML = '✨ Enhancing...';
+
+            try {
+                // Call Gemini Flash to expand prompt
+                const endpoint = `${CONFIG.API_BASE_URL}/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(state.apiKey)}`;
+                const payload = {
+                    contents: [{
+                        parts: [{
+                            text: `You are an expert AI prompt engineer. Rewrite and expand this short image prompt into a rich, descriptive, high-quality prompt for Imagen 3. Include visual details, lighting, mood, camera style, and composition. Respond ONLY with the revised prompt text without explanations or quotation marks.\n\nIdea: "${prompt}"`
+                        }]
+                    }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 300
+                    }
+                };
+
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    throw new Error(`Gemini enhancement failed with status ${res.status}`);
+                }
+
+                const data = await res.json();
+                const enhancedText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+                if (enhancedText) {
+                    DOM.promptInput.value = enhancedText;
+                    updateCharCount();
+                    showToast('Prompt enhanced successfully! ✨', 'success');
+                } else {
+                    throw new Error('No enhancement output received.');
+                }
+
+            } catch (err) {
+                console.error('Enhancement error:', err);
+                // Graceful fallback to client-side expander
+                const fallbackExpanded = `${prompt}, highly detailed, cinematic lighting, 8k resolution, photorealistic masterpiece, professional photography`;
+                DOM.promptInput.value = fallbackExpanded;
+                updateCharCount();
+                showToast('Expanded prompt with photography styling tags.', 'info');
+            } finally {
+                DOM.enhancePromptBtn.disabled = false;
+                DOM.enhancePromptBtn.innerHTML = originalBtnHtml;
+            }
+        }
+
+        // --- 9. VALIDATION ---
+        function validateInputs() {
+            if (!state.apiKey) {
+                showToast('Please enter your Google AI Studio API key.', 'error');
+                DOM.apiKeyInput.focus();
+                return false;
+            }
+
+            const prompt = DOM.promptInput.value.trim();
+            if (!prompt) {
+                showToast('Please enter an image prompt.', 'warning');
+                DOM.promptInput.focus();
+                return false;
+            }
+
+            return true;
+        }
+
+        // --- 10. GENERATION FLOW ---
+        async function startGenerationFlow() {
+            if (!validateInputs()) return;
+
+            const prompt = DOM.promptInput.value.trim();
+            setLoadingState(true, `Generating image with ${state.selectedModel}...`);
+
+            try {
+                const imageResult = await requestImageGeneration({
+                    prompt: prompt,
+                    model: state.selectedModel,
+                    aspectRatio: state.selectedAR,
+                    mimeType: state.selectedMime,
+                    apiKey: state.apiKey
+                });
+
+                displayGeneratedImage(imageResult);
+                addToHistory(imageResult);
+                showToast('Image generated successfully!', 'success');
+
+            } catch (err) {
+                console.error('Generation Error:', err);
+                handleApiError(err);
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        // --- 11. API INTEGRATION (IMAGEN 3 & GEMINI REST) ---
+        async function requestImageGeneration({ prompt, model, aspectRatio, mimeType, apiKey }) {
+            
+            // Branch 1: Imagen 3 Standard / Fast (:predict endpoint)
+            if (model.startsWith('imagen-3')) {
+                const endpoint = `${CONFIG.API_BASE_URL}/models/${model}:predict?key=${encodeURIComponent(apiKey)}`;
+                
+                const payload = {
+                    instances: [
+                        { prompt: prompt }
+                    ],
+                    parameters: {
+                        sampleCount: 1,
+                        aspectRatio: aspectRatio,
+                        outputMimeType: mimeType,
+                        personGeneration: 'ALLOW_ADULT'
+                    }
+                };
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const responseData = await response.json();
+
+                if (!response.ok) {
+                    const errorMsg = responseData?.error?.message || `API error (${response.status})`;
+                    const errorStatus = responseData?.error?.status || 'UNKNOWN';
+                    throw new Error(JSON.stringify({ status: response.status, apiStatus: errorStatus, message: errorMsg }));
+                }
+
+                // Parse base64 from predictions
+                const prediction = responseData.predictions?.[0];
+                if (!prediction || !prediction.bytesBase64Encoded) {
+                    throw new Error(JSON.stringify({ status: 200, message: 'The API returned an unexpected response without image data.' }));
+                }
+
+                const actualMime = prediction.mimeType || mimeType || 'image/png';
+                const dataUrl = `data:${actualMime};base64,${prediction.bytesBase64Encoded}`;
+
+                return {
+                    id: 'gen_' + Date.now(),
+                    dataUrl: dataUrl,
+                    base64: prediction.bytesBase64Encoded,
+                    mimeType: actualMime,
+                    prompt: prompt,
+                    model: model,
+                    aspectRatio: aspectRatio,
+                    timestamp: new Date()
+                };
+            }
+
+            // Branch 2: Gemini multimodal generateContent with image modalities
+            else {
+                const endpoint = `${CONFIG.API_BASE_URL}/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+                
+                const payload = {
+                    contents: [{
+                        parts: [{
+                            text: `Generate a high quality visual image matching this description: ${prompt}. Aspect ratio: ${aspectRatio}.`
+                        }]
+                    }],
+                    generationConfig: {
+                        responseModalities: ["IMAGE", "TEXT"]
+                    }
+                };
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const responseData = await response.json();
+
+                if (!response.ok) {
+                    const errorMsg = responseData?.error?.message || `API error (${response.status})`;
+                    throw new Error(JSON.stringify({ status: response.status, message: errorMsg }));
+                }
+
+                // Locate inlineData part in candidates
+                const parts = responseData?.candidates?.[0]?.content?.parts || [];
+                const imagePart = parts.find(p => p.inlineData && p.inlineData.data);
+
+                if (!imagePart) {
+                    // Check if model returned a text refusal or safety flag
+                    const textFeedback = parts.find(p => p.text)?.text;
+                    if (textFeedback) {
+                        throw new Error(JSON.stringify({ status: 200, message: `Model output: ${textFeedback}` }));
+                    }
+                    throw new Error(JSON.stringify({ status: 200, message: 'No image was returned by the selected model. Try using Imagen 3 model.' }));
+                }
+
+                const actualMime = imagePart.inlineData.mimeType || 'image/png';
+                const dataUrl = `data:${actualMime};base64,${imagePart.inlineData.data}`;
+
+                return {
+                    id: 'gen_' + Date.now(),
+                    dataUrl: dataUrl,
+                    base64: imagePart.inlineData.data,
+                    mimeType: actualMime,
+                    prompt: prompt,
+                    model: model,
+                    aspectRatio: aspectRatio,
+                    timestamp: new Date()
+                };
+            }
+        }
+
+        // --- 12. IMAGE MODIFICATION WORKFLOW ---
+        async function executeImageModification() {
+            const modifyInstruction = DOM.modifyInput.value.trim();
+            if (!modifyInstruction) {
+                showToast('Please describe the modification you want.', 'warning');
+                DOM.modifyInput.focus();
+                return;
+            }
+
+            if (!state.currentImage) {
+                showToast('No active image to modify. Generate an image first.', 'warning');
+                return;
+            }
+
+            const basePrompt = state.currentImage.prompt;
+            const updatedPrompt = `${basePrompt}, with edits: ${modifyInstruction}`;
+
+            DOM.modifyPanel.classList.remove('active');
+            setLoadingState(true, 'Synthesizing image modification...');
+
+            try {
+                const modifiedResult = await requestImageGeneration({
+                    prompt: updatedPrompt,
+                    model: state.selectedModel,
+                    aspectRatio: state.selectedAR,
+                    mimeType: state.selectedMime,
+                    apiKey: state.apiKey
+                });
+
+                modifiedResult.isModified = true;
+                modifiedResult.originalPrompt = basePrompt;
+
+                displayGeneratedImage(modifiedResult);
+                addToHistory(modifiedResult);
+                DOM.modifyInput.value = '';
+                showToast('Modified image created successfully!', 'success');
+
+            } catch (err) {
+                console.error('Modification failed:', err);
+                handleApiError(err);
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        function toggleModifyPanel() {
+            if (!state.currentImage) return;
+            DOM.modifyPanel.classList.toggle('active');
+            if (DOM.modifyPanel.classList.contains('active')) {
+                DOM.modifyInput.focus();
+            }
+        }
+
+        // --- 13. UI DISPLAY & STATES ---
+        function displayGeneratedImage(imageObj) {
+            state.currentImage = imageObj;
+
+            DOM.mainGeneratedImage.src = imageObj.dataUrl;
+            DOM.imageContainer.style.display = 'flex';
+            DOM.emptyState.style.display = 'none';
+            DOM.previewViewport.classList.add('has-image');
+            DOM.actionToolbar.classList.add('visible');
+
+            // Format metadata
+            const timeStr = imageObj.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            DOM.previewMeta.textContent = `${imageObj.model} • ${imageObj.aspectRatio} • ${timeStr}`;
+        }
+
+        function setLoadingState(loading, message = 'Generating...') {
+            state.isLoading = loading;
+            DOM.generateBtn.disabled = loading;
+            DOM.resetBtn.disabled = loading;
+            DOM.enhancePromptBtn.disabled = loading;
+            
+            if (loading) {
+                DOM.loadingMessage.textContent = message;
+                DOM.loadingOverlay.classList.add('active');
+                DOM.generateBtnText.textContent = 'Generating...';
+            } else {
+                DOM.loadingOverlay.classList.remove('active');
+                DOM.generateBtnText.textContent = 'Generate Image';
+            }
+        }
+
+        // --- 14. DOWNLOAD & COPY ACTIONS ---
+        function downloadCurrentPhoto() {
+            if (!state.currentImage) return;
+
+            try {
+                const ext = state.currentImage.mimeType.includes('jpeg') || state.currentImage.mimeType.includes('jpg') ? 'jpg' : 'png';
+                const now = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
+                const filename = `ai-image-${dateStr}.${ext}`;
+
+                const a = document.createElement('a');
+                a.href = state.currentImage.dataUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                showToast(`Image downloaded: ${filename}`, 'success');
+            } catch (err) {
+                console.error('Download failed:', err);
+                showToast('Failed to trigger download.', 'error');
+            }
+        }
+
+        async function copyPhotoToClipboard() {
+            if (!state.currentImage) return;
+
+            try {
+                // If browser supports ClipboardItem with Blob
+                const res = await fetch(state.currentImage.dataUrl);
+                const blob = await res.blob();
+
+                // Convert JPEG to PNG for universal clipboard write support if necessary
+                if (blob.type !== 'image/png') {
+                    const pngBlob = await convertBlobToPng(blob);
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': pngBlob })
+                    ]);
+                } else {
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ [blob.type]: blob })
+                    ]);
+                }
+
+                showToast('Image copied to clipboard!', 'success');
+            } catch (err) {
+                console.warn('Clipboard write failed, using fallback:', err);
+                showToast('Your browser does not support copying images directly. Please use Download instead.', 'warning');
+            }
+        }
+
+        function convertBlobToPng(blob) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    canvas.toBlob((pngBlob) => {
+                        if (pngBlob) resolve(pngBlob);
+                        else reject(new Error('Canvas conversion failed'));
+                    }, 'image/png');
+                };
+                img.onerror = reject;
+                img.src = URL.createObjectURL(blob);
+            });
+        }
+
+        // --- 15. HISTORY & GALLERY ---
+        function addToHistory(item) {
+            state.history.unshift(item);
+            renderHistoryGrid();
+        }
+
+        function renderHistoryGrid() {
+            DOM.historyCount.textContent = state.history.length;
+
+            if (state.history.length === 0) {
+                DOM.historyEmpty.style.display = 'block';
+                DOM.historyGrid.innerHTML = '';
+                DOM.historyGrid.appendChild(DOM.historyEmpty);
+                return;
+            }
+
+            DOM.historyEmpty.style.display = 'none';
+            DOM.historyGrid.innerHTML = '';
+
+            state.history.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = `history-item ${state.currentImage?.id === item.id ? 'selected' : ''}`;
+                div.title = `Prompt: "${item.prompt}"\nModel: ${item.model}\nAspect Ratio: ${item.aspectRatio}`;
+
+                const img = document.createElement('img');
+                img.src = item.dataUrl;
+                img.alt = `Generation #${state.history.length - index}`;
+
+                const badge = document.createElement('span');
+                badge.className = 'history-item-badge';
+                badge.textContent = `#${state.history.length - index}`;
+
+                div.appendChild(img);
+                div.appendChild(badge);
+
+                div.addEventListener('click', () => {
+                    displayGeneratedImage(item);
+                    DOM.promptInput.value = item.prompt;
+                    updateCharCount();
+                    renderHistoryGrid();
+                    showToast(`Loaded generation #${state.history.length - index} into preview`, 'info');
+                });
+
+                DOM.historyGrid.appendChild(div);
+            });
+        }
+
+        function clearSessionHistory() {
+            if (state.history.length === 0) return;
+            state.history = [];
+            renderHistoryGrid();
+            showToast('Session history cleared', 'info');
+        }
+
+        // --- 16. SESSION RESET ---
+        function resetSession() {
+            DOM.promptInput.value = '';
+            DOM.modifyInput.value = '';
+            updateCharCount();
+            
+            state.currentImage = null;
+            DOM.imageContainer.style.display = 'none';
+            DOM.emptyState.style.display = 'flex';
+            DOM.previewViewport.classList.remove('has-image');
+            DOM.actionToolbar.classList.remove('visible');
+            DOM.modifyPanel.classList.remove('active');
+            DOM.previewMeta.textContent = 'No image generated yet';
+
+            showToast('Workspace reset to initial state.', 'info');
+        }
+
+        // --- 17. LIGHTBOX MODAL ---
+        function openLightbox() {
+            if (!state.currentImage) return;
+            DOM.lightboxImg.src = state.currentImage.dataUrl;
+            DOM.lightboxModal.classList.add('active');
+        }
+
+        function closeLightbox(e) {
+            if (!e || e.target === DOM.lightboxModal || e.target.classList.contains('lightbox-close')) {
+                DOM.lightboxModal.classList.remove('active');
+            }
+        }
+
+        // --- 18. ERROR HANDLING ---
+        function handleApiError(err) {
+            let errorData = {};
+            try {
+                errorData = JSON.parse(err.message);
+            } catch {
+                errorData = { message: err.message || 'Unknown network error' };
+            }
+
+            const status = errorData.status;
+            const message = (errorData.message || '').toLowerCase();
+
+            if (status === 400 || message.includes('api_key_invalid') || message.includes('invalid api key')) {
+                showToast('The API key appears to be invalid. Please check your Google AI Studio API key.', 'error');
+            } else if (status === 403 || message.includes('permission') || message.includes('access denied')) {
+                showToast('This API key does not have permission to use the selected model.', 'error');
+            } else if (status === 404 || message.includes('not found')) {
+                showToast('The selected model was not found for this API version. Try selecting Imagen 3 Standard.', 'error');
+            } else if (status === 429 || message.includes('quota') || message.includes('rate limit')) {
+                showToast('Rate limit reached. Please wait a moment and try again.', 'warning');
+            } else if (message.includes('safety') || message.includes('blocked')) {
+                showToast('Image generation blocked by safety filters. Please refine your prompt.', 'warning');
+            } else if (message.includes('failed to fetch') || !navigator.onLine) {
+                showToast('Unable to connect to the image generation service. Please check your internet connection.', 'error');
+            } else {
+                showToast(errorData.message || 'The API returned an unexpected response. Please try again.', 'error');
+            }
+        }
+
+        // --- 19. TOAST SYSTEM ---
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            let iconSvg = '';
+            if (type === 'success') {
+                iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+            } else if (type === 'error') {
+                iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+            } else if (type === 'warning') {
+                iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+            } else {
+                iconSvg = '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+            }
+
+            toast.innerHTML = `${iconSvg}<span>${message}</span>`;
+            DOM.toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px) scale(0.9)';
+                toast.style.transition = 'all 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // Initialize application on DOM ready
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
