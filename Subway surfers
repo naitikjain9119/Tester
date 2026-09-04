@@ -1,0 +1,1888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Track Escape - 3D Endless Runner</title>
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #060a14;
+      font-family: 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      touch-action: none;
+      color: #ffffff;
+    }
+
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* UI Overlay Layer */
+    .ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Start Screen */
+    #start-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, rgba(14, 24, 52, 0.9) 0%, rgba(3, 6, 14, 0.98) 100%);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+    }
+
+    .game-logo {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .game-logo h1 {
+      font-size: clamp(2.4rem, 8vw, 4.4rem);
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #ffd000 0%, #ff3366 50%, #00e5ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 4px 18px rgba(255, 60, 0, 0.5));
+      margin-bottom: 4px;
+    }
+
+    .game-logo .sub-title {
+      font-size: clamp(0.85rem, 2.6vw, 1.2rem);
+      color: #7ee787;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+
+    .author-badge {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      padding: 8px 24px;
+      border-radius: 50px;
+      font-size: clamp(0.85rem, 2.5vw, 1.05rem);
+      color: #58a6ff;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      margin-bottom: 22px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+    }
+
+    .btn-main {
+      background: linear-gradient(135deg, #ff9500 0%, #ff2d55 100%);
+      color: #ffffff;
+      border: none;
+      outline: none;
+      padding: 16px 58px;
+      font-size: clamp(1.3rem, 4vw, 1.85rem);
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(255, 50, 50, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: auto;
+    }
+
+    .btn-main:hover {
+      transform: scale(1.06);
+      box-shadow: 0 14px 40px rgba(255, 50, 50, 0.7);
+    }
+
+    .btn-main:active {
+      transform: scale(0.95);
+    }
+
+    .gift-notice {
+      margin-top: 14px;
+      font-size: 0.92rem;
+      color: #ffd700;
+      font-weight: 800;
+      background: rgba(255, 215, 0, 0.12);
+      padding: 6px 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 215, 0, 0.3);
+    }
+
+    .controls-hint-card {
+      margin-top: 24px;
+      background: rgba(13, 17, 23, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 12px 24px;
+      display: flex;
+      gap: 22px;
+      font-size: 0.82rem;
+      color: #8b949e;
+      backdrop-filter: blur(8px);
+    }
+    .controls-hint-card strong { color: #f0f6fc; }
+
+    /* HUD */
+    #hud {
+      display: none;
+      padding: 12px 16px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .hud-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      width: 100%;
+      pointer-events: none;
+    }
+
+    .hud-stats-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .stat-pill {
+      background: rgba(10, 15, 26, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 5px 12px;
+      border-radius: 18px;
+      font-size: clamp(0.72rem, 2.1vw, 0.92rem);
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      backdrop-filter: blur(6px);
+      width: fit-content;
+    }
+
+    .stat-pill.coin { color: #ffd700; }
+    .stat-pill.score { color: #00e5ff; }
+    .stat-pill.best { color: #ff9900; font-size: 0.75rem; }
+    .stat-pill.distance { color: #7ee787; font-size: clamp(0.85rem, 2.4vw, 1.1rem); }
+
+    .hud-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .btn-icon {
+      background: rgba(13, 17, 23, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #ffffff;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .btn-icon:hover { background: rgba(255, 255, 255, 0.25); }
+    .btn-icon:active { transform: scale(0.92); }
+
+    /* ==========================================================
+       BOTTOM-RIGHT D-PAD LAYOUT:
+       - Jump (▲) in the middle between Left (◀) and Right (▶)
+       - Slide (▼) directly below Jump (▲)
+       - Skateboard (🛹) right beside them
+       ========================================================== */
+    .controls-cluster {
+      position: absolute;
+      bottom: 20px;
+      right: 18px;
+      display: grid;
+      grid-template-areas:
+        ".     jump  .     skate"
+        "left  down  right skate";
+      grid-template-columns: 54px 54px 54px 68px;
+      grid-template-rows: 52px 52px;
+      gap: 8px;
+      pointer-events: auto;
+      z-index: 25;
+    }
+
+    .dpad-btn {
+      background: rgba(255, 255, 255, 0.16);
+      border: 1.5px solid rgba(255, 255, 255, 0.35);
+      color: #ffffff;
+      border-radius: 16px;
+      font-size: 1.4rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+      touch-action: manipulation;
+      cursor: pointer;
+      transition: background 0.1s, transform 0.1s;
+    }
+
+    .dpad-btn:active {
+      background: rgba(255, 204, 0, 0.5);
+      transform: scale(0.92);
+      border-color: #ffd700;
+    }
+
+    #btn-jump  { grid-area: jump; }
+    #btn-down  { grid-area: down; }
+    #btn-left  { grid-area: left; }
+    #btn-right { grid-area: right; }
+
+    /* Skateboard Button */
+    .skate-btn {
+      grid-area: skate;
+      background: linear-gradient(135deg, #ff0055, #ff5500);
+      border: 1.5px solid #ffcc00;
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 900;
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(255, 0, 85, 0.5);
+      touch-action: manipulation;
+      transition: all 0.15s;
+    }
+
+    .skate-btn:active {
+      transform: scale(0.92);
+      box-shadow: 0 0 20px #00ffff;
+    }
+
+    .skate-btn .badge {
+      font-size: 0.72rem;
+      background: #000000;
+      color: #00ffff;
+      padding: 1px 6px;
+      border-radius: 10px;
+      margin-top: 3px;
+      border: 1px solid #00ffff;
+    }
+
+    .skate-btn.active {
+      background: linear-gradient(135deg, #00ffcc, #0077ff);
+      border-color: #ffffff;
+      animation: pulseGlow 1s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { transform: scale(1); filter: drop-shadow(0 0 8px #00ffcc); }
+      to { transform: scale(1.04); filter: drop-shadow(0 0 16px #00ffff); }
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(4, 7, 16, 0.88);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      animation: fadeIn 0.25s forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-card {
+      background: rgba(16, 22, 36, 0.96);
+      border: 1.5px solid rgba(255, 255, 255, 0.18);
+      border-radius: 26px;
+      padding: 26px 34px;
+      text-align: center;
+      max-width: 90%;
+      width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    }
+
+    .modal-card h2 {
+      font-size: clamp(2rem, 6vw, 2.5rem);
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .game-over-title {
+      background: linear-gradient(135deg, #ff3b30, #ff9500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .paused-title { color: #58a6ff; }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 16px 0 20px 0;
+    }
+
+    .result-box {
+      background: rgba(10, 14, 24, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 10px;
+    }
+
+    .result-box .label {
+      font-size: 0.72rem;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 700;
+    }
+
+    .result-box .val {
+      font-size: 1.25rem;
+      font-weight: 900;
+      margin-top: 4px;
+      color: #f0f6fc;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .btn-sec {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-sec:hover { background: rgba(255, 255, 255, 0.2); }
+
+    /* Toast */
+    #toast {
+      position: absolute;
+      top: 75px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-25px);
+      background: linear-gradient(135deg, #00ffcc, #0099ff);
+      color: #040711;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-size: 0.95rem;
+      box-shadow: 0 8px 25px rgba(0, 255, 204, 0.6);
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Countdown */
+    #countdown-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 40;
+      pointer-events: none;
+    }
+    #countdown-text {
+      font-size: clamp(4.5rem, 18vw, 8rem);
+      font-weight: 900;
+      color: #ffcc00;
+      text-shadow: 0 0 30px rgba(255, 204, 0, 0.8), 0 0 60px rgba(255, 50, 0, 0.6);
+      transform: scale(0.5);
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+    }
+    #countdown-text.pop {
+      transform: scale(1.15);
+      opacity: 1;
+    }
+
+    @media (max-width: 600px) {
+      .controls-hint-card { display: none; }
+      .modal-card { padding: 20px 18px; }
+      .controls-cluster {
+        grid-template-columns: 46px 46px 46px 58px;
+        grid-template-rows: 48px 48px;
+        bottom: 14px;
+        right: 10px;
+        gap: 6px;
+      }
+      .dpad-btn { font-size: 1.2rem; border-radius: 13px; }
+      .skate-btn { font-size: 0.75rem; border-radius: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Canvas Mount -->
+  <div id="canvas-container"></div>
+
+  <!-- Notification Toast -->
+  <div id="toast">🎁 FREE SKATEBOARD GIFT READY!</div>
+
+  <!-- Countdown Overlay -->
+  <div id="countdown-overlay">
+    <div id="countdown-text">3</div>
+  </div>
+
+  <!-- In-Game HUD -->
+  <div class="ui-layer" id="hud">
+    <div class="hud-top-bar">
+      <div class="hud-stats-group">
+        <div class="stat-pill best">👑 BEST: <span id="hud-best-score">0</span></div>
+        <div class="stat-pill score">⭐ SCORE: <span id="hud-score">000000</span></div>
+        <div class="stat-pill coin">🪙 COINS: <span id="hud-coins">0000</span></div>
+        <div class="stat-pill distance">🏃 <span id="hud-distance">0 m</span></div>
+      </div>
+
+      <div class="hud-right">
+        <button class="btn-icon" id="btn-audio" type="button" title="Audio Toggle">🔊</button>
+        <button class="btn-icon" id="btn-pause" type="button" title="Pause Game">⏸</button>
+      </div>
+    </div>
+
+    <!-- Redesigned Bottom-Right Control Cluster -->
+    <div class="controls-cluster">
+      <button class="dpad-btn" id="btn-jump" type="button" title="Jump (Up)">▲</button>
+      <button class="dpad-btn" id="btn-left" type="button" title="Move Left">◀</button>
+      <button class="dpad-btn" id="btn-down" type="button" title="Slide (Down)">▼</button>
+      <button class="dpad-btn" id="btn-right" type="button" title="Move Right">▶</button>
+      <button class="skate-btn" id="btn-skate-action" type="button" title="Use Skateboard">
+        🛹 SKATE
+        <span class="badge" id="skate-badge">x1</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Start Screen -->
+  <div id="start-screen">
+    <div class="game-logo">
+      <h1>TRACK ESCAPE</h1>
+      <div class="sub-title">3D ENDLESS OUTLAW RUNNER</div>
+    </div>
+
+    <div class="author-badge">
+      This game is made by me
+    </div>
+
+    <button class="btn-main" id="btn-play" type="button">PLAY</button>
+
+    <div class="gift-notice">
+      🎁 1 FREE Skateboard Gift included! (+1 more at 400m)
+    </div>
+
+    <div class="controls-hint-card">
+      <div>
+        <strong>KEYBOARD CONTROLS</strong><br>
+        ◀ / A : Left Lane | ▶ / D : Right Lane<br>
+        ▲ / W / Space : Jump | ▼ / S : Slide<br>
+        E or Double-Click : Skateboard
+      </div>
+      <div>
+        <strong>TOUCH & GESTURES</strong><br>
+        Swipe Left / Right : Change Lane<br>
+        Swipe Up : Jump | Swipe Down : Slide<br>
+        Bottom-Right D-Pad & Skateboard Button
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause Modal -->
+  <div class="modal-overlay" id="pause-modal">
+    <div class="modal-card">
+      <h2 class="paused-title">PAUSED</h2>
+      <div class="author-badge" style="margin-bottom: 18px;">
+        This game is made by me
+      </div>
+      <div class="btn-group">
+        <button class="btn-main" id="btn-resume" type="button">RESUME</button>
+        <button class="btn-sec" id="btn-restart-pause" type="button">NEW GAME</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div class="modal-overlay" id="gameover-modal">
+    <div class="modal-card">
+      <h2 class="game-over-title">GAME OVER</h2>
+      
+      <div class="results-grid">
+        <div class="result-box">
+          <div class="label">Total Score</div>
+          <div class="val" id="res-score" style="color:#00e5ff;">0</div>
+        </div>
+        <div class="result-box">
+          <div class="label">Best Record</div>
+          <div class="val" id="res-best" style="color:#ff9900;">0</div>
+        </div>
+        <div class="result-box">
+          <div class="label">Coins Gathered</div>
+          <div class="val" id="res-coins" style="color:#ffd700;">0</div>
+        </div>
+        <div class="result-box">
+          <div class="label">Distance</div>
+          <div class="val" id="res-distance" style="color:#7ee787;">0 m</div>
+        </div>
+      </div>
+
+      <div class="author-badge" style="margin-bottom: 18px;">
+        This game is made by me
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-main" id="btn-playagain" type="button">PLAY AGAIN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN SCRIPT -->
+  <script>
+    /* ==========================================================
+       1. SYNTHETIC AUDIO ENGINE
+       ========================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playCoin() {
+        if (this.muted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(987.77, now);
+        osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.08);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.12);
+      }
+
+      playJump() {
+        if (this.muted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(560, now + 0.16);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      }
+
+      playSlide() {
+        if (this.muted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.22);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.22);
+      }
+
+      playSkateboard() {
+        if (this.muted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+        osc.frequency.exponentialRampToValueAtTime(1174, now + 0.26);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }
+
+      playUnlock() {
+        if (this.muted || !this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.08;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.18);
+        });
+      }
+
+      playCrash() {
+        if (this.muted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(130, now);
+        osc.frequency.linearRampToValueAtTime(30, now + 0.35);
+        gain.gain.setValueAtTime(0.45, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      }
+
+      playClick() {
+        if (this.muted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(750, now);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.04);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /* ==========================================================
+       2. GAME CONSTANTS & CALIBRATED COORDINATES
+       ========================================================== */
+    const GAME_STATE = {
+      START: 'START',
+      COUNTDOWN: 'COUNTDOWN',
+      PLAYING: 'PLAYING',
+      PAUSED: 'PAUSED',
+      GAME_OVER: 'GAME_OVER'
+    };
+
+    // Camera is looking down +Z axis.
+    // In Three.js view matrix with this camera:
+    // +X is visually LEFT on screen, -X is visually RIGHT on screen.
+    // Therefore:
+    // Lane 0 (LEFT) = +3.25
+    // Lane 1 (CENTER) = 0
+    // Lane 2 (RIGHT) = -3.25
+    const LANES = [3.25, 0, -3.25];
+    const CHUNK_SIZE = 60;
+    const NUM_CHUNKS = 7;
+    const GRAVITY = -44;
+    const JUMP_VELOCITY = 14.5;
+    const SLIDE_TIME = 0.85;
+    const SKATEBOARD_DURATION = 10;
+
+    let currentState = GAME_STATE.START;
+    let score = 0;
+    let coinsCollected = 0;
+    let distanceTraveled = 0;
+    let currentSpeed = 19; // Comfortable easy starting speed
+    let currentLane = 1;   // 0 = Left, 1 = Center, 2 = Right
+    let targetX = LANES[1];
+    let isJumping = false;
+    let isSliding = false;
+    let slideTimer = 0;
+    let playerY = 0;
+    let playerVY = 0;
+
+    // Skateboard Inventory
+    let skateboardInventory = 1; // 1 Free starting gift
+    let reward400Unlocked = false;
+    let skateboardActive = false;
+    let skateboardTimeLeft = 0;
+    let shieldInvincibleTimer = 0;
+
+    let bestScore = parseInt(localStorage.getItem('track_escape_best_score') || '0', 10);
+
+    /* ThreeJS Variables */
+    let scene, camera, renderer;
+    let playerMeshGroup, outlawMeshGroup, skateboardMesh;
+    let playerLimbs = {};
+    let outlawLimbs = {};
+    let chunks = [];
+    let obstacles = [];
+    let coins = [];
+    let particles = [];
+    let cameraShake = 0;
+    let lastTime = 0;
+    let lastTapTime = 0;
+
+    /* ==========================================================
+       3. 3D SCENE & GRAPHICS INITIALIZATION
+       ========================================================== */
+    function init3D() {
+      const container = document.getElementById('canvas-container');
+      
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x080e1e);
+      scene.fog = new THREE.FogExp2(0x080e1e, 0.011);
+
+      camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 450);
+      camera.position.set(0, 5.0, -7.2);
+      camera.lookAt(0, 2.0, 10);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // Lights
+      const ambientLight = new THREE.AmbientLight(0xddeeff, 0.8);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffeedd, 1.15);
+      dirLight.position.set(20, 40, -15);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 1024;
+      dirLight.shadow.mapSize.height = 1024;
+      dirLight.shadow.camera.near = 1;
+      dirLight.shadow.camera.far = 140;
+      dirLight.shadow.camera.left = -25;
+      dirLight.shadow.camera.right = 25;
+      dirLight.shadow.camera.top = 35;
+      dirLight.shadow.camera.bottom = -10;
+      scene.add(dirLight);
+
+      // Solid base ground
+      const baseGroundGeo = new THREE.PlaneGeometry(250, 800);
+      const baseGroundMat = new THREE.MeshStandardMaterial({ color: 0x050912, roughness: 0.95 });
+      const baseGround = new THREE.Mesh(baseGroundGeo, baseGroundMat);
+      baseGround.rotation.x = -Math.PI / 2;
+      baseGround.position.set(0, -0.06, 200);
+      baseGround.receiveShadow = true;
+      scene.add(baseGround);
+
+      createPlayerCharacter();
+      createOutlawCharacter();
+      initTrackChunks();
+
+      window.addEventListener('resize', onWindowResize, false);
+      updateHUDUI();
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    /* ==========================================================
+       4. PROCEDURAL CHARACTERS (Player & Outlaw Bandit)
+       ========================================================== */
+    function createPlayerCharacter() {
+      playerMeshGroup = new THREE.Group();
+
+      const hoodieMat = new THREE.MeshStandardMaterial({ color: 0x00d4ff, roughness: 0.35 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: 0x1f293d, roughness: 0.6 });
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.5 });
+      const capMat = new THREE.MeshStandardMaterial({ color: 0xff3366, roughness: 0.3 });
+      const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 });
+
+      // Torso
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.85, 0.42), hoodieMat);
+      torso.position.y = 1.25;
+      torso.castShadow = true;
+      playerMeshGroup.add(torso);
+      playerLimbs.torso = torso;
+
+      // Head
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.42), skinMat);
+      head.position.y = 1.95;
+      head.castShadow = true;
+      playerMeshGroup.add(head);
+      playerLimbs.head = head;
+
+      // Cap
+      const cap = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.15, 0.55), capMat);
+      cap.position.set(0, 2.15, -0.05);
+      playerMeshGroup.add(cap);
+
+      // Arms
+      const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+      armGeo.translate(0, -0.3, 0);
+
+      const leftArm = new THREE.Mesh(armGeo, hoodieMat);
+      leftArm.position.set(-0.46, 1.6, 0);
+      leftArm.castShadow = true;
+      playerMeshGroup.add(leftArm);
+      playerLimbs.leftArm = leftArm;
+
+      const rightArm = new THREE.Mesh(armGeo, hoodieMat);
+      rightArm.position.set(0.46, 1.6, 0);
+      rightArm.castShadow = true;
+      playerMeshGroup.add(rightArm);
+      playerLimbs.rightArm = rightArm;
+
+      // Legs
+      const legGeo = new THREE.BoxGeometry(0.24, 0.75, 0.24);
+      legGeo.translate(0, -0.35, 0);
+
+      const leftLeg = new THREE.Mesh(legGeo, pantsMat);
+      leftLeg.position.set(-0.2, 0.8, 0);
+      leftLeg.castShadow = true;
+      playerMeshGroup.add(leftLeg);
+      playerLimbs.leftLeg = leftLeg;
+
+      const rightLeg = new THREE.Mesh(legGeo, pantsMat);
+      rightLeg.position.set(0.2, 0.8, 0);
+      rightLeg.castShadow = true;
+      playerMeshGroup.add(rightLeg);
+      playerLimbs.rightLeg = rightLeg;
+
+      // Shoes
+      const shoeGeo = new THREE.BoxGeometry(0.26, 0.15, 0.4);
+      const leftShoe = new THREE.Mesh(shoeGeo, shoeMat);
+      leftShoe.position.set(0, -0.7, 0.08);
+      leftLeg.add(leftShoe);
+
+      const rightShoe = new THREE.Mesh(shoeGeo, shoeMat);
+      rightShoe.position.set(0, -0.7, 0.08);
+      rightLeg.add(rightShoe);
+
+      // Skateboard
+      skateboardMesh = new THREE.Group();
+      const boardDeck = new THREE.Mesh(
+        new THREE.BoxGeometry(0.85, 0.08, 2.2),
+        new THREE.MeshStandardMaterial({ color: 0xff0066, roughness: 0.2, metalness: 0.5 })
+      );
+      boardDeck.castShadow = true;
+      skateboardMesh.add(boardDeck);
+
+      const wheelMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+      const wheelGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.1, 12);
+      wheelGeo.rotateZ(Math.PI / 2);
+      [[-0.38, 0.65], [0.38, 0.65], [-0.38, -0.65], [0.38, -0.65]].forEach(pos => {
+        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+        wheel.position.set(pos[0], -0.1, pos[1]);
+        skateboardMesh.add(wheel);
+      });
+
+      skateboardMesh.position.y = 0.15;
+      skateboardMesh.visible = false;
+      playerMeshGroup.add(skateboardMesh);
+
+      scene.add(playerMeshGroup);
+    }
+
+    function createOutlawCharacter() {
+      outlawMeshGroup = new THREE.Group();
+
+      const coatMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, roughness: 0.7 });
+      const pantsMat = new THREE.MeshStandardMaterial({ color: 0x24170e, roughness: 0.8 });
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xd99b68, roughness: 0.6 });
+      const hatMat = new THREE.MeshStandardMaterial({ color: 0x1c130d, roughness: 0.5 });
+      const bandanaMat = new THREE.MeshStandardMaterial({ color: 0xcc2222, roughness: 0.4 });
+
+      // Torso
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.0, 0.5), coatMat);
+      torso.position.y = 1.35;
+      torso.castShadow = true;
+      outlawMeshGroup.add(torso);
+
+      // Head
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.46, 0.46), skinMat);
+      head.position.y = 2.1;
+      head.castShadow = true;
+      outlawMeshGroup.add(head);
+
+      // Red Bandana
+      const bandana = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.22, 0.48), bandanaMat);
+      bandana.position.set(0, 2.0, 0.02);
+      outlawMeshGroup.add(bandana);
+
+      // Cowboy Hat
+      const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.06, 16), hatMat);
+      hatBrim.position.set(0, 2.36, 0);
+      outlawMeshGroup.add(hatBrim);
+
+      const hatTop = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 0.35, 16), hatMat);
+      hatTop.position.set(0, 2.54, 0);
+      outlawMeshGroup.add(hatTop);
+
+      // Limbs
+      const armGeo = new THREE.BoxGeometry(0.24, 0.8, 0.24);
+      armGeo.translate(0, -0.35, 0);
+
+      const leftArm = new THREE.Mesh(armGeo, coatMat);
+      leftArm.position.set(-0.55, 1.75, 0);
+      outlawMeshGroup.add(leftArm);
+      outlawLimbs.leftArm = leftArm;
+
+      const rightArm = new THREE.Mesh(armGeo, coatMat);
+      rightArm.position.set(0.55, 1.75, 0);
+      outlawMeshGroup.add(rightArm);
+      outlawLimbs.rightArm = rightArm;
+
+      const legGeo = new THREE.BoxGeometry(0.26, 0.85, 0.26);
+      legGeo.translate(0, -0.4, 0);
+
+      const leftLeg = new THREE.Mesh(legGeo, pantsMat);
+      leftLeg.position.set(-0.25, 0.85, 0);
+      outlawMeshGroup.add(leftLeg);
+      outlawLimbs.leftLeg = leftLeg;
+
+      const rightLeg = new THREE.Mesh(legGeo, pantsMat);
+      rightLeg.position.set(0.25, 0.85, 0);
+      outlawMeshGroup.add(rightLeg);
+      outlawLimbs.rightLeg = rightLeg;
+
+      outlawMeshGroup.position.set(0, 0, -5.5);
+      scene.add(outlawMeshGroup);
+    }
+
+    /* ==========================================================
+       5. FAIR PROCEDURAL GENERATION (Zero Impossible Walls)
+       ========================================================== */
+    function initTrackChunks() {
+      for (let i = 0; i < NUM_CHUNKS; i++) {
+        spawnChunk(i * CHUNK_SIZE);
+      }
+    }
+
+    function spawnChunk(zPos) {
+      const chunkGroup = new THREE.Group();
+      chunkGroup.position.z = zPos;
+
+      // Track Bed
+      const bedGeo = new THREE.BoxGeometry(11.2, 0.3, CHUNK_SIZE);
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0x141a26, roughness: 0.8 });
+      const bed = new THREE.Mesh(bedGeo, bedMat);
+      bed.position.y = -0.15;
+      bed.receiveShadow = true;
+      chunkGroup.add(bed);
+
+      // Rails
+      const railMat = new THREE.MeshStandardMaterial({ color: 0x99aabb, metalness: 0.8, roughness: 0.2 });
+      [-4.4, -2.0, -1.2, 1.2, 2.0, 4.4].forEach(x => {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, CHUNK_SIZE), railMat);
+        rail.position.set(x, 0.05, 0);
+        chunkGroup.add(rail);
+      });
+
+      // Wooden Railroad Ties
+      const tieMat = new THREE.MeshStandardMaterial({ color: 0x2e1e13, roughness: 0.9 });
+      for (let z = -CHUNK_SIZE / 2; z < CHUNK_SIZE / 2; z += 2.5) {
+        const tie = new THREE.Mesh(new THREE.BoxGeometry(10.4, 0.12, 0.8), tieMat);
+        tie.position.set(0, 0.01, z);
+        chunkGroup.add(tie);
+      }
+
+      // Overhead Arches
+      if (Math.random() > 0.45) {
+        const archMat = new THREE.MeshStandardMaterial({ color: 0x334455, metalness: 0.7 });
+        const arch = new THREE.Group();
+        const p1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 6.5, 0.4), archMat);
+        p1.position.set(-5.6, 3.2, 0);
+        const p2 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 6.5, 0.4), archMat);
+        p2.position.set(5.6, 3.2, 0);
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(11.6, 0.5, 0.5), archMat);
+        beam.position.set(0, 6.2, 0);
+        arch.add(p1, p2, beam);
+        arch.position.z = 0;
+        chunkGroup.add(arch);
+      }
+
+      // Side Buildings
+      for (let side = -1; side <= 1; side += 2) {
+        const bHeight = 12 + Math.random() * 20;
+        const bWidth = 8 + Math.random() * 8;
+        const bMat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color().setHSL(0.58 + Math.random() * 0.1, 0.35, 0.16),
+          roughness: 0.8
+        });
+        const building = new THREE.Mesh(new THREE.BoxGeometry(bWidth, bHeight, 22), bMat);
+        building.position.set(side * (13 + bWidth / 2), bHeight / 2 - 1, (Math.random() - 0.5) * 15);
+        chunkGroup.add(building);
+      }
+
+      scene.add(chunkGroup);
+      chunks.push({ group: chunkGroup, z: zPos });
+
+      if (zPos >= 60) {
+        spawnChunkEntities(zPos);
+      }
+    }
+
+    function spawnChunkEntities(chunkZ) {
+      const isEasyZone = distanceTraveled < 500;
+      // 0-500m: Only 1 row per chunk (plenty of room). Beyond 500m: 2 rows max per chunk.
+      const numRows = isEasyZone ? 1 : 2;
+      const rowSpacing = CHUNK_SIZE / (numRows + 1);
+
+      for (let r = 1; r <= numRows; r++) {
+        const z = chunkZ - CHUNK_SIZE / 2 + r * rowSpacing;
+
+        // GUARANTEED SAFE PATH: At least 1 lane is ALWAYS 100% open with coins.
+        const guaranteedSafeLane = Math.floor(Math.random() * 3);
+        const secondSafeLane = isEasyZone ? ((guaranteedSafeLane + 1) % 3) : -1;
+
+        for (let lane = 0; lane < 3; lane++) {
+          const laneX = LANES[lane];
+
+          if (lane === guaranteedSafeLane || lane === secondSafeLane) {
+            // Coins in safe open lane
+            spawnCoinRow(laneX, z, Math.random() > 0.5 ? 'arc' : 'straight');
+          } else {
+            // Spawn single obstacle
+            const obsRoll = Math.random();
+            if (obsRoll < 0.45) {
+              createTrain(laneX, z, !isEasyZone && Math.random() > 0.7);
+            } else if (obsRoll < 0.75) {
+              createLowHurdle(laneX, z);
+            } else {
+              createHighBarrier(laneX, z);
+            }
+          }
+        }
+      }
+    }
+
+    function createTrain(x, z, isMoving) {
+      const trainGroup = new THREE.Group();
+      const length = 15;
+      const height = 3.5;
+      const width = 2.5;
+
+      const bodyMat = new THREE.MeshStandardMaterial({
+        color: isMoving ? 0xcc2936 : 0x2266aa,
+        roughness: 0.3,
+        metalness: 0.6
+      });
+      const body = new THREE.Mesh(new THREE.BoxGeometry(width, height, length), bodyMat);
+      body.position.y = height / 2;
+      body.castShadow = true;
+      body.receiveShadow = true;
+      trainGroup.add(body);
+
+      // Windows and headlights
+      const windowMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const win = new THREE.Mesh(new THREE.BoxGeometry(width * 0.8, 0.85, 0.1), windowMat);
+      win.position.set(0, height * 0.7, -length / 2 - 0.05);
+      trainGroup.add(win);
+
+      const lightMat = new THREE.MeshBasicMaterial({ color: 0xffe600 });
+      [-0.8, 0.8].forEach(lx => {
+        const light = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.1, 12), lightMat);
+        light.rotation.x = Math.PI / 2;
+        light.position.set(lx, 0.85, -length / 2 - 0.06);
+        trainGroup.add(light);
+      });
+
+      trainGroup.position.set(x, 0, z);
+      scene.add(trainGroup);
+
+      obstacles.push({
+        type: 'TRAIN',
+        group: trainGroup,
+        width: width,
+        height: height,
+        length: length,
+        moving: isMoving,
+        speed: isMoving ? 7 : 0
+      });
+    }
+
+    function createLowHurdle(x, z) {
+      const group = new THREE.Group();
+      const barMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, roughness: 0.4 });
+      const standMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.3, 0.25), barMat);
+      bar.position.y = 0.8;
+      bar.castShadow = true;
+      group.add(bar);
+
+      [-1.2, 1.2].forEach(sx => {
+        const stand = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.9, 0.18), standMat);
+        stand.position.set(sx, 0.45, 0);
+        group.add(stand);
+      });
+
+      group.position.set(x, 0, z);
+      scene.add(group);
+
+      obstacles.push({
+        type: 'LOW_HURDLE',
+        group: group,
+        width: 2.7,
+        height: 0.95,
+        length: 0.6
+      });
+    }
+
+    function createHighBarrier(x, z) {
+      const group = new THREE.Group();
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0xff3344, roughness: 0.3 });
+      const signMat = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+
+      const sign = new THREE.Mesh(new THREE.BoxGeometry(2.7, 1.25, 0.25), signMat);
+      sign.position.y = 2.4;
+      sign.castShadow = true;
+      group.add(sign);
+
+      [-1.25, 1.25].forEach(px => {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3.2, 0.2), frameMat);
+        post.position.set(px, 1.6, 0);
+        group.add(post);
+      });
+
+      group.position.set(x, 0, z);
+      scene.add(group);
+
+      obstacles.push({
+        type: 'HIGH_BARRIER',
+        group: group,
+        width: 2.7,
+        height: 3.2,
+        clearance: 1.35,
+        length: 0.6
+      });
+    }
+
+    function spawnCoinRow(x, centerZ, style) {
+      const count = 5;
+      const coinMat = new THREE.MeshStandardMaterial({
+        color: 0xffd700,
+        metalness: 0.9,
+        roughness: 0.2,
+        emissive: 0xcc9900,
+        emissiveIntensity: 0.4
+      });
+      const coinGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.12, 14);
+      coinGeo.rotateZ(Math.PI / 2);
+
+      for (let i = 0; i < count; i++) {
+        const z = centerZ - (count * 2) / 2 + i * 2.2;
+        let y = 1.0;
+
+        if (style === 'arc') {
+          const t = i / (count - 1);
+          y = 1.0 + Math.sin(t * Math.PI) * 2.3;
+        }
+
+        const coin = new THREE.Mesh(coinGeo, coinMat);
+        coin.position.set(x, y, z);
+        scene.add(coin);
+        coins.push(coin);
+      }
+    }
+
+    function spawnParticles(x, y, z, colorHex, count = 12) {
+      const pMat = new THREE.MeshBasicMaterial({ color: colorHex });
+      const pGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
+
+      for (let i = 0; i < count; i++) {
+        const p = new THREE.Mesh(pGeo, pMat);
+        p.position.set(x, y, z);
+        scene.add(p);
+        particles.push({
+          mesh: p,
+          vx: (Math.random() - 0.5) * 10,
+          vy: Math.random() * 8 + 2,
+          vz: (Math.random() - 0.5) * 10,
+          life: 0.55
+        });
+      }
+    }
+
+    /* ==========================================================
+       6. EXACT DIRECTIONAL CONTROLS (Left = Left, Right = Right)
+       ========================================================== */
+    // Lane 0 = Left (LANES[0] = +3.25)
+    // Lane 1 = Center (LANES[1] = 0)
+    // Lane 2 = Right (LANES[2] = -3.25)
+
+    function moveLeft() {
+      if (currentState !== GAME_STATE.PLAYING) return;
+      if (currentLane > 0) {
+        currentLane--;
+        targetX = LANES[currentLane];
+        sound.playClick();
+      }
+    }
+
+    function moveRight() {
+      if (currentState !== GAME_STATE.PLAYING) return;
+      if (currentLane < 2) {
+        currentLane++;
+        targetX = LANES[currentLane];
+        sound.playClick();
+      }
+    }
+
+    function triggerJump() {
+      if (currentState !== GAME_STATE.PLAYING) return;
+      if (!isJumping) {
+        isJumping = true;
+        playerVY = JUMP_VELOCITY;
+        if (isSliding) isSliding = false;
+        sound.playJump();
+      }
+    }
+
+    function triggerSlide() {
+      if (currentState !== GAME_STATE.PLAYING) return;
+      if (!isSliding) {
+        isSliding = true;
+        slideTimer = SLIDE_TIME;
+        if (isJumping) {
+          playerVY = -22;
+        }
+        sound.playSlide();
+      }
+    }
+
+    function triggerSkateboard() {
+      if (currentState !== GAME_STATE.PLAYING) return;
+      if (skateboardActive) return;
+
+      if (skateboardInventory <= 0) {
+        showToast("No skateboards left! (+1 unlocks at 400m)");
+        return;
+      }
+
+      skateboardInventory--;
+      skateboardActive = true;
+      skateboardTimeLeft = SKATEBOARD_DURATION;
+      skateboardMesh.visible = true;
+      sound.playSkateboard();
+      spawnParticles(playerMeshGroup.position.x, 0.5, playerMeshGroup.position.z, 0x00ffff, 20);
+      showToast("🛹 SKATEBOARD ACTIVATED!");
+      updateHUDUI();
+    }
+
+    function showToast(text) {
+      const toast = document.getElementById('toast');
+      toast.innerText = text;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    /* ==========================================================
+       7. INPUT HANDLING (Keys, Gestures & Redesigned D-Pad)
+       ========================================================== */
+    function setupInputs() {
+      // 1. Keyboard
+      window.addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        switch (e.code) {
+          case 'ArrowLeft':
+          case 'KeyA':
+            moveLeft();
+            break;
+          case 'ArrowRight':
+          case 'KeyD':
+            moveRight();
+            break;
+          case 'ArrowUp':
+          case 'KeyW':
+          case 'Space':
+            triggerJump();
+            break;
+          case 'ArrowDown':
+          case 'KeyS':
+            triggerSlide();
+            break;
+          case 'KeyE':
+            triggerSkateboard();
+            break;
+          case 'KeyP':
+          case 'Escape':
+            togglePause();
+            break;
+        }
+      });
+
+      // 2. Desktop Double-Click
+      window.addEventListener('dblclick', (e) => {
+        if (e.target.tagName === 'BUTTON') return;
+        triggerSkateboard();
+      });
+
+      // 3. Touch Gestures (Swipe & Double-Tap)
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchStartTime = 0;
+
+      window.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          touchStartTime = performance.now();
+        }
+      }, { passive: true });
+
+      window.addEventListener('touchend', (e) => {
+        if (e.changedTouches.length === 1) {
+          const dx = e.changedTouches[0].clientX - touchStartX;
+          const dy = e.changedTouches[0].clientY - touchStartY;
+          const dt = performance.now() - touchStartTime;
+
+          const absX = Math.abs(dx);
+          const absY = Math.abs(dy);
+
+          if (absX > 32 || absY > 32) {
+            // Swipe: Left dx < 0 -> Left, Right dx > 0 -> Right
+            if (absX > absY) {
+              if (dx < 0) moveLeft();
+              else moveRight();
+            } else {
+              if (dy < 0) triggerJump();
+              else triggerSlide();
+            }
+          } else if (dt < 280) {
+            const now = performance.now();
+            if (now - lastTapTime < 320) {
+              triggerSkateboard();
+              lastTapTime = 0;
+            } else {
+              lastTapTime = now;
+            }
+          }
+        }
+      }, { passive: true });
+
+      // 4. Redesigned D-Pad Cluster
+      const bindBtn = (id, action) => {
+        const el = document.getElementById(id);
+        el.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          action();
+        });
+      };
+
+      bindBtn('btn-jump', triggerJump); // Middle Top
+      bindBtn('btn-down', triggerSlide); // Middle Bottom
+      bindBtn('btn-left', moveLeft);     // Left Side
+      bindBtn('btn-right', moveRight);   // Right Side
+      bindBtn('btn-skate-action', triggerSkateboard); // Beside them
+
+      // 5. System UI Buttons
+      document.getElementById('btn-pause').addEventListener('click', togglePause);
+      document.getElementById('btn-resume').addEventListener('click', resumeGame);
+      document.getElementById('btn-restart-pause').addEventListener('click', startNewGame);
+
+      document.getElementById('btn-audio').addEventListener('click', () => {
+        sound.muted = !sound.muted;
+        document.getElementById('btn-audio').innerText = sound.muted ? '🔇' : '🔊';
+      });
+
+      document.getElementById('btn-play').addEventListener('click', () => {
+        sound.init();
+        sound.playClick();
+        beginCountdown();
+      });
+
+      document.getElementById('btn-playagain').addEventListener('click', () => {
+        sound.playClick();
+        document.getElementById('gameover-modal').style.display = 'none';
+        startNewGame();
+      });
+    }
+
+    /* ==========================================================
+       8. GAME STATE FLOW
+       ========================================================== */
+    function beginCountdown() {
+      document.getElementById('start-screen').style.display = 'none';
+      currentState = GAME_STATE.COUNTDOWN;
+
+      const overlay = document.getElementById('countdown-overlay');
+      const text = document.getElementById('countdown-text');
+      overlay.style.display = 'flex';
+
+      let count = 3;
+      text.innerText = count;
+      text.className = 'pop';
+
+      const interval = setInterval(() => {
+        count--;
+        if (count > 0) {
+          text.className = '';
+          setTimeout(() => {
+            text.innerText = count;
+            text.className = 'pop';
+            sound.playJump();
+          }, 40);
+        } else if (count === 0) {
+          text.className = '';
+          setTimeout(() => {
+            text.innerText = 'GO!';
+            text.className = 'pop';
+            sound.playUnlock();
+          }, 40);
+        } else {
+          clearInterval(interval);
+          overlay.style.display = 'none';
+          startGameplay();
+        }
+      }, 700);
+    }
+
+    function startGameplay() {
+      currentState = GAME_STATE.PLAYING;
+      document.getElementById('hud').style.display = 'flex';
+      lastTime = performance.now();
+    }
+
+    function togglePause() {
+      if (currentState === GAME_STATE.PLAYING) {
+        currentState = GAME_STATE.PAUSED;
+        document.getElementById('pause-modal').style.display = 'flex';
+        sound.playClick();
+      }
+    }
+
+    function resumeGame() {
+      if (currentState === GAME_STATE.PAUSED) {
+        document.getElementById('pause-modal').style.display = 'none';
+        currentState = GAME_STATE.PLAYING;
+        lastTime = performance.now();
+        sound.playClick();
+      }
+    }
+
+    function triggerGameOver() {
+      if (currentState === GAME_STATE.GAME_OVER) return;
+      currentState = GAME_STATE.GAME_OVER;
+      cameraShake = 0.75;
+      sound.playCrash();
+
+      const finalScore = Math.floor(score);
+      if (finalScore > bestScore) {
+        bestScore = finalScore;
+        localStorage.setItem('track_escape_best_score', bestScore);
+      }
+
+      outlawMeshGroup.position.z = playerMeshGroup.position.z - 0.4;
+      outlawMeshGroup.position.x = playerMeshGroup.position.x;
+
+      setTimeout(() => {
+        document.getElementById('res-score').innerText = finalScore;
+        document.getElementById('res-best').innerText = bestScore;
+        document.getElementById('res-coins').innerText = coinsCollected;
+        document.getElementById('res-distance').innerText = `${Math.floor(distanceTraveled)} m`;
+        document.getElementById('gameover-modal').style.display = 'flex';
+      }, 1000);
+    }
+
+    function startNewGame() {
+      obstacles.forEach(o => scene.remove(o.group));
+      obstacles = [];
+      coins.forEach(c => scene.remove(c));
+      coins = [];
+      particles.forEach(p => scene.remove(p.mesh));
+      particles = [];
+
+      chunks.forEach(c => scene.remove(c.group));
+      chunks = [];
+      initTrackChunks();
+
+      score = 0;
+      coinsCollected = 0;
+      distanceTraveled = 0;
+      currentSpeed = 19;
+      currentLane = 1;
+      targetX = LANES[1];
+      playerMeshGroup.position.set(0, 0, 0);
+      playerY = 0;
+      playerVY = 0;
+      isJumping = false;
+      isSliding = false;
+      slideTimer = 0;
+
+      skateboardInventory = 1;
+      reward400Unlocked = false;
+      skateboardActive = false;
+      skateboardTimeLeft = 0;
+      skateboardMesh.visible = false;
+      shieldInvincibleTimer = 0;
+
+      outlawMeshGroup.position.set(0, 0, -5.5);
+
+      updateHUDUI();
+      document.getElementById('pause-modal').style.display = 'none';
+      document.getElementById('gameover-modal').style.display = 'none';
+
+      beginCountdown();
+    }
+
+    /* ==========================================================
+       9. GAME LOOP & ANIMATION UPDATE
+       ========================================================== */
+    function update(dt) {
+      if (currentState !== GAME_STATE.PLAYING && currentState !== GAME_STATE.GAME_OVER) {
+        animateLimbs(performance.now() * 0.005, false);
+        return;
+      }
+
+      const timeSec = performance.now() * 0.001;
+
+      if (currentState === GAME_STATE.PLAYING) {
+        distanceTraveled += currentSpeed * dt * 0.5;
+        score += currentSpeed * dt * 1.5;
+
+        // Progressive Speed Scaling
+        if (distanceTraveled < 500) {
+          currentSpeed = 19 + (distanceTraveled / 500) * 4;
+        } else {
+          currentSpeed = 23 + Math.min(27, Math.pow((distanceTraveled - 500) / 100, 0.7) * 4.5);
+        }
+
+        // 400m Skateboard Reward
+        if (distanceTraveled >= 400 && !reward400Unlocked) {
+          reward400Unlocked = true;
+          skateboardInventory++;
+          sound.playUnlock();
+          showToast("🎉 400m REACHED! +1 SKATEBOARD REWARD!");
+          updateHUDUI();
+        }
+
+        // Skateboard Duration
+        if (skateboardActive) {
+          skateboardTimeLeft -= dt;
+          if (skateboardTimeLeft <= 0) {
+            skateboardActive = false;
+            skateboardMesh.visible = false;
+            showToast("Skateboard expired");
+          }
+          updateHUDUI();
+        }
+
+        if (shieldInvincibleTimer > 0) {
+          shieldInvincibleTimer -= dt;
+          playerMeshGroup.visible = Math.floor(timeSec * 20) % 2 === 0;
+        } else {
+          playerMeshGroup.visible = true;
+        }
+      }
+
+      // Smooth horizontal lane interpolation
+      playerMeshGroup.position.x += (targetX - playerMeshGroup.position.x) * 15 * dt;
+      playerMeshGroup.rotation.z = -(playerMeshGroup.position.x - targetX) * 0.12;
+
+      // Jump & Gravity
+      if (isJumping) {
+        playerY += playerVY * dt;
+        playerVY += GRAVITY * dt;
+        if (playerY <= 0) {
+          playerY = 0;
+          playerVY = 0;
+          isJumping = false;
+        }
+      }
+
+      // Slide Timer
+      if (isSliding) {
+        slideTimer -= dt;
+        if (slideTimer <= 0) {
+          isSliding = false;
+        }
+      }
+
+      playerMeshGroup.position.y = playerY;
+      if (isSliding) {
+        playerMeshGroup.scale.set(1, 0.45, 1.1);
+      } else {
+        playerMeshGroup.scale.set(1, 1, 1);
+      }
+
+      // Track Movement
+      const forwardDelta = currentSpeed * dt;
+      if (currentState === GAME_STATE.PLAYING) {
+        chunks.forEach(chunk => {
+          chunk.group.position.z -= forwardDelta;
+        });
+
+        if (chunks[0].group.position.z < -CHUNK_SIZE) {
+          const oldChunk = chunks.shift();
+          const newestZ = chunks[chunks.length - 1].group.position.z + CHUNK_SIZE;
+          oldChunk.group.position.z = newestZ;
+          chunks.push(oldChunk);
+          spawnChunkEntities(newestZ);
+        }
+
+        // Obstacles & Collision Check
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+          const obs = obstacles[i];
+          obs.group.position.z -= forwardDelta + (obs.speed || 0) * dt;
+
+          if (shieldInvincibleTimer <= 0 && checkCollision(obs)) {
+            if (skateboardActive) {
+              // Skateboard Shield Absorbs Crash
+              skateboardActive = false;
+              skateboardMesh.visible = false;
+              shieldInvincibleTimer = 1.8;
+              sound.playCrash();
+              spawnParticles(playerMeshGroup.position.x, 1, 0, 0xff0066, 25);
+              showToast("🛹 SKATEBOARD SAVED YOU!");
+              updateHUDUI();
+              obs.group.position.y = -20;
+            } else {
+              triggerGameOver();
+              break;
+            }
+          }
+
+          if (obs.group.position.z < -25) {
+            scene.remove(obs.group);
+            obstacles.splice(i, 1);
+          }
+        }
+
+        // Coins Check
+        for (let i = coins.length - 1; i >= 0; i--) {
+          const coin = coins[i];
+          coin.position.z -= forwardDelta;
+          coin.rotation.y += 3.5 * dt;
+
+          const dx = Math.abs(coin.position.x - playerMeshGroup.position.x);
+          const dy = Math.abs(coin.position.y - (playerY + 1));
+          const dz = Math.abs(coin.position.z - playerMeshGroup.position.z);
+
+          if (dx < 0.9 && dy < 1.3 && dz < 1.2) {
+            coinsCollected++;
+            score += 50;
+            sound.playCoin();
+            spawnParticles(coin.position.x, coin.position.y, coin.position.z, 0xffd700, 8);
+            scene.remove(coin);
+            coins.splice(i, 1);
+            continue;
+          }
+
+          if (coin.position.z < -20) {
+            scene.remove(coin);
+            coins.splice(i, 1);
+          }
+        }
+      }
+
+      // Outlaw Bandit Follow
+      if (currentState === GAME_STATE.PLAYING) {
+        outlawMeshGroup.position.x += (playerMeshGroup.position.x - outlawMeshGroup.position.x) * 6 * dt;
+        outlawMeshGroup.position.z = -5.5;
+        outlawMeshGroup.position.y = playerY * 0.4;
+      }
+
+      animateLimbs(timeSec * currentSpeed * 0.45, isSliding);
+
+      // Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.mesh.position.x += p.vx * dt;
+        p.mesh.position.y += p.vy * dt;
+        p.mesh.position.z += p.vz * dt;
+        p.vy -= 24 * dt;
+        p.life -= dt;
+        if (p.life <= 0) {
+          scene.remove(p.mesh);
+          particles.splice(i, 1);
+        }
+      }
+
+      // Camera Follow & Shake
+      if (cameraShake > 0) {
+        camera.position.x = (Math.random() - 0.5) * cameraShake;
+        camera.position.y = 5.0 + (Math.random() - 0.5) * cameraShake;
+        cameraShake -= dt * 1.5;
+      } else {
+        camera.position.x = -playerMeshGroup.position.x * 0.35;
+        camera.position.y = 5.0 + (playerY * 0.3);
+      }
+
+      updateHUDUI();
+    }
+
+    function animateLimbs(t, sliding) {
+      if (sliding) {
+        playerLimbs.leftArm.rotation.x = -1.2;
+        playerLimbs.rightArm.rotation.x = -1.2;
+        playerLimbs.leftLeg.rotation.x = 1.2;
+        playerLimbs.rightLeg.rotation.x = 1.2;
+        return;
+      }
+
+      if (skateboardActive) {
+        playerLimbs.leftArm.rotation.set(0.4, 0.4, 0.8);
+        playerLimbs.rightArm.rotation.set(-0.4, -0.4, -0.8);
+        playerLimbs.leftLeg.rotation.set(0.3, 0.2, 0);
+        playerLimbs.rightLeg.rotation.set(-0.3, -0.2, 0);
+        playerMeshGroup.rotation.y = -0.5;
+      } else {
+        playerMeshGroup.rotation.y = 0;
+        const swing = Math.sin(t) * 0.85;
+        playerLimbs.leftArm.rotation.x = swing;
+        playerLimbs.rightArm.rotation.x = -swing;
+        playerLimbs.leftLeg.rotation.x = -swing;
+        playerLimbs.rightLeg.rotation.x = swing;
+      }
+
+      const outlawSwing = Math.sin(t * 1.1) * 0.95;
+      outlawLimbs.leftArm.rotation.x = outlawSwing;
+      outlawLimbs.rightArm.rotation.x = -outlawSwing;
+      outlawLimbs.leftLeg.rotation.x = -outlawSwing;
+      outlawLimbs.rightLeg.rotation.x = outlawSwing;
+    }
+
+    function checkCollision(obs) {
+      const pX = playerMeshGroup.position.x;
+      const pY = playerY;
+      const pZ = 0;
+
+      const oX = obs.group.position.x;
+      const oZ = obs.group.position.z;
+
+      const halfW = (obs.width || 2.5) / 2 + 0.32;
+      const halfL = (obs.length || 1.0) / 2 + 0.32;
+
+      if (Math.abs(pX - oX) < halfW && Math.abs(pZ - oZ) < halfL) {
+        if (obs.type === 'LOW_HURDLE') {
+          if (pY < 0.82) return true;
+        } else if (obs.type === 'HIGH_BARRIER') {
+          if (!isSliding) return true;
+        } else {
+          if (pY < (obs.height || 3.5) * 0.9) return true;
+        }
+      }
+      return false;
+    }
+
+    function updateHUDUI() {
+      document.getElementById('hud-best-score').innerText = bestScore;
+      document.getElementById('hud-score').innerText = Math.floor(score).toString().padStart(6, '0');
+      document.getElementById('hud-coins').innerText = coinsCollected.toString().padStart(4, '0');
+      document.getElementById('hud-distance').innerText = `${Math.floor(distanceTraveled)} m`;
+
+      const skateBtn = document.getElementById('btn-skate-action');
+      const skateBadge = document.getElementById('skate-badge');
+
+      if (skateboardActive) {
+        skateBtn.className = 'skate-btn active';
+        skateBadge.innerText = `${Math.ceil(skateboardTimeLeft)}s`;
+      } else {
+        skateBtn.className = 'skate-btn';
+        skateBadge.innerText = `x${skateboardInventory}`;
+      }
+    }
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      update(dt);
+      renderer.render(scene, camera);
+    }
+
+    /* ==========================================================
+       10. START
+       ========================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      init3D();
+      setupInputs();
+      lastTime = performance.now();
+      requestAnimationFrame(animate);
+    });
+  </script>
+</body>
+</html>
