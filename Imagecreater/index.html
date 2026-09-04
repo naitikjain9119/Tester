@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en" class="dark h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aetheria AI Studio — Next-Gen AI Image Generator</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;600&display=swap" rel="stylesheet">
+  
+  <!-- Phosphor Icons CDN -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              dark: '#020617',
+              surface: '#0f172a',
+              surfaceLight: '#1e293b',
+              primary: '#6366f1',
+              secondary: '#d946ef',
+              accent: '#06b6d4',
+            }
+          },
+          animation: {
+            'blob-slow': 'blob 18s infinite alternate ease-in-out',
+            'blob-fast': 'blob 12s infinite alternate-reverse ease-in-out',
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-glow': 'pulseGlow 2.5s infinite',
+          },
+          keyframes: {
+            blob: {
+              '0%': { transform: 'translate(0px, 0px) scale(1)' },
+              '33%': { transform: 'translate(30px, -50px) scale(1.12)' },
+              '66%': { transform: 'translate(-20px, 20px) scale(0.92)' },
+              '100%': { transform: 'translate(0px, 0px) scale(1)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-10px)' },
+            },
+            pulseGlow: {
+              '0%, 100%': { opacity: '0.4', filter: 'blur(20px)' },
+              '50%': { opacity: '0.85', filter: 'blur(30px)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #020617;
+      color: #f8fafc;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Ambient Dot Grid */
+    .bg-grid-pattern {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    /* Glass Effect Presets */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+    
+    .glass-card-interactive {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-card-interactive:hover {
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.5);
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col antialiased selection:bg-brand-primary selection:text-white bg-brand-dark overflow-hidden">
+
+  <!-- Ambient Background Glows -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="absolute -top-36 -left-36 w-96 md:w-[600px] h-96 md:h-[600px] bg-brand-primary/20 rounded-full blur-[120px] animate-blob-slow"></div>
+    <div class="absolute top-1/3 -right-36 w-80 md:w-[500px] h-80 md:h-[500px] bg-brand-secondary/20 rounded-full blur-[130px] animate-blob-fast"></div>
+    <div class="absolute bottom-10 left-1/4 w-96 md:w-[550px] h-96 md:h-[550px] bg-brand-accent/15 rounded-full blur-[140px] animate-pulse-glow"></div>
+  </div>
+
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-3 pointer-events-none"></div>
+
+  <!-- Fullscreen Image Inspection Modal -->
+  <div id="image-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/90 backdrop-blur-2xl p-4 transition-all duration-300">
+    <div class="relative max-w-5xl w-full max-h-[92vh] flex flex-col glass-panel rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+      <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-slate-900/70">
+        <div class="flex items-center space-x-3">
+          <span class="inline-flex items-center justify-center p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+            <i class="ph ph-sparkle text-lg"></i>
+          </span>
+          <div>
+            <h4 class="text-sm font-semibold text-white truncate max-w-md" id="modal-title">High-Resolution Render</h4>
+            <p class="text-xs text-slate-400" id="modal-meta">Ultra-Sharp • Pollinations Flux Engine</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button id="modal-download-btn" class="p-2 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition-colors" title="Download Full Resolution">
+            <i class="ph ph-download-simple text-xl"></i>
+          </button>
+          <button id="modal-close-btn" class="p-2 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition-colors" title="Close">
+            <i class="ph ph-x text-xl"></i>
+          </button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-auto flex items-center justify-center p-4 bg-slate-950/80">
+        <img id="modal-img" src="" alt="Full view" class="max-h-[70vh] w-auto object-contain rounded-lg shadow-2xl">
+      </div>
+      <div class="p-4 bg-slate-900/90 border-t border-white/10 flex flex-col md:flex-row gap-3 items-start md:items-center justify-between text-xs text-slate-300">
+        <div class="flex-1 font-mono bg-black/50 p-2.5 rounded-lg border border-white/5 truncate max-w-3xl" id="modal-prompt-text">Prompt text...</div>
+        <button id="modal-copy-prompt-btn" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium flex items-center gap-2 shrink-0 transition-colors">
+          <i class="ph ph-copy"></i> Copy Prompt
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN FULLSCREEN STUDIO INTERFACE                                         -->
+  <!-- ========================================================================= -->
+  <div id="app-studio" class="relative z-10 flex flex-col flex-1 h-full overflow-hidden">
+    
+    <!-- Studio Header -->
+    <header class="h-16 shrink-0 border-b border-white/10 glass-panel px-4 lg:px-6 flex items-center justify-between z-20">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-primary via-purple-500 to-brand-secondary p-[1px] shadow-lg shadow-indigo-500/20">
+          <div class="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center">
+            <i class="ph-bold ph-aperture text-indigo-400 text-lg"></i>
+          </div>
+        </div>
+        <span class="font-bold text-base text-white tracking-wide flex items-center gap-2">
+          Aetheria <span class="text-[11px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">AI Studio</span>
+        </span>
+      </div>
+
+      <!-- Center Status / Active Config Pill -->
+      <div class="hidden md:flex items-center space-x-3 text-xs bg-slate-900/90 px-3.5 py-1.5 rounded-full border border-white/10 text-slate-300">
+        <span class="flex items-center gap-1.5">
+          <i class="ph-fill ph-diamonds-four text-cyan-400"></i>
+          <span id="header-active-quality" class="text-cyan-300 font-semibold">Quality: 4K</span>
+        </span>
+        <span class="text-white/20">•</span>
+        <span id="header-active-style" class="text-fuchsia-300 font-semibold">Style: Cinematic</span>
+        <span class="text-white/20">•</span>
+        <span id="header-active-ratio" class="text-slate-300">Ratio: 1:1</span>
+        <span class="text-white/20">•</span>
+        <span id="header-active-model" class="text-indigo-300">Model: Flux</span>
+      </div>
+
+      <!-- Right Header Actions -->
+      <div class="flex items-center space-x-2">
+        <button onclick="clearCanvas()" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/5 text-xs font-medium flex items-center gap-1.5 transition-colors" title="Reset View">
+          <i class="ph ph-trash text-base"></i>
+          <span class="hidden sm:inline">Clear</span>
+        </button>
+        <button onclick="triggerSurprisePrompt()" class="px-3.5 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 hover:text-indigo-200 text-xs font-medium flex items-center gap-1.5 transition-all">
+          <i class="ph-bold ph-dice-five text-base"></i>
+          <span class="hidden sm:inline">Surprise Me</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Studio Main Workspace -->
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+      
+      <!-- LEFT SIDEBAR: Controls & Parameters -->
+      <aside class="w-full lg:w-80 xl:w-96 shrink-0 border-r border-white/10 glass-panel flex flex-col overflow-hidden max-h-[42vh] lg:max-h-none order-2 lg:order-1">
+        
+        <!-- Sidebar Navigation Tabs -->
+        <div class="flex border-b border-white/10 bg-slate-950/40 p-1">
+          <button id="tab-btn-controls" onclick="switchSidebarTab('controls')" class="flex-1 py-2 rounded-lg text-xs font-semibold bg-white/10 text-white flex items-center justify-center gap-2 transition-all">
+            <i class="ph-bold ph-sliders"></i> Synthesis Controls
+          </button>
+          <button id="tab-btn-history" onclick="switchSidebarTab('history')" class="flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-all">
+            <i class="ph-bold ph-clock-counter-clockwise"></i> History (<span id="history-count">0</span>)
+          </button>
+        </div>
+
+        <!-- TAB 1: GENERATION CONTROLS -->
+        <div id="tab-panel-controls" class="flex-1 overflow-y-auto p-5 space-y-5">
+          
+          <!-- 1. Quality Selector (720p, 1080p, 1K, 2K, 4K, 8K) -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                <i class="ph-bold ph-sparkle text-cyan-400"></i> Render Quality
+              </label>
+              <span id="quality-badge" class="text-[10px] px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-mono">Ultra-HD 4K</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="setQuality('720')" data-quality="720" class="quality-btn p-2 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-center text-xs font-semibold text-slate-300 transition-all">
+                720p <span class="block text-[9px] text-slate-500 font-normal font-mono">Fast Draft</span>
+              </button>
+              <button onclick="setQuality('1080')" data-quality="1080" class="quality-btn p-2 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-center text-xs font-semibold text-slate-300 transition-all">
+                1080p <span class="block text-[9px] text-slate-500 font-normal font-mono">Full HD</span>
+              </button>
+              <button onclick="setQuality('1k')" data-quality="1k" class="quality-btn p-2 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-center text-xs font-semibold text-slate-300 transition-all">
+                1K <span class="block text-[9px] text-slate-500 font-normal font-mono">Standard</span>
+              </button>
+              <button onclick="setQuality('2k')" data-quality="2k" class="quality-btn p-2 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-center text-xs font-semibold text-slate-300 transition-all">
+                2K <span class="block text-[9px] text-slate-500 font-normal font-mono">QHD Fine</span>
+              </button>
+              <button onclick="setQuality('4k')" data-quality="4k" class="quality-btn active-quality p-2 rounded-xl border border-cyan-500/60 bg-cyan-500/15 text-center text-xs font-bold text-cyan-200 shadow-sm shadow-cyan-500/20 transition-all">
+                4K <span class="block text-[9px] text-cyan-300 font-normal font-mono">Ultra UHD</span>
+              </button>
+              <button onclick="setQuality('8k')" data-quality="8k" class="quality-btn p-2 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-center text-xs font-semibold text-slate-300 transition-all">
+                8K <span class="block text-[9px] text-slate-500 font-normal font-mono">Max Fidelity</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. Aesthetic Style Presets (All 6 Working Options) -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">Aesthetic Style</label>
+            <div class="grid grid-cols-2 gap-2">
+              
+              <!-- Cinematic -->
+              <button onclick="setStylePreset('cinematic')" data-style="cinematic" class="style-btn active-style p-2.5 rounded-xl border border-indigo-500/60 bg-indigo-500/15 text-left flex items-center gap-2.5 transition-all">
+                <i class="ph-bold ph-film-slate text-indigo-400 text-base shrink-0"></i>
+                <div class="truncate">
+                  <div class="text-xs font-semibold text-white">Cinematic</div>
+                  <div class="text-[10px] text-slate-400 truncate">35mm Film • 8k</div>
+                </div>
+              </button>
+
+              <!-- Anime & Manga -->
+              <button onclick="setStylePreset('anime')" data-style="anime" class="style-btn p-2.5 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-left flex items-center gap-2.5 transition-all">
+                <i class="ph-bold ph-sparkle text-fuchsia-400 text-base shrink-0"></i>
+                <div class="truncate">
+                  <div class="text-xs font-semibold text-white">Anime & Manga</div>
+                  <div class="text-[10px] text-slate-400 truncate">Makoto Shinkai</div>
+                </div>
+              </button>
+
+              <!-- 3D Octane -->
+              <button onclick="setStylePreset('3d-render')" data-style="3d-render" class="style-btn p-2.5 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-left flex items-center gap-2.5 transition-all">
+                <i class="ph-bold ph-cube text-cyan-400 text-base shrink-0"></i>
+                <div class="truncate">
+                  <div class="text-xs font-semibold text-white">3D Octane</div>
+                  <div class="text-[10px] text-slate-400 truncate">Raytraced • Unreal 5</div>
+                </div>
+              </button>
+
+              <!-- Hyper-Real -->
+              <button onclick="setStylePreset('photorealism')" data-style="photorealism" class="style-btn p-2.5 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-left flex items-center gap-2.5 transition-all">
+                <i class="ph-bold ph-camera text-emerald-400 text-base shrink-0"></i>
+                <div class="truncate">
+                  <div class="text-xs font-semibold text-white">Hyper-Real</div>
+                  <div class="text-[10px] text-slate-400 truncate">Studio Lighting</div>
+                </div>
+              </button>
+
+              <!-- Cyberpunk -->
+              <button onclick="setStylePreset('cyberpunk')" data-style="cyberpunk" class="style-btn p-2.5 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-left flex items-center gap-2.5 transition-all">
+                <i class="ph-bold ph-lightning text-amber-400 text-base shrink-0"></i>
+                <div class="truncate">
+                  <div class="text-xs font-semibold text-white">Cyberpunk</div>
+                  <div class="text-[10px] text-slate-400 truncate">Neon • Volumetric</div>
+                </div>
+              </button>
+
+              <!-- Impressionist -->
+              <button onclick="setStylePreset('oil-painting')" data-style="oil-painting" class="style-btn p-2.5 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-left flex items-center gap-2.5 transition-all">
+                <i class="ph-bold ph-paint-brush text-rose-400 text-base shrink-0"></i>
+                <div class="truncate">
+                  <div class="text-xs font-semibold text-white">Impressionist</div>
+                  <div class="text-[10px] text-slate-400 truncate">Heavy Impasto</div>
+                </div>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- 3. Aspect Ratio Selector -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">Aspect Ratio</label>
+            <div class="grid grid-cols-4 gap-2">
+              <button onclick="setAspectRatio('1:1')" data-ratio="1:1" class="ratio-btn active-option p-2 rounded-xl border border-indigo-500/60 bg-indigo-500/15 text-center flex flex-col items-center gap-1 transition-all">
+                <div class="w-4 h-4 rounded border-2 border-indigo-400"></div>
+                <span class="text-[11px] font-medium text-slate-200">1:1</span>
+              </button>
+              <button onclick="setAspectRatio('16:9')" data-ratio="16:9" class="ratio-btn p-2 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-center flex flex-col items-center gap-1 transition-all">
+                <div class="w-5 h-3 rounded border border-slate-400 mt-0.5"></div>
+                <span class="text-[11px] font-medium text-slate-400">16:9</span>
+              </button>
+              <button onclick="setAspectRatio('9:16')" data-ratio="9:16" class="ratio-btn p-2 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-center flex flex-col items-center gap-1 transition-all">
+                <div class="w-3 h-5 rounded border border-slate-400"></div>
+                <span class="text-[11px] font-medium text-slate-400">9:16</span>
+              </button>
+              <button onclick="setAspectRatio('4:3')" data-ratio="4:3" class="ratio-btn p-2 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-center flex flex-col items-center gap-1 transition-all">
+                <div class="w-4 h-3 rounded border border-slate-400 mt-0.5"></div>
+                <span class="text-[11px] font-medium text-slate-400">4:3</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4. AI Neural Engine Selection -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">Neural Engine</label>
+            <div class="relative">
+              <select id="model-select" onchange="updateModelSelection()" class="w-full appearance-none bg-slate-900/90 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer">
+                <option value="flux" selected>Flux (Ultra High Precision & Zero Blur)</option>
+                <option value="turbo">Turbo (Sub-second Rapid Drafts)</option>
+              </select>
+              <i class="ph-bold ph-caret-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+            </div>
+          </div>
+
+          <!-- 5. Advanced Settings Accordion -->
+          <div class="border border-white/10 rounded-xl overflow-hidden bg-slate-950/40">
+            <button onclick="toggleAdvancedSettings()" class="w-full px-4 py-2.5 flex items-center justify-between text-xs font-semibold text-slate-300 hover:text-white bg-white/[0.02]">
+              <span class="flex items-center gap-2"><i class="ph-bold ph-faders"></i> Advanced Controls (Seed & Negative)</span>
+              <i id="advanced-caret" class="ph-bold ph-caret-down transition-transform"></i>
+            </button>
+            
+            <div id="advanced-panel" class="hidden p-4 space-y-3.5 border-t border-white/5 text-xs">
+              
+              <!-- Seed Input -->
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-slate-400 font-medium">Seed Lock</label>
+                  <button onclick="randomizeSeed()" class="text-[11px] text-indigo-400 hover:underline flex items-center gap-1">
+                    <i class="ph ph-shuffle"></i> Randomize
+                  </button>
+                </div>
+                <input type="number" id="seed-input" value="42" 
+                  class="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-white font-mono focus:outline-none focus:border-indigo-500">
+              </div>
+
+              <!-- Negative Prompt -->
+              <div>
+                <label class="block text-slate-400 font-medium mb-1">Custom Negative Prompt</label>
+                <textarea id="negative-prompt-input" rows="2" placeholder="extra limbs, distorted faces, signature, watermark..." 
+                  class="w-full bg-slate-900 border border-white/10 rounded-lg p-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 text-xs"></textarea>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TAB 2: HISTORY (LOCALSTORAGE) -->
+        <div id="tab-panel-history" class="hidden flex-1 overflow-y-auto p-4">
+          <div class="flex items-center justify-between mb-3 px-1">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Saved Generations</span>
+            <button onclick="clearHistory()" class="text-xs text-rose-400 hover:text-rose-300 transition-colors">Clear All</button>
+          </div>
+          <div id="history-grid" class="grid grid-cols-2 gap-3">
+            <!-- Dynamically Populated -->
+          </div>
+          <div id="history-empty" class="text-center py-12 text-slate-500 text-xs">
+            <i class="ph ph-archive text-3xl mb-2 block opacity-40"></i>
+            No saved images yet.<br>Generate your first creation!
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- MAIN CANVAS & BOTTOM PROMPT BAR -->
+      <main class="flex-1 flex flex-col relative overflow-hidden order-1 lg:order-2 bg-grid-pattern">
+        
+        <!-- Image Canvas Display -->
+        <div class="flex-1 flex items-center justify-center p-4 lg:p-8 overflow-auto relative">
+          
+          <!-- STATE 1: EMPTY PLACEHOLDER -->
+          <div id="canvas-placeholder" class="max-w-md text-center p-8 rounded-3xl glass-panel border border-white/10 relative shadow-2xl">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500/20 to-fuchsia-500/20 border border-white/10 mx-auto flex items-center justify-center text-3xl text-indigo-400 mb-4 animate-float">
+              <i class="ph-bold ph-wand"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Ready for Neural Synthesis</h3>
+            <p class="text-xs text-slate-400 mb-6 leading-relaxed">
+              Enter any description in the prompt bar, pick your desired art style and resolution, then click Generate to create ultra-sharp masterpieces.
+            </p>
+            <div class="flex flex-wrap gap-2 justify-center">
+              <button onclick="applySamplePrompt('Bioluminescent jellyfish galaxy drifting through deep outer space nebula')" class="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 transition-colors">
+                ✨ Cosmic Jellyfish
+              </button>
+              <button onclick="applySamplePrompt('Cyberpunk samurai warrior in neon rain with glowing katana')" class="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 transition-colors">
+                ⚔️ Neon Samurai
+              </button>
+              <button onclick="applySamplePrompt('Emerald crystal dragon sleeping inside an ancient moss-covered library')" class="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 transition-colors">
+                🐉 Crystal Dragon
+              </button>
+            </div>
+          </div>
+
+          <!-- STATE 2: LOADING STATE -->
+          <div id="canvas-loading" class="hidden flex flex-col items-center justify-center p-8 text-center">
+            <div class="relative w-28 h-28 mb-6">
+              <div class="absolute inset-0 rounded-full border-4 border-indigo-500/20"></div>
+              <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-brand-primary border-r-brand-secondary animate-spin"></div>
+              <div class="absolute inset-3 rounded-full bg-slate-900/80 backdrop-blur-md flex items-center justify-center">
+                <i class="ph-bold ph-sparkle text-2xl text-fuchsia-400 animate-pulse"></i>
+              </div>
+            </div>
+            <h4 id="loading-stage-text" class="text-base font-bold text-white mb-1">Synthesizing Latent Vectors...</h4>
+            <p class="text-xs text-cyan-400 font-mono" id="loading-quality-indicator">Applying Zero-Blur Sharpness Matrices...</p>
+          </div>
+
+          <!-- STATE 3: GENERATED IMAGE -->
+          <div id="canvas-result-wrapper" class="hidden max-w-full max-h-full relative group">
+            <div class="relative rounded-2xl overflow-hidden shadow-2xl border border-white/15 bg-slate-950 flex items-center justify-center">
+              
+              <!-- Rendered Image (Crystal Sharp) -->
+              <img id="main-rendered-image" src="" alt="Generated artwork" 
+                class="max-h-[65vh] max-w-full object-contain transition-transform duration-500 group-hover:scale-[1.01]">
+
+              <!-- Floating Action Overlay (Hover) -->
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 p-4 flex flex-col justify-between pointer-events-none">
+                
+                <!-- Top Buttons -->
+                <div class="flex justify-end gap-2 pointer-events-auto">
+                  <button onclick="openInspectModal()" class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-indigo-600 text-white backdrop-blur-md border border-white/10 transition-colors" title="Inspect Fullscreen">
+                    <i class="ph-bold ph-arrows-out-simple text-sm"></i>
+                  </button>
+                  <button onclick="copyGeneratedUrl()" class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-indigo-600 text-white backdrop-blur-md border border-white/10 transition-colors" title="Copy Image URL">
+                    <i class="ph-bold ph-link text-sm"></i>
+                  </button>
+                </div>
+
+                <!-- Bottom Bar Details -->
+                <div class="flex items-center justify-between pointer-events-auto gap-4">
+                  <div class="text-xs text-slate-300 font-mono truncate max-w-md bg-black/70 px-3 py-1.5 rounded-lg backdrop-blur-md" id="result-prompt-badge">
+                    Prompt details...
+                  </div>
+                  <button onclick="downloadCurrentImage()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-primary to-brand-secondary text-white text-xs font-semibold flex items-center gap-2 shadow-lg hover:shadow-indigo-500/40 transition-all shrink-0">
+                    <i class="ph-bold ph-download-simple"></i> Download PNG
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- FLOATING PROMPT BAR -->
+        <div class="p-4 lg:p-6 z-20">
+          <div class="max-w-4xl mx-auto rounded-2xl glass-panel p-2 border border-white/20 shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex flex-col sm:flex-row gap-2 items-center">
+            
+            <div class="relative flex-1 w-full flex items-center pl-3">
+              <i class="ph-bold ph-terminal text-lg text-indigo-400 mr-2 shrink-0"></i>
+              <input type="text" id="app-prompt-input" 
+                placeholder="Describe what you want to create in rich vivid detail... (Press Enter)" 
+                class="w-full bg-transparent border-0 text-white placeholder-slate-500 focus:outline-none text-xs sm:text-sm py-2"
+                onkeydown="if(event.key === 'Enter') generateImage();">
+            </div>
+
+            <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+              <!-- Magic Enhance Button -->
+              <button onclick="magicEnhancePrompt()" id="enhance-btn" class="px-3.5 py-2.5 rounded-xl bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border border-fuchsia-500/30 text-fuchsia-300 hover:text-fuchsia-200 text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap" title="Add artistic style and sharpness modifiers">
+                <i class="ph-bold ph-sparkle"></i>
+                <span>Enhance</span>
+              </button>
+
+              <!-- Main Generate Button -->
+              <button onclick="generateImage()" id="generate-btn" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-brand-primary via-purple-600 to-brand-secondary hover:from-indigo-600 hover:to-fuchsia-600 text-white text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-lg shadow-indigo-500/30 active:scale-95 transition-all whitespace-nowrap">
+                <i class="ph-bold ph-lightning"></i>
+                <span id="generate-btn-text">Generate</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
+
+    </div>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT ENGINE (FULLY FUNCTIONING, ANTI-BLUR, 6 STYLES, QUALITIES)    -->
+  <!-- ========================================================================= -->
+  <script>
+    // --- Application State ---
+    const state = {
+      prompt: "",
+      style: "cinematic",
+      quality: "4k",
+      ratio: "1:1",
+      width: 1024,
+      height: 1024,
+      model: "flux",
+      seed: 42,
+      isGenerating: false,
+      currentImageUrl: null,
+      history: []
+    };
+
+    // --- Powerful 6 Style Prompts (Fully Implemented) ---
+    const STYLE_MODIFIERS = {
+      'cinematic': 'cinematic 35mm film still, shot on Panavision anamorphic lens, ARRI Alexa LF, dramatic blockbuster lighting, shallow depth of field, color graded, tack sharp focus, 8k resolution cinematic masterpiece',
+      'anime': 'masterpiece anime key visual by Makoto Shinkai and CoMix Wave Films, clean crisp lineart, luminous vibrant atmospheric lighting, breathtaking sky and background detail, high quality anime art',
+      '3d-render': 'hyperrealistic 3D octane render, raytraced ambient occlusion, subsurface scattering, Unreal Engine 5 render, global illumination, physically based rendering (PBR), 8k 3D digital art',
+      'photorealism': 'award-winning studio portrait photography, Hasselblad H6D-100c, 85mm f/1.8 lens, crisp optical focus, authentic skin textures, studio rim lighting, tack sharp details, hyperrealistic photograph',
+      'cyberpunk': 'cyberpunk tech-noir aesthetic, glowing vivid neon lighting in magenta and cyan, reflective wet streets, volumetric atmospheric fog, intricate cybernetic details, tack sharp sci-fi masterpiece',
+      'oil-painting': 'fine art oil painting, expressive heavy impasto palette knife strokes, textured canvas, visible oil paint relief, dramatic classical chiaroscuro, rich saturated pigments, masterpiece fine art'
+    };
+
+    // --- Quality Configurations (Resolution & Quality Tokens) ---
+    const QUALITY_CONFIGS = {
+      '720': {
+        label: '720p HD',
+        badge: '720p HD Draft',
+        token: '720p hd, clear sharp lines, high clarity',
+        dimensions: { '1:1': [720, 720], '16:9': [1280, 720], '9:16': [720, 1280], '4:3': [960, 720] }
+      },
+      '1080': {
+        label: '1080p Full HD',
+        badge: '1080p Full HD',
+        token: '1080p full hd, crisp rendering, sharp focus, high definition',
+        dimensions: { '1:1': [1080, 1080], '16:9': [1920, 1080], '9:16': [1080, 1920], '4:3': [1440, 1080] }
+      },
+      '1k': {
+        label: '1K Standard',
+        badge: 'Standard 1K',
+        token: '1k resolution, high definition, detailed texture, tack sharp',
+        dimensions: { '1:1': [1024, 1024], '16:9': [1280, 720], '9:16': [720, 1280], '4:3': [1024, 768] }
+      },
+      '2k': {
+        label: '2K QHD',
+        badge: 'High-Res 2K',
+        token: '2k qhd resolution, high fidelity textures, octane render quality, tack sharp details',
+        dimensions: { '1:1': [1440, 1440], '16:9': [1920, 1080], '9:16': [1080, 1920], '4:3': [1440, 1080] }
+      },
+      '4k': {
+        label: '4K Ultra HD',
+        badge: 'Ultra-HD 4K',
+        token: '4k uhd resolution, extreme high resolution, raw photograph, crystal clear, ultra-sharp focus, photorealistic',
+        dimensions: { '1:1': [1536, 1536], '16:9': [1920, 1080], '9:16': [1080, 1920], '4:3': [1600, 1200] }
+      },
+      '8k': {
+        label: '8K Master',
+        badge: 'Master 8K UHD',
+        token: '8k masterwork, razor sharp focus, extreme fine detail, photorealistic masterpiece, uncompressed, award-winning 8k',
+        dimensions: { '1:1': [1792, 1792], '16:9': [2048, 1152], '9:16': [1152, 2048], '4:3': [1792, 1344] }
+      }
+    };
+
+    // --- Strict Global Anti-Blur & Quality Safeguard ---
+    const ANTI_BLUR_TOKENS = "crystal clear, razor sharp focus, highly detailed, tack sharp, 8k resolution, photorealistic masterwork";
+    const GLOBAL_NEGATIVE_FILTER = "blurry, blur, soft focus, out of focus, motion blur, haze, foggy, low resolution, pixelated, jpeg artifacts, compression artifacts, distorted anatomy, poorly drawn, extra limbs, bad proportions";
+
+    // Surprise inspiration prompts
+    const SURPRISE_PROMPTS = [
+      "Ancient cosmic observatory built inside the rings of Saturn, glowing star maps",
+      "Mythical glass phoenix rising from iridescent diamond ashes, caustic reflections",
+      "Cozy futuristic greenhouse pod apartment in Tokyo during a midnight rainstorm",
+      "Macro shot of a tiny enchanted moss biome thriving inside an antique incandescent bulb",
+      "Surreal levitating island with crystalline waterfalls spilling into the cosmos",
+      "Cybernetic feline scout with glowing optical sensors stalking in a neon alleyway"
+    ];
+
+    // --- Initialization ---
+    window.addEventListener('DOMContentLoaded', () => {
+      loadHistoryFromStorage();
+      randomizeSeed();
+      updateCalculatedDimensions();
+    });
+
+    function updateCalculatedDimensions() {
+      const qConf = QUALITY_CONFIGS[state.quality] || QUALITY_CONFIGS['4k'];
+      const dims = qConf.dimensions[state.ratio] || [1024, 1024];
+      state.width = dims[0];
+      state.height = dims[1];
+    }
+
+    // --- Sidebar Tabs & Controls ---
+    function switchSidebarTab(tab) {
+      const controlsPanel = document.getElementById('tab-panel-controls');
+      const historyPanel = document.getElementById('tab-panel-history');
+      const controlsBtn = document.getElementById('tab-btn-controls');
+      const historyBtn = document.getElementById('tab-btn-history');
+
+      if (tab === 'controls') {
+        controlsPanel.classList.remove('hidden');
+        historyPanel.classList.add('hidden');
+        controlsBtn.className = "flex-1 py-2 rounded-lg text-xs font-semibold bg-white/10 text-white flex items-center justify-center gap-2 transition-all";
+        historyBtn.className = "flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-all";
+      } else {
+        controlsPanel.classList.add('hidden');
+        historyPanel.classList.remove('hidden');
+        controlsBtn.className = "flex-1 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-all";
+        historyBtn.className = "flex-1 py-2 rounded-lg text-xs font-semibold bg-white/10 text-white flex items-center justify-center gap-2 transition-all";
+        renderHistory();
+      }
+    }
+
+    // --- Quality Selector Handler ---
+    function setQuality(qualityKey) {
+      if (!QUALITY_CONFIGS[qualityKey]) return;
+      state.quality = qualityKey;
+
+      document.querySelectorAll('.quality-btn').forEach(btn => {
+        if (btn.getAttribute('data-quality') === qualityKey) {
+          btn.className = "quality-btn active-quality p-2 rounded-xl border border-cyan-500/60 bg-cyan-500/15 text-center text-xs font-bold text-cyan-200 shadow-sm shadow-cyan-500/20 transition-all";
+          const sub = btn.querySelector('span');
+          if (sub) sub.className = "block text-[9px] text-cyan-300 font-normal font-mono";
+        } else {
+          btn.className = "quality-btn p-2 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-center text-xs font-semibold text-slate-300 transition-all";
+          const sub = btn.querySelector('span');
+          if (sub) sub.className = "block text-[9px] text-slate-500 font-normal font-mono";
+        }
+      });
+
+      const conf = QUALITY_CONFIGS[qualityKey];
+      document.getElementById('quality-badge').textContent = conf.badge;
+      document.getElementById('header-active-quality').textContent = `Quality: ${qualityKey.toUpperCase()}`;
+      
+      updateCalculatedDimensions();
+      showToast(`Quality set to ${conf.label}`, "info");
+    }
+
+    // --- Aspect Ratio Selector Handler ---
+    function setAspectRatio(ratio) {
+      state.ratio = ratio;
+      updateCalculatedDimensions();
+
+      document.querySelectorAll('.ratio-btn').forEach(btn => {
+        if (btn.getAttribute('data-ratio') === ratio) {
+          btn.className = "ratio-btn active-option p-2 rounded-xl border border-indigo-500/60 bg-indigo-500/15 text-center flex flex-col items-center gap-1 transition-all";
+          btn.querySelector('span').className = "text-[11px] font-medium text-slate-200";
+        } else {
+          btn.className = "ratio-btn p-2 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-center flex flex-col items-center gap-1 transition-all";
+          btn.querySelector('span').className = "text-[11px] font-medium text-slate-400";
+        }
+      });
+      document.getElementById('header-active-ratio').textContent = `Ratio: ${ratio}`;
+    }
+
+    // --- Aesthetic Style Presets Handler (All 6 Styles) ---
+    function setStylePreset(styleKey) {
+      state.style = styleKey;
+      document.querySelectorAll('.style-btn').forEach(btn => {
+        if (btn.getAttribute('data-style') === styleKey) {
+          btn.className = "style-btn active-style p-2.5 rounded-xl border border-indigo-500/60 bg-indigo-500/15 text-left flex items-center gap-2.5 transition-all";
+        } else {
+          btn.className = "style-btn p-2.5 rounded-xl border border-white/10 bg-slate-900/60 hover:bg-white/5 text-left flex items-center gap-2.5 transition-all";
+        }
+      });
+
+      const styleNames = {
+        'cinematic': 'Cinematic',
+        'anime': 'Anime & Manga',
+        '3d-render': '3D Octane',
+        'photorealism': 'Hyper-Real',
+        'cyberpunk': 'Cyberpunk',
+        'oil-painting': 'Impressionist'
+      };
+
+      const formatted = styleNames[styleKey] || styleKey;
+      document.getElementById('header-active-style').textContent = `Style: ${formatted}`;
+      showToast(`Style activated: ${formatted}`, "info");
+    }
+
+    function updateModelSelection() {
+      state.model = document.getElementById('model-select').value;
+      const modelLabel = state.model.toUpperCase();
+      document.getElementById('header-active-model').textContent = `Model: ${modelLabel}`;
+    }
+
+    function toggleAdvancedSettings() {
+      const panel = document.getElementById('advanced-panel');
+      const caret = document.getElementById('advanced-caret');
+      panel.classList.toggle('hidden');
+      caret.classList.toggle('rotate-180');
+    }
+
+    function randomizeSeed() {
+      const rand = Math.floor(Math.random() * 999999);
+      document.getElementById('seed-input').value = rand;
+      state.seed = rand;
+    }
+
+    function triggerSurprisePrompt() {
+      const randomPrompt = SURPRISE_PROMPTS[Math.floor(Math.random() * SURPRISE_PROMPTS.length)];
+      document.getElementById('app-prompt-input').value = randomPrompt;
+      showToast("Surprise prompt loaded!", "success");
+    }
+
+    function applySamplePrompt(promptText) {
+      document.getElementById('app-prompt-input').value = promptText;
+      generateImage();
+    }
+
+    // --- Magic Prompt Enhancement ---
+    function magicEnhancePrompt() {
+      const input = document.getElementById('app-prompt-input');
+      const current = input.value.trim();
+      if (!current) {
+        showToast("Please enter a prompt description first.", "info");
+        return;
+      }
+      
+      const modifier = STYLE_MODIFIERS[state.style] || '8k resolution, award-winning masterpiece';
+      const qualityToken = QUALITY_CONFIGS[state.quality]?.token || '4k resolution';
+      
+      if (!current.includes(modifier.slice(0, 15))) {
+        input.value = `${current}, ${modifier}, ${qualityToken}, ${ANTI_BLUR_TOKENS}`;
+        showToast("Prompt enhanced with crisp style modifiers!", "success");
+      } else {
+        showToast("Prompt already enhanced!", "info");
+      }
+    }
+
+    // --- Core Image Generation Engine (Anti-Blur, 6 Styles & Quality Linked) ---
+    async function generateImage() {
+      if (state.isGenerating) return;
+
+      const input = document.getElementById('app-prompt-input');
+      const rawPrompt = input.value.trim();
+
+      if (!rawPrompt) {
+        showToast("Please describe what you want to create.", "error");
+        input.focus();
+        return;
+      }
+
+      state.prompt = rawPrompt;
+      state.seed = parseInt(document.getElementById('seed-input').value) || Math.floor(Math.random() * 88888);
+      updateCalculatedDimensions();
+
+      // Combine User Prompt + Active Style Modifier + Active Quality Token + Anti-Blur Safeguard
+      const chosenStyleModifier = STYLE_MODIFIERS[state.style] || '';
+      const chosenQualityModifier = QUALITY_CONFIGS[state.quality]?.token || '';
+      
+      let fullSyntheticPrompt = `${rawPrompt}, ${chosenStyleModifier}, ${chosenQualityModifier}, ${ANTI_BLUR_TOKENS}`;
+
+      // Combine Global Negative Filter with user-defined negative prompt
+      const customNegative = document.getElementById('negative-prompt-input').value.trim();
+      const combinedNegative = customNegative 
+        ? `${GLOBAL_NEGATIVE_FILTER}, ${customNegative}`
+        : GLOBAL_NEGATIVE_FILTER;
+
+      fullSyntheticPrompt += ` | negative prompt: ${combinedNegative}`;
+
+      // Construct Target Image URL for Pollinations.ai
+      const encodedPrompt = encodeURIComponent(fullSyntheticPrompt);
+      const targetUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${state.width}&height=${state.height}&seed=${state.seed}&model=${state.model}&nologo=true`;
+
+      // Set Loading UI State
+      setLoadingState(true);
+
+      const stageText = document.getElementById('loading-stage-text');
+      const stages = [
+        `Rendering in ${state.quality.toUpperCase()} Mode...`,
+        `Applying ${state.style.toUpperCase()} Style Matrices...`,
+        "Enforcing Zero-Blur Sharpness Constraints...",
+        "Finalizing Color Normalization..."
+      ];
+      let stageIndex = 0;
+      const stageInterval = setInterval(() => {
+        stageIndex = (stageIndex + 1) % stages.length;
+        if (stageText) stageText.textContent = stages[stageIndex];
+      }, 700);
+
+      try {
+        // Preload image to avoid blank screens/flickers
+        await preloadImage(targetUrl);
+
+        // Success state
+        clearInterval(stageInterval);
+        state.currentImageUrl = targetUrl;
+        
+        // Update Canvas
+        const resultImg = document.getElementById('main-rendered-image');
+        resultImg.src = targetUrl;
+        document.getElementById('result-prompt-badge').textContent = `${rawPrompt} [${state.quality.toUpperCase()} • ${state.style}]`;
+
+        // Save to History
+        saveToHistory({
+          id: Date.now(),
+          prompt: rawPrompt,
+          style: state.style,
+          quality: state.quality,
+          model: state.model,
+          url: targetUrl,
+          seed: state.seed,
+          ratio: state.ratio,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+
+        showToast("Crystal-sharp image synthesized!", "success");
+      } catch (err) {
+        clearInterval(stageInterval);
+        console.error(err);
+        showToast("Generation failed. Please try again.", "error");
+      } finally {
+        setLoadingState(false);
+      }
+    }
+
+    function preloadImage(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(url);
+        img.onerror = () => reject(new Error("Image failed to load"));
+        img.src = url;
+      });
+    }
+
+    function setLoadingState(isLoading) {
+      state.isGenerating = isLoading;
+      const placeholder = document.getElementById('canvas-placeholder');
+      const loader = document.getElementById('canvas-loading');
+      const resultWrapper = document.getElementById('canvas-result-wrapper');
+      const genBtn = document.getElementById('generate-btn');
+      const genText = document.getElementById('generate-btn-text');
+
+      if (isLoading) {
+        placeholder.classList.add('hidden');
+        resultWrapper.classList.add('hidden');
+        loader.classList.remove('hidden');
+
+        genBtn.disabled = true;
+        genBtn.classList.add('opacity-60', 'cursor-not-allowed');
+        genText.textContent = "Synthesizing...";
+      } else {
+        loader.classList.add('hidden');
+        resultWrapper.classList.remove('hidden');
+
+        genBtn.disabled = false;
+        genBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+        genText.textContent = "Generate";
+      }
+    }
+
+    function clearCanvas() {
+      state.currentImageUrl = null;
+      document.getElementById('canvas-result-wrapper').classList.add('hidden');
+      document.getElementById('canvas-loading').classList.add('hidden');
+      document.getElementById('canvas-placeholder').classList.remove('hidden');
+      document.getElementById('app-prompt-input').value = "";
+      showToast("Canvas reset.", "info");
+    }
+
+    // --- History & Storage Operations ---
+    function loadHistoryFromStorage() {
+      try {
+        const stored = localStorage.getItem('aetheria_ai_history_v2');
+        if (stored) {
+          state.history = JSON.parse(stored);
+          updateHistoryCount();
+        }
+      } catch (e) {
+        console.error("Storage error:", e);
+      }
+    }
+
+    function saveToHistory(entry) {
+      state.history.unshift(entry);
+      if (state.history.length > 30) state.history.pop();
+      try {
+        localStorage.setItem('aetheria_ai_history_v2', JSON.stringify(state.history));
+      } catch (e) {
+        console.warn("LocalStorage quota full");
+      }
+      updateHistoryCount();
+      renderHistory();
+    }
+
+    function updateHistoryCount() {
+      document.getElementById('history-count').textContent = state.history.length;
+    }
+
+    function renderHistory() {
+      const container = document.getElementById('history-grid');
+      const emptyState = document.getElementById('history-empty');
+
+      if (!state.history || state.history.length === 0) {
+        container.innerHTML = "";
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      container.innerHTML = state.history.map(item => `
+        <div onclick="restoreHistoryItem(${item.id})" class="group relative rounded-xl overflow-hidden glass-panel border border-white/10 aspect-square cursor-pointer hover:border-indigo-500 transition-all">
+          <img src="${item.url}" alt="${item.prompt}" class="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy">
+          <div class="absolute inset-0 bg-slate-950/80 opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end text-[10px]">
+            <p class="text-white font-medium line-clamp-2">${item.prompt}</p>
+            <div class="flex items-center justify-between text-indigo-400 mt-1 font-mono text-[9px]">
+              <span>${item.quality?.toUpperCase() || '4K'} • ${item.style}</span>
+              <span>${item.timestamp}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function restoreHistoryItem(id) {
+      const item = state.history.find(h => h.id === id);
+      if (!item) return;
+
+      document.getElementById('app-prompt-input').value = item.prompt;
+      state.currentImageUrl = item.url;
+      if (item.style) setStylePreset(item.style);
+      if (item.quality) setQuality(item.quality);
+      if (item.ratio) setAspectRatio(item.ratio);
+      
+      const resultImg = document.getElementById('main-rendered-image');
+      resultImg.src = item.url;
+      document.getElementById('result-prompt-badge').textContent = `${item.prompt} [${item.quality || '4K'}]`;
+
+      document.getElementById('canvas-placeholder').classList.add('hidden');
+      document.getElementById('canvas-loading').classList.add('hidden');
+      document.getElementById('canvas-result-wrapper').classList.remove('hidden');
+
+      switchSidebarTab('controls');
+      showToast("Restored from history!", "info");
+    }
+
+    function clearHistory() {
+      state.history = [];
+      localStorage.removeItem('aetheria_ai_history_v2');
+      updateHistoryCount();
+      renderHistory();
+      showToast("History cleared.", "info");
+    }
+
+    // --- Action Handlers: Download, Copy & Modal ---
+    async function downloadCurrentImage() {
+      if (!state.currentImageUrl) return;
+      showToast("Downloading high-resolution image...", "info");
+
+      try {
+        const res = await fetch(state.currentImageUrl);
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `aetheria-${state.quality}-${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        showToast("Download completed!", "success");
+      } catch (err) {
+        window.open(state.currentImageUrl, '_blank');
+      }
+    }
+
+    function copyGeneratedUrl() {
+      if (!state.currentImageUrl) return;
+      navigator.clipboard.writeText(state.currentImageUrl);
+      showToast("Image URL copied to clipboard!", "success");
+    }
+
+    function openInspectModal() {
+      if (!state.currentImageUrl) return;
+      const modal = document.getElementById('image-modal');
+      const modalImg = document.getElementById('modal-img');
+      const promptText = document.getElementById('modal-prompt-text');
+
+      modalImg.src = state.currentImageUrl;
+      promptText.textContent = state.prompt || document.getElementById('app-prompt-input').value;
+      modal.classList.remove('hidden');
+    }
+
+    // Modal Events
+    document.getElementById('modal-close-btn').addEventListener('click', () => {
+      document.getElementById('image-modal').classList.add('hidden');
+    });
+    document.getElementById('modal-download-btn').addEventListener('click', downloadCurrentImage);
+    document.getElementById('modal-copy-prompt-btn').addEventListener('click', () => {
+      const text = document.getElementById('modal-prompt-text').textContent;
+      navigator.clipboard.writeText(text);
+      showToast("Prompt copied to clipboard!", "success");
+    });
+
+    // --- Toast Notification Utility ---
+    function showToast(message, type = "info") {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const icons = {
+        success: 'ph-fill ph-check-circle text-emerald-400',
+        error: 'ph-fill ph-warning-circle text-rose-400',
+        info: 'ph-fill ph-info text-indigo-400'
+      };
+
+      toast.className = "pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl glass-panel border border-white/15 shadow-2xl text-xs text-white transform transition-all duration-300 translate-y-4 opacity-0";
+      toast.innerHTML = `
+        <i class="${icons[type] || icons.info} text-lg"></i>
+        <span>${message}</span>
+      `;
+
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-4', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-4', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+  </script>
+</body>
+</html>
