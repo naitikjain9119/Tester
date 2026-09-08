@@ -1215,105 +1215,47 @@
   const DEFAULT_SAMPLE_CODE = `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interactive Preview</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hello World</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
-      color: #f8fafc;
-      padding: 20px;
     }
     .card {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 16px;
-      padding: 32px;
-      max-width: 440px;
-      width: 100%;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 48px 64px;
       text-align: center;
+      color: white;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.2);
     }
-    h1 {
-      font-size: 1.75rem;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, #a78bfa, #38bdf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    p {
-      color: #94a3b8;
-      font-size: 0.95rem;
-      margin-bottom: 24px;
-      line-height: 1.5;
-    }
-    .counter-box {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    .count-display {
-      font-size: 2.5rem;
-      font-weight: 700;
-      min-width: 60px;
-      font-variant-numeric: tabular-nums;
-    }
-    button {
-      background: #7c6af7;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 18px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    button:hover {
-      background: #6d58f5;
-      transform: translateY(-1px);
-    }
-    button:active {
-      transform: translateY(0);
+    h1 { font-size: 3rem; margin-bottom: 12px; }
+    p { font-size: 1.1rem; opacity: 0.9; }
+    .badge {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 6px 18px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      font-size: 0.85rem;
     }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>🚀 Live HTML Sandbox</h1>
-    <p>Edit HTML, CSS, and JS simultaneously with real-time browser rendering.</p>
-    <div class="counter-box">
-      <button id="btn-dec">−</button>
-      <span class="count-display" id="count-val">0</span>
-      <button id="btn-inc">+</button>
-    </div>
-    <button id="btn-log" style="background:#334155;">Test Console.log</button>
+    <h1>🚀 Hello World!</h1>
+    <p>Welcome to HTML Runner by Naitik Jain</p>
+    <span class="badge">Edit code in the editor → Press Run ▶</span>
   </div>
-
-  <script>
-    let count = 0;
-    const countEl = document.getElementById('count-val');
-    document.getElementById('btn-inc').addEventListener('click', () => {
-      count++;
-      countEl.textContent = count;
-    });
-    document.getElementById('btn-dec').addEventListener('click', () => {
-      count--;
-      countEl.textContent = count;
-    });
-    document.getElementById('btn-log').addEventListener('click', () => {
-      console.log('Current counter value:', count, 'Timestamp:', new Date().toLocaleTimeString());
-    });
-  <\/script>
 </body>
 </html>`;
 
