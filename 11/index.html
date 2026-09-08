@@ -1,335 +1,2378 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Location Tracker - Google Satellite View</title>
-    
-    <!-- Tailwind CSS (Styling) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Leaflet CSS & JS (Free Interactive Map Engine) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- MQTT JS (Real-time Sync) -->
-    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HTML Runner</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" />
+  <style>
+    /* ===== CSS CUSTOM PROPERTIES & TOKENS ===== */
+    :root {
+      --bg-base: #0a0a0f;
+      --bg-surface: #12121c;
+      --bg-surface-elevated: #1a1a28;
+      --bg-surface-subtle: #212134;
+      --bg-glass: rgba(18, 18, 28, 0.78);
+      --bg-glass-card: rgba(26, 26, 40, 0.65);
+      
+      --border-subtle: rgba(255, 255, 255, 0.07);
+      --border-medium: rgba(255, 255, 255, 0.14);
+      --border-focus: #7c6af7;
+      
+      --accent: #7c6af7;
+      --accent-hover: #9080ff;
+      --accent-gradient: linear-gradient(135deg, #7c6af7 0%, #a78bfa 100%);
+      --accent-contrast: #ffffff;
+      
+      --text-main: #f1f1f9;
+      --text-muted: #9595b2;
+      --text-faint: #5e5e7c;
+      
+      --color-error: #f43f5e;
+      --color-warning: #f59e0b;
+      --color-info: #38bdf8;
+      --color-success: #10b981;
+      
+      --header-h: 38px;
+      --toolbar-h: 48px;
+      --status-h: 26px;
+      --radius-sm: 4px;
+      --radius-md: 7px;
+      --radius-lg: 11px;
+      --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
 
-    <style>
-        #map {
-            height: calc(100vh - 70px);
-            width: 100%;
-            z-index: 1;
-        }
-    </style>
+    [data-theme="light"] {
+      --bg-base: #f4f4fa;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #f0f0f8;
+      --bg-surface-subtle: #e4e4f2;
+      --bg-glass: rgba(255, 255, 255, 0.85);
+      --bg-glass-card: rgba(244, 244, 250, 0.75);
+      
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      --border-medium: rgba(0, 0, 0, 0.16);
+      --border-focus: #5b48ee;
+      
+      --accent: #5b48ee;
+      --accent-hover: #4937dc;
+      --accent-gradient: linear-gradient(135deg, #5b48ee 0%, #7c6af7 100%);
+      --accent-contrast: #ffffff;
+      
+      --text-main: #131322;
+      --text-muted: #5e5e78;
+      --text-faint: #9898b0;
+      
+      --color-error: #e11d48;
+      --color-warning: #d97706;
+      --color-info: #0284c7;
+      --color-success: #059669;
+    }
+
+    /* ===== BASE RESET ===== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.4;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ===== LAYOUT SYSTEM ===== */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+    }
+
+    /* ===== HEADER ===== */
+    #site-header {
+      height: var(--header-h);
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-icon {
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .brand-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .brand-subtitle strong {
+      color: var(--text-main);
+    }
+
+    .header-info {
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    .header-info kbd {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-medium);
+      padding: 1px 5px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 10px;
+    }
+
+    /* ===== TOOLBAR ===== */
+    #toolbar {
+      height: var(--toolbar-h);
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 5px;
+      flex-shrink: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+    }
+    #toolbar::-webkit-scrollbar { display: none; }
+
+    .tb-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 10px;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+      position: relative;
+      user-select: none;
+    }
+
+    .tb-btn:hover {
+      background: var(--bg-surface-subtle);
+      color: var(--text-main);
+      border-color: var(--border-medium);
+    }
+
+    .tb-btn:active {
+      transform: scale(0.98);
+    }
+
+    .tb-btn:focus-visible {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 1px;
+    }
+
+    .tb-btn.primary {
+      background: var(--accent);
+      color: var(--accent-contrast);
+      border-color: var(--accent);
+      font-weight: 600;
+      padding: 0 14px;
+    }
+
+    .tb-btn.primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      box-shadow: 0 2px 10px rgba(124, 106, 247, 0.35);
+    }
+
+    .tb-btn .tb-icon {
+      font-size: 13px;
+      line-height: 1;
+      display: inline-block;
+    }
+
+    .tb-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--border-subtle);
+      margin: 0 3px;
+      flex-shrink: 0;
+    }
+
+    .tb-badge {
+      display: none;
+      min-width: 17px;
+      height: 17px;
+      padding: 0 4px;
+      border-radius: 9px;
+      background: var(--color-error);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 17px;
+      text-align: center;
+      margin-left: 2px;
+    }
+
+    /* ===== MAIN WORKSPACE ===== */
+    #workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      background: var(--bg-base);
+    }
+
+    /* ===== EDITOR PANEL ===== */
+    #editor-pane {
+      display: flex;
+      flex-direction: column;
+      width: 50%;
+      min-width: 240px;
+      height: 100%;
+      position: relative;
+      background: var(--bg-surface);
+    }
+
+    .pane-header {
+      height: 32px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      flex-shrink: 0;
+    }
+
+    .pane-tab-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .file-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-faint);
+      background: var(--bg-surface-elevated);
+      padding: 2px 7px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #monaco-container {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Drag over highlight */
+    #editor-pane.dragover::after {
+      content: "Drop file to load in editor";
+      position: absolute;
+      inset: 0;
+      background: rgba(124, 106, 247, 0.2);
+      border: 2px dashed var(--accent);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      backdrop-filter: blur(2px);
+      pointer-events: none;
+    }
+
+    /* ===== CONSOLE DRAWER ===== */
+    #console-drawer {
+      height: 0;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    #console-drawer.open {
+      height: 180px;
+    }
+
+    .console-header {
+      height: 28px;
+      background: var(--bg-surface-elevated);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      flex-shrink: 0;
+    }
+
+    .console-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .console-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .console-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+    }
+    .console-btn:hover {
+      background: var(--bg-surface-subtle);
+      color: var(--text-main);
+    }
+
+    #console-entries {
+      flex: 1;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      user-select: text;
+    }
+
+    .console-entry {
+      padding: 4px 10px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .console-tag {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .console-entry.log .console-tag { background: var(--bg-surface-subtle); color: var(--text-muted); }
+    .console-entry.info .console-tag { background: rgba(56, 189, 248, 0.15); color: var(--color-info); }
+    .console-entry.warn .console-tag { background: rgba(245, 158, 11, 0.15); color: var(--color-warning); }
+    .console-entry.error .console-tag { background: rgba(244, 63, 94, 0.15); color: var(--color-error); }
+
+    .console-text {
+      flex: 1;
+      color: var(--text-main);
+      white-space: pre-wrap;
+    }
+    .console-entry.error .console-text { color: var(--color-error); }
+    .console-entry.warn .console-text { color: var(--color-warning); }
+
+    /* ===== SPLITTER BAR ===== */
+    #splitter {
+      width: 6px;
+      background: var(--bg-base);
+      border-left: 1px solid var(--border-subtle);
+      border-right: 1px solid var(--border-subtle);
+      cursor: col-resize;
+      flex-shrink: 0;
+      position: relative;
+      touch-action: none;
+      transition: background var(--transition-fast);
+      z-index: 5;
+    }
+
+    #splitter:hover, #splitter.active {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* ===== PREVIEW PANEL ===== */
+    #preview-pane {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 240px;
+      height: 100%;
+      position: relative;
+      background: var(--bg-surface);
+    }
+
+    .preview-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ctrl-btn {
+      height: 22px;
+      padding: 0 6px;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .ctrl-btn:hover {
+      background: var(--bg-surface-subtle);
+      color: var(--text-main);
+    }
+
+    .zoom-text {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      min-width: 32px;
+      text-align: center;
+      color: var(--text-faint);
+    }
+
+    #preview-stage {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    #preview-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      transform-origin: 0 0;
+      background: #ffffff;
+    }
+
+    #preview-empty {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-surface);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      z-index: 2;
+      color: var(--text-muted);
+      pointer-events: none;
+      transition: opacity var(--transition-fast);
+    }
+
+    #preview-empty.hidden {
+      opacity: 0;
+      display: none;
+    }
+
+    #preview-empty .empty-icon {
+      font-size: 40px;
+    }
+
+    #preview-empty p {
+      font-size: 13px;
+      color: var(--text-faint);
+    }
+
+    #preview-empty strong {
+      color: var(--accent);
+    }
+
+    /* ===== STATUS BAR ===== */
+    #status-bar {
+      height: var(--status-h);
+      background: var(--bg-surface-elevated);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      font-family: var(--font-mono);
+      z-index: 10;
+    }
+
+    .sb-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sb-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .sb-item span {
+      color: var(--text-main);
+    }
+
+    .sb-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-success);
+    }
+
+    .status-dot.unsaved {
+      background: var(--color-warning);
+    }
+
+    /* ===== TOAST NOTIFICATION STACK ===== */
+    #toast-container {
+      position: fixed;
+      bottom: 34px;
+      right: 16px;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 8px;
+      z-index: 99999;
+      pointer-events: none;
+    }
+
+    .toast {
+      pointer-events: auto;
+      min-width: 200px;
+      max-width: 380px;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-medium);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      opacity: 0;
+      transform: translateY(10px) scale(0.96);
+      animation: toastIn 0.2s cubic-bezier(0.2, 0, 0, 1) forwards;
+      border-left: 3px solid var(--accent);
+    }
+
+    .toast.success { border-left-color: var(--color-success); }
+    .toast.error { border-left-color: var(--color-error); }
+    .toast.warning { border-left-color: var(--color-warning); }
+    .toast.info { border-left-color: var(--color-info); }
+
+    .toast.hide {
+      animation: toastOut 0.2s cubic-bezier(0.2, 0, 0, 1) forwards;
+    }
+
+    @keyframes toastIn {
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateY(8px) scale(0.96); }
+    }
+
+    /* ===== MODALS & OVERLAYS ===== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-fast);
+      padding: 16px;
+    }
+
+    .modal-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 440px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+      transform: scale(0.95);
+      transition: transform var(--transition-fast);
+    }
+
+    .modal-backdrop.active .modal-card {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 12px 16px;
+      background: var(--bg-surface-elevated);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px 4px;
+      line-height: 1;
+      border-radius: var(--radius-sm);
+    }
+    .modal-close:hover {
+      background: var(--bg-surface-subtle);
+      color: var(--text-main);
+    }
+
+    .modal-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: 75vh;
+      overflow-y: auto;
+    }
+
+    /* Modal Form Elements */
+    .setting-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .setting-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .setting-desc {
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    /* Custom Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-medium);
+      transition: var(--transition-fast);
+      border-radius: 20px;
+    }
+
+    .slider::before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 2px;
+      bottom: 2px;
+      background: var(--text-muted);
+      transition: var(--transition-fast);
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    input:checked + .slider::before {
+      transform: translateX(16px);
+      background: #ffffff;
+    }
+
+    select.ui-select {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border: 1px solid var(--border-medium);
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+    }
+    select.ui-select:focus {
+      border-color: var(--border-focus);
+    }
+
+    /* Shortcut table */
+    .shortcut-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 12px;
+    }
+    .shortcut-row:last-child { border-bottom: none; }
+    .shortcut-row span { color: var(--text-muted); }
+    .shortcut-keys { display: flex; gap: 4px; }
+    .shortcut-keys kbd {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-medium);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-main);
+    }
+
+    /* Confirmation Box Actions */
+    .dialog-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    /* Fullscreen Modal View */
+    #fs-modal {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      z-index: 20000;
+      display: none;
+      flex-direction: column;
+    }
+    #fs-modal.active { display: flex; }
+    #fs-bar {
+      height: 36px;
+      background: var(--bg-surface-elevated);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      flex-shrink: 0;
+    }
+    #fs-frame {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: #fff;
+    }
+
+    /* Loading overlay */
+    #app-loader {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-base);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 50000;
+      transition: opacity 0.3s;
+    }
+    .loader-ring {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border-subtle);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== RESPONSIVE BREAKPOINTS ===== */
+    @media (max-width: 768px) {
+      #workspace {
+        flex-direction: column;
+      }
+      #editor-pane {
+        width: 100% !important;
+        height: 50%;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      #splitter {
+        display: none;
+      }
+      #preview-pane {
+        width: 100% !important;
+        height: 50%;
+      }
+      .brand-subtitle { display: none; }
+      .header-info { display: none; }
+      .btn-text { display: none; }
+      .tb-btn { padding: 0 8px; }
+      .tb-btn.primary { padding: 0 10px; }
+    }
+  </style>
 </head>
-<body class="bg-gray-100 font-sans antialiased flex flex-col h-screen">
+<body>
 
-    <!-- Top Header -->
-    <header class="bg-blue-700 text-white p-4 shadow-md flex justify-between items-center z-10">
-        <div class="flex items-center space-x-2">
-            <i class="fa-solid fa-location-dot text-red-400 text-2xl"></i>
-            <h1 class="text-lg font-bold">लाइव लोकेशन ट्रेकर</h1>
-        </div>
-        <div id="statusText" class="text-xs bg-blue-900 px-3 py-1 rounded-full text-blue-100 font-medium">
-            तैयार है
-        </div>
+  <!-- APP WRAPPER -->
+  <div id="app">
+
+    <!-- HEADER -->
+    <header id="site-header">
+      <div class="brand-group">
+        <span class="brand-icon">🚀</span>
+        <span class="brand-title">HTML RUNNER</span>
+        <span class="brand-subtitle">Made by <strong>Naitik Jain</strong></span>
+      </div>
+      <div class="header-info">
+        Press <kbd>?</kbd> for shortcuts
+      </div>
     </header>
 
-    <!-- Main Container -->
-    <main class="relative flex-1">
+    <!-- TOOLBAR -->
+    <div id="toolbar" role="toolbar" aria-label="Editor controls">
+      <button class="tb-btn" id="btn-upload" title="Upload HTML/JS/CSS (Ctrl+O)" aria-label="Upload File">
+        <span class="tb-icon">📂</span><span class="btn-text">Upload</span>
+      </button>
+      <button class="tb-btn" id="btn-download" title="Download Source File (Ctrl+S)" aria-label="Download Source">
+        <span class="tb-icon">💾</span><span class="btn-text">Download</span>
+      </button>
+      <button class="tb-btn" id="btn-copy" title="Copy Code (Ctrl+Shift+C)" aria-label="Copy Code">
+        <span class="tb-icon">📋</span><span class="btn-text">Copy</span>
+      </button>
 
-        <!-- Satellite Switch Floating Button (Top Right) -->
-        <button id="satelliteBtn" onclick="toggleMapLayer()" class="absolute top-4 right-4 bg-white text-gray-800 font-bold px-4 py-2 rounded-lg shadow-xl z-20 flex items-center gap-2 border border-gray-300 hover:bg-gray-50 transition">
-            <i class="fa-solid fa-satellite text-indigo-600 text-lg"></i>
-            <span id="satelliteBtnText">सैटेलाइट कैमरा (Satellite)</span>
-        </button>
+      <div class="tb-sep" role="separator"></div>
 
-        <!-- Left Floating Control Card -->
-        <div class="absolute top-4 left-4 right-16 sm:right-auto sm:w-80 bg-white p-4 rounded-xl shadow-2xl z-20 space-y-3">
-            
-            <!-- SENDER SECTION -->
-            <div id="senderSection" class="space-y-3">
-                
-                <!-- Live Location Fetch Button -->
-                <button onclick="fetchLiveLocation()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow transition">
-                    <i class="fa-solid fa-crosshairs text-lg"></i> लाइव लोकेशन (Live Location)
-                </button>
+      <button class="tb-btn primary" id="btn-run" title="Execute Code (Ctrl+Enter)" aria-label="Run Code">
+        <span class="tb-icon">▶</span><span class="btn-text">Run</span>
+      </button>
+      <button class="tb-btn" id="btn-refresh" title="Reload Preview Frame (Ctrl+R)" aria-label="Refresh Preview">
+        <span class="tb-icon">🔄</span><span class="btn-text">Refresh</span>
+      </button>
 
-                <!-- ON / OFF Toggle Switch -->
-                <div class="flex items-center justify-between p-2.5 bg-gray-50 border rounded-lg">
-                    <span class="text-sm font-semibold text-gray-700">लोकेशन शेयरिंग:</span>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggleSwitch" onchange="handleToggleChange()" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                    </label>
-                </div>
+      <div class="tb-sep" role="separator"></div>
 
-                <!-- Universal System Share Button -->
-                <button id="shareBtn" onclick="shareLocation()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 shadow opacity-50 cursor-not-allowed transition" disabled>
-                    <i class="fa-solid fa-share-nodes text-lg"></i> शेयर करें (Share)
-                </button>
-            </div>
+      <button class="tb-btn" id="btn-clear" title="Reset/Clear Editor" aria-label="Reset Editor">
+        <span class="tb-icon">🗑️</span><span class="btn-text">Clear</span>
+      </button>
 
-            <!-- RECEIVER SECTION -->
-            <div id="receiverSection" class="hidden">
-                <div class="p-3 bg-blue-50 text-blue-800 rounded-lg text-xs font-semibold flex items-center gap-2 border border-blue-200">
-                    <i class="fa-solid fa-eye text-blue-600 text-base"></i>
-                    <span>आप शेयर की गई लाइव लोकेशन देख रहे हैं।</span>
-                </div>
-            </div>
+      <button class="tb-btn" id="btn-console" title="Toggle Console Drawer" aria-label="Toggle Console">
+        <span class="tb-icon">🐞</span><span class="btn-text">Console</span>
+        <span class="tb-badge" id="console-badge">0</span>
+      </button>
 
-            <!-- Detailed Address Card (District, State, Place) -->
-            <div id="addressBox" class="hidden p-3 bg-gray-50 rounded-lg border text-xs space-y-1 text-gray-700">
-                <div class="font-bold text-blue-600 border-b pb-1 mb-1">📍 वर्तमान स्थान विवरण:</div>
-                <div><b>स्थान (Place):</b> <span id="placeName" class="text-gray-900 font-medium">-</span></div>
-                <div><b>ज़िला (District):</b> <span id="districtName" class="text-gray-900 font-medium">-</span></div>
-                <div><b>राज्य (State):</b> <span id="stateName" class="text-gray-900 font-medium">-</span></div>
-            </div>
+      <button class="tb-btn" id="btn-settings" title="Preferences" aria-label="Settings">
+        <span class="tb-icon">⚙️</span><span class="btn-text">Settings</span>
+      </button>
 
+      <button class="tb-btn" id="btn-theme" title="Switch Light/Dark Mode (Ctrl+Shift+T)" aria-label="Toggle Theme">
+        <span class="tb-icon" id="theme-icon">🌙</span><span class="btn-text">Theme</span>
+      </button>
+
+      <button class="tb-btn" id="btn-shortcuts" title="Keyboard Navigation (?)" aria-label="Keyboard Shortcuts">
+        <span class="tb-icon">⌨️</span><span class="btn-text">Shortcuts</span>
+      </button>
+    </div>
+
+    <!-- MAIN WORKSPACE -->
+    <main id="workspace">
+
+      <!-- LEFT: MONACO EDITOR -->
+      <section id="editor-pane">
+        <div class="pane-header">
+          <span class="pane-tab-title">📝 <span>Editor</span></span>
+          <span class="file-tag" id="current-filename">index.html</span>
         </div>
+        <div id="monaco-container" role="region" aria-label="Code Editor"></div>
 
-        <!-- Map Container -->
-        <div id="map"></div>
+        <!-- CONSOLE DRAWER -->
+        <div id="console-drawer" role="region" aria-label="Developer Console">
+          <div class="console-header">
+            <span class="console-title">🐞 Console Output</span>
+            <div class="console-actions">
+              <button class="console-btn" id="btn-copy-console" title="Copy Console Logs">Copy</button>
+              <button class="console-btn" id="btn-clear-console" title="Clear All Messages">Clear</button>
+              <button class="console-btn" id="btn-close-console" title="Close Console">✕</button>
+            </div>
+          </div>
+          <div id="console-entries"></div>
+        </div>
+      </section>
+
+      <!-- SPLITTER -->
+      <div id="splitter" role="separator" aria-orientation="vertical" tabindex="0" title="Drag to resize panels"></div>
+
+      <!-- RIGHT: LIVE PREVIEW -->
+      <section id="preview-pane">
+        <div class="pane-header">
+          <span class="pane-tab-title">🖥️ <span>Live Preview</span></span>
+          <div class="preview-actions">
+            <button class="ctrl-btn" id="zoom-out" title="Zoom Out Preview">−</button>
+            <span class="zoom-text" id="zoom-label">100%</span>
+            <button class="ctrl-btn" id="zoom-in" title="Zoom In Preview">+</button>
+            <button class="ctrl-btn" id="zoom-reset" title="Reset Zoom">1:1</button>
+            <div class="tb-sep" style="height:14px;margin:0 2px;"></div>
+            <button class="ctrl-btn" id="btn-new-tab" title="Open Clean Preview in New Tab">↗ Tab</button>
+            <button class="ctrl-btn" id="btn-fullscreen" title="Fullscreen Preview (Ctrl+Shift+F)">⛶ Full</button>
+          </div>
+        </div>
+        <div id="preview-stage">
+          <div id="preview-empty">
+            <div class="empty-icon">🖥️</div>
+            <p>Press <strong>▶ Run</strong> or <kbd>Ctrl+Enter</kbd> to execute preview</p>
+          </div>
+          <iframe id="preview-frame" sandbox="allow-scripts allow-modals allow-forms" title="Execution Preview"></iframe>
+        </div>
+      </section>
     </main>
 
-    <!-- JavaScript Engine -->
-    <script>
-        let map, marker;
-        let watchId = null;
-        let mqttClient = null;
-        let shareId = null;
-        let isSharingOn = false;
-        let isSatellite = false;
+    <!-- STATUS BAR -->
+    <footer id="status-bar" role="status">
+      <div class="sb-section">
+        <div class="sb-item">Ln <span id="sb-line">1</span></div>
+        <div class="sb-item">Col <span id="sb-col">1</span></div>
+        <div class="sb-item"><span id="sb-lang">HTML</span></div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-item"><span id="sb-size">0 B</span></div>
+        <div class="sb-item"><span id="sb-chars">0</span> chars</div>
+        <div class="sb-item sb-pill">
+          <span class="status-dot" id="save-status-dot"></span>
+          <span id="save-status-text">Saved</span>
+        </div>
+      </div>
+    </footer>
+  </div>
 
-        // Tile Layers (Normal vs Google Satellite Hybrid)
-        const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        });
+  <!-- FULLSCREEN PREVIEW MODAL -->
+  <div id="fs-modal" role="dialog" aria-modal="true" aria-label="Fullscreen Preview">
+    <div id="fs-bar">
+      <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Fullscreen Preview</span>
+      <div style="display:flex;gap:6px;">
+        <button class="ctrl-btn" id="fs-open-tab">Open in Tab ↗</button>
+        <button class="ctrl-btn" id="fs-close">Exit Fullscreen ✕</button>
+      </div>
+    </div>
+    <iframe id="fs-frame" sandbox="allow-scripts allow-modals allow-forms" title="Fullscreen Preview Frame"></iframe>
+  </div>
 
-        const satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-            maxZoom: 20,
-            attribution: '© Google Satellite'
-        });
+  <!-- SETTINGS MODAL -->
+  <div class="modal-backdrop" id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title" id="settings-title">⚙️ Preferences</span>
+        <button class="modal-close" id="settings-x">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">Live Preview</div>
+            <div class="setting-desc">Auto-execute preview while typing (debounced)</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="set-live" />
+            <span class="slider"></span>
+          </label>
+        </div>
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const trackParam = urlParams.get('track');
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">Auto Save</div>
+            <div class="setting-desc">Persist editor content to browser storage</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="set-autosave" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
 
-        // Initialize Map
-        map = L.map('map', {
-            center: [20.5937, 78.9629],
-            zoom: 5,
-            layers: [streetLayer]
-        });
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">Word Wrap</div>
+            <div class="setting-desc">Wrap long code lines in editor</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="set-wrap" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
 
-        // Custom Marker Pin Symbol
-        const locationIcon = L.divIcon({
-            className: 'custom-pin',
-            html: `<div style="background-color:#EF4444; width:24px; height:24px; border-radius:50%; border:3px solid white; box-shadow:0 0 12px rgba(0,0,0,0.6); animation: pulse 1.5s infinite;"></div>`,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-        });
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">Minimap</div>
+            <div class="setting-desc">Show miniature code overview</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="set-minimap" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
 
-        // Satellite Switch Function
-        function toggleMapLayer() {
-            if (isSatellite) {
-                map.removeLayer(satelliteLayer);
-                map.addLayer(streetLayer);
-                document.getElementById('satelliteBtnText').innerText = "सैटेलाइट कैमरा (Satellite)";
-                isSatellite = false;
-            } else {
-                map.removeLayer(streetLayer);
-                map.addLayer(satelliteLayer);
-                document.getElementById('satelliteBtnText').innerText = "नॉर्मल मैप (Normal)";
-                isSatellite = true;
-            }
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">Line Numbers</div>
+            <div class="setting-desc">Display margin line indicators</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="set-lineno" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">Font Size</div>
+            <div class="setting-desc">Editor text scale</div>
+          </div>
+          <select class="ui-select" id="set-fontsize">
+            <option value="12">12 px</option>
+            <option value="13" selected>13 px</option>
+            <option value="14">14 px</option>
+            <option value="16">16 px</option>
+            <option value="18">18 px</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <div class="setting-label">Tab Size</div>
+            <div class="setting-desc">Indent column width</div>
+          </div>
+          <select class="ui-select" id="set-tabsize">
+            <option value="2" selected>2 Spaces</option>
+            <option value="4">4 Spaces</option>
+          </select>
+        </div>
+
+        <div style="margin-top:8px;padding-top:12px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div class="setting-label" style="color:var(--color-error)">Purge Storage</div>
+            <div class="setting-desc">Reset all saved data and settings</div>
+          </div>
+          <button class="ctrl-btn" id="btn-purge-storage" style="color:var(--color-error);border-color:rgba(244,63,94,0.3)">Reset All</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHORTCUTS MODAL -->
+  <div class="modal-backdrop" id="modal-shortcuts" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title" id="shortcuts-title">⌨️ Keyboard Shortcuts</span>
+        <button class="modal-close" id="shortcuts-x">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="shortcut-row"><span>Run Preview</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Enter</kbd></div></div>
+        <div class="shortcut-row"><span>Download Code</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>S</kbd></div></div>
+        <div class="shortcut-row"><span>Upload File</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>O</kbd></div></div>
+        <div class="shortcut-row"><span>Copy All Code</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd></div></div>
+        <div class="shortcut-row"><span>Refresh Preview</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>R</kbd></div></div>
+        <div class="shortcut-row"><span>Fullscreen Preview</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd></div></div>
+        <div class="shortcut-row"><span>Toggle Theme</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd></div></div>
+        <div class="shortcut-row"><span>Open Shortcuts</span><div class="shortcut-keys"><kbd>?</kbd></div></div>
+        <div class="shortcut-row"><span>Close Modal / Fullscreen</span><div class="shortcut-keys"><kbd>Esc</kbd></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLEAR CONFIRMATION MODAL -->
+  <div class="modal-backdrop" id="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal-card" style="max-width:360px;">
+      <div class="modal-header">
+        <span class="modal-title" id="confirm-title">Reset Editor</span>
+        <button class="modal-close" id="confirm-x">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-msg" style="font-size:12px;color:var(--text-muted);">Are you sure you want to discard your current code? Unsaved changes will be lost.</p>
+        <div class="dialog-buttons">
+          <button class="ctrl-btn" id="confirm-cancel">Cancel</button>
+          <button class="ctrl-btn" id="confirm-restore" style="color:var(--accent)">Load Sample</button>
+          <button class="ctrl-btn" id="confirm-blank" style="color:var(--color-error)">Clear Empty</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICATIONS & LOADERS -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <div id="app-loader">
+    <div class="loader-ring"></div>
+    <div id="loader-msg" style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">Initializing workspace...</div>
+  </div>
+
+  <!-- HIDDEN UPLOAD INPUT -->
+  <input type="file" id="file-selector" accept=".html,.htm,.css,.js,.txt" style="display:none" />
+
+  <!-- MONACO EDITOR VIA AMD LOADER -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+
+  <script>
+  'use strict';
+
+  /* ==========================================================================
+     APPLICATION STATE & CONFIGURATION
+     ========================================================================== */
+  const DEFAULT_SAMPLE_CODE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+      color: #f8fafc;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.75rem;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #a78bfa, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+    .counter-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .count-display {
+      font-size: 2.5rem;
+      font-weight: 700;
+      min-width: 60px;
+      font-variant-numeric: tabular-nums;
+    }
+    button {
+      background: #7c6af7;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #6d58f5;
+      transform: translateY(-1px);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🚀 Live HTML Sandbox</h1>
+    <p>Edit HTML, CSS, and JS simultaneously with real-time browser rendering.</p>
+    <div class="counter-box">
+      <button id="btn-dec">−</button>
+      <span class="count-display" id="count-val">0</span>
+      <button id="btn-inc">+</button>
+    </div>
+    <button id="btn-log" style="background:#334155;">Test Console.log</button>
+  </div>
+
+  <script>
+    let count = 0;
+    const countEl = document.getElementById('count-val');
+    document.getElementById('btn-inc').addEventListener('click', () => {
+      count++;
+      countEl.textContent = count;
+    });
+    document.getElementById('btn-dec').addEventListener('click', () => {
+      count--;
+      countEl.textContent = count;
+    });
+    document.getElementById('btn-log').addEventListener('click', () => {
+      console.log('Current counter value:', count, 'Timestamp:', new Date().toLocaleTimeString());
+    });
+  <\/script>
+</body>
+</html>`;
+
+  const AppState = {
+    editor: null,
+    monaco: null,
+    currentFileName: 'index.html',
+    zoomLevel: 100,
+    hasUnsavedChanges: false,
+    consoleEntries: [],
+    errorCount: 0,
+    activeBlobUrls: new Set(),
+    
+    // Configurable Preferences
+    settings: {
+      theme: 'dark',
+      wordWrap: true,
+      minimap: true,
+      lineNumbers: true,
+      fontSize: 13,
+      tabSize: 2,
+      autoSave: true,
+      livePreview: false,
+      panelRatio: 50
+    }
+  };
+
+  /* ==========================================================================
+     DOM CACHE
+     ========================================================================== */
+  const DOM = {
+    loader: document.getElementById('app-loader'),
+    loaderMsg: document.getElementById('loader-msg'),
+    currentFilename: document.getElementById('current-filename'),
+    splitter: document.getElementById('splitter'),
+    editorPane: document.getElementById('editor-pane'),
+    previewPane: document.getElementById('preview-pane'),
+    previewStage: document.getElementById('preview-stage'),
+    previewFrame: document.getElementById('preview-frame'),
+    previewEmpty: document.getElementById('preview-empty'),
+    fileSelector: document.getElementById('file-selector'),
+    toastContainer: document.getElementById('toast-container'),
+    
+    // Status Elements
+    sbLine: document.getElementById('sb-line'),
+    sbCol: document.getElementById('sb-col'),
+    sbLang: document.getElementById('sb-lang'),
+    sbSize: document.getElementById('sb-size'),
+    sbChars: document.getElementById('sb-chars'),
+    saveStatusDot: document.getElementById('save-status-dot'),
+    saveStatusText: document.getElementById('save-status-text'),
+
+    // Console
+    consoleDrawer: document.getElementById('console-drawer'),
+    consoleEntries: document.getElementById('console-entries'),
+    consoleBadge: document.getElementById('console-badge'),
+
+    // Zoom
+    zoomLabel: document.getElementById('zoom-label'),
+
+    // Modals
+    modalSettings: document.getElementById('modal-settings'),
+    modalShortcuts: document.getElementById('modal-shortcuts'),
+    modalConfirm: document.getElementById('modal-confirm'),
+    fsModal: document.getElementById('fs-modal'),
+    fsFrame: document.getElementById('fs-frame'),
+
+    // Settings inputs
+    setLive: document.getElementById('set-live'),
+    setAutoSave: document.getElementById('set-autosave'),
+    setWrap: document.getElementById('set-wrap'),
+    setMinimap: document.getElementById('set-minimap'),
+    setLineNo: document.getElementById('set-lineno'),
+    setFontSize: document.getElementById('set-fontsize'),
+    setTabSize: document.getElementById('set-tabsize'),
+    themeIcon: document.getElementById('theme-icon')
+  };
+
+  /* ==========================================================================
+     STORAGE & PERSISTENCE
+     ========================================================================== */
+  function loadPersistedSettings() {
+    try {
+      const stored = localStorage.getItem('htmlrunner_settings');
+      if (stored) {
+        Object.assign(AppState.settings, JSON.parse(stored));
+      }
+      const savedTheme = localStorage.getItem('htmlrunner_theme');
+      if (savedTheme) {
+        AppState.settings.theme = savedTheme;
+      }
+    } catch (e) {
+      console.warn('localStorage is restricted or unavailable:', e);
+    }
+  }
+
+  function persistSettings() {
+    try {
+      localStorage.setItem('htmlrunner_settings', JSON.stringify(AppState.settings));
+      localStorage.setItem('htmlrunner_theme', AppState.settings.theme);
+    } catch (e) {
+      console.warn('Failed saving settings to localStorage:', e);
+    }
+  }
+
+  let autoSaveTimer = null;
+  function scheduleAutoSave() {
+    if (!AppState.settings.autoSave) {
+      setUnsavedState(true);
+      return;
+    }
+    
+    setUnsavedState(true);
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+      try {
+        if (AppState.editor) {
+          const code = AppState.editor.getValue();
+          localStorage.setItem('htmlrunner_code', code);
+          localStorage.setItem('htmlrunner_filename', AppState.currentFileName);
+          setUnsavedState(false);
         }
+      } catch (e) {
+        console.warn('AutoSave storage limit exceeded or inaccessible:', e);
+      }
+    }, 700);
+  }
 
-        // Mode Detection (Receiver vs Sender)
-        if (trackParam) {
-            // --- RECEIVER MODE ---
-            document.getElementById('senderSection').classList.add('hidden');
-            document.getElementById('receiverSection').classList.remove('hidden');
-            updateStatus("लाइव कनेक्ट हो रहे हैं...", "bg-yellow-600");
+  function setUnsavedState(isUnsaved) {
+    AppState.hasUnsavedChanges = isUnsaved;
+    if (isUnsaved) {
+      DOM.saveStatusDot.classList.add('unsaved');
+      DOM.saveStatusText.textContent = 'Unsaved';
+    } else {
+      DOM.saveStatusDot.classList.remove('unsaved');
+      DOM.saveStatusText.textContent = 'Saved';
+    }
+  }
 
-            mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
+  /* ==========================================================================
+     THEME MANAGEMENT
+     ========================================================================== */
+  function applyTheme(themeName) {
+    AppState.settings.theme = themeName;
+    document.documentElement.setAttribute('data-theme', themeName);
+    DOM.themeIcon.textContent = themeName === 'dark' ? '🌙' : '☀️';
 
-            mqttClient.on('connect', () => {
-                mqttClient.subscribe(`live-loc-channel/${trackParam}`);
-                updateStatus("लाइव अपडेट का इंतज़ार है...", "bg-blue-600");
-            });
+    if (AppState.monaco && AppState.editor) {
+      AppState.monaco.editor.setTheme(themeName === 'dark' ? 'runner-dark' : 'runner-light');
+    }
+    persistSettings();
+  }
 
-            mqttClient.on('message', (topic, message) => {
-                const data = JSON.parse(message.toString());
-                
-                if (data.status === "OFF") {
-                    if (marker) map.removeLayer(marker);
-                    marker = null;
-                    document.getElementById('addressBox').classList.add('hidden');
-                    updateStatus("यूज़र ने लोकेशन शेयरिंग OFF कर दी है 🔴", "bg-red-600");
-                } else if (data.status === "ON") {
-                    updateMapAndDetails(data.lat, data.lng);
-                    updateStatus(`लाइव: ${new Date().toLocaleTimeString()} 🟢`, "bg-green-600");
-                }
-            });
-        } else {
-            // --- SENDER MODE ---
-            shareId = 'loc_' + Math.random().toString(36).substring(2, 10);
-            mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
-        }
+  function toggleTheme() {
+    const next = AppState.settings.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    showToast(`Switched to ${next} theme`, 'info');
+  }
 
-        // 1. Live Location Button Click Function
-        function fetchLiveLocation() {
-            if (!navigator.geolocation) {
-                alert("आपका डिवाइस जीपीएस/लोकेशन का समर्थन नहीं करता है।");
-                return;
-            }
+  /* ==========================================================================
+     TOAST NOTIFICATIONS
+     ========================================================================== */
+  function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icons = {
+      success: '✓',
+      error: '✕',
+      warning: '⚠',
+      info: 'ℹ'
+    };
+    
+    const iconSpan = document.createElement('span');
+    iconSpan.style.fontWeight = '700';
+    iconSpan.textContent = icons[type] || '•';
 
-            const toggle = document.getElementById('toggleSwitch');
-            toggle.checked = true;
-            handleToggleChange();
-        }
+    const textSpan = document.createElement('span');
+    textSpan.textContent = String(message).slice(0, 180);
 
-        // 2. Toggle Change Function (ON / OFF)
-        function handleToggleChange() {
-            const toggle = document.getElementById('toggleSwitch');
-            const shareBtn = document.getElementById('shareBtn');
-            isSharingOn = toggle.checked;
+    toast.appendChild(iconSpan);
+    toast.appendChild(textSpan);
+    DOM.toastContainer.appendChild(toast);
 
-            if (isSharingOn) {
-                shareBtn.disabled = false;
-                shareBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                updateStatus("लोकेशन शेयरिंग: ON 🟢", "bg-green-600");
-                startLocationTracking();
-            } else {
-                shareBtn.disabled = true;
-                shareBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                updateStatus("लोकेशन शेयरिंग: OFF 🔴", "bg-red-600");
-                stopLocationTracking();
-            }
-        }
+    setTimeout(() => {
+      toast.classList.add('hide');
+      setTimeout(() => toast.remove(), 220);
+    }, 2800);
+  }
 
-        // Automatic GPS Tracking
-        function startLocationTracking() {
-            if (watchId) navigator.geolocation.clearWatch(watchId);
+  /* ==========================================================================
+     LIGHTWEIGHT HTML STATIC CHECKER
+     ========================================================================== */
+  function checkMarkupLightweight(code) {
+    if (!code || code.trim().length === 0) return;
+    
+    // Check missing foundational elements for complete HTML files
+    if (/<html/i.test(code)) {
+      if (!/<\/html>/i.test(code)) addConsoleEntry('warn', 'Lightweight Analysis: Unclosed <html> element');
+      if (!/<body/i.test(code)) addConsoleEntry('warn', 'Lightweight Analysis: Document contains <html> but is missing <body>');
+      if (!/<title>/i.test(code)) addConsoleEntry('info', 'Document has no <title> tag in head');
+    }
+  }
 
-            watchId = navigator.geolocation.watchPosition(
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
+  /* ==========================================================================
+     PREVIEW ENGINE & ISOLATED SANDBOX
+     ========================================================================== */
+  let livePreviewDebounce = null;
+  function triggerLivePreview() {
+    if (!AppState.settings.livePreview) return;
+    clearTimeout(livePreviewDebounce);
+    livePreviewDebounce = setTimeout(() => {
+      runCodePreview(false);
+    }, 650);
+  }
 
-                    updateMapAndDetails(lat, lng);
-
-                    // Publish coordinates to MQTT channel
-                    if (mqttClient && isSharingOn) {
-                        mqttClient.publish(`live-loc-channel/${shareId}`, JSON.stringify({
-                            status: "ON",
-                            lat: lat,
-                            lng: lng,
-                            time: Date.now()
-                        }));
-                    }
-                },
-                (error) => {
-                    alert("लोकेशन एक्सेस एरर: " + error.message);
-                    document.getElementById('toggleSwitch').checked = false;
-                    handleToggleChange();
-                },
-                {
-                    enableHighAccuracy: true,
-                    maximumAge: 0,
-                    timeout: 10000
-                }
-            );
-        }
-
-        // Stop Tracking
-        function stopLocationTracking() {
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
-                watchId = null;
-            }
-            if (mqttClient && shareId) {
-                mqttClient.publish(`live-loc-channel/${shareId}`, JSON.stringify({
-                    status: "OFF"
-                }));
-            }
-            if (marker) {
-                map.removeLayer(marker);
-                marker = null;
-            }
-            document.getElementById('addressBox').classList.add('hidden');
-        }
-
-        // Update Map, Zoom-In & Reverse Geocoding Details
-        async function updateMapAndDetails(lat, lng) {
-            // Zoom in directly to the location (Level 18)
-            map.setView([lat, lng], 18, { animate: true });
-
-            const popupMessage = "<b>📍 अभी व्यक्ति इस स्थान पर है</b>";
-
-            if (!marker) {
-                marker = L.marker([lat, lng], { icon: locationIcon }).addTo(map);
-            } else {
-                marker.setLatLng([lat, lng]);
-            }
-            marker.bindPopup(popupMessage).openPopup();
-
-            // Reverse Geocoding to get Place, District, State
+  function buildSandboxedDocument(userCode) {
+    // Client-side execution script injected to intercept uncaught errors and console methods
+    const interceptionSnippet = `
+      <script>
+        (function() {
+          const originToken = 'SANDBOX_REPORT';
+          function report(type, args) {
             try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
-                const data = await response.json();
-
-                if (data && data.address) {
-                    const addr = data.address;
-                    const place = addr.suburb || addr.village || addr.town || addr.city || addr.neighbourhood || addr.road || "अज्ञात स्थान";
-                    const district = addr.state_district || addr.county || addr.district || addr.city || "अज्ञात ज़िला";
-                    const state = addr.state || "अज्ञात राज्य";
-
-                    document.getElementById('placeName').innerText = place;
-                    document.getElementById('districtName').innerText = district;
-                    document.getElementById('stateName').innerText = state;
-                    document.getElementById('addressBox').classList.remove('hidden');
+              const sanitizedArgs = args.map(arg => {
+                if (arg instanceof Error) {
+                  return arg.stack || (arg.name + ': ' + arg.message);
                 }
-            } catch (err) {
-                console.log("Geocoding Fetch Error:", err);
-            }
+                if (typeof arg === 'object' && arg !== null) {
+                  try { return JSON.stringify(arg, null, 2); } catch(e) { return String(arg); }
+                }
+                return String(arg);
+              });
+              window.parent.postMessage({
+                token: originToken,
+                type: type,
+                payload: sanitizedArgs.join(' ')
+              }, '*');
+            } catch (err) {}
+          }
+
+          const _log = console.log;
+          const _info = console.info;
+          const _warn = console.warn;
+          const _error = console.error;
+
+          console.log = function(...a) { _log.apply(console, a); report('log', a); };
+          console.info = function(...a) { _info.apply(console, a); report('info', a); };
+          console.warn = function(...a) { _warn.apply(console, a); report('warn', a); };
+          console.error = function(...a) { _error.apply(console, a); report('error', a); };
+
+          window.onerror = function(msg, url, line, col, err) {
+            const detail = err && err.stack ? err.stack : (msg + ' (line ' + line + ', col ' + col + ')');
+            report('error', [detail]);
+            return false;
+          };
+
+          window.addEventListener('unhandledrejection', function(event) {
+            report('error', ['Unhandled Promise Rejection: ' + (event.reason ? (event.reason.stack || event.reason) : event.reason)]);
+          });
+        })();
+      <\/script>
+    `;
+
+    // Inject interceptor before first head/html or right at the top
+    if (/<head[^>]*>/i.test(userCode)) {
+      return userCode.replace(/<head[^>]*>/i, match => match + interceptionSnippet);
+    }
+    if (/<html[^>]*>/i.test(userCode)) {
+      return userCode.replace(/<html[^>]*>/i, match => match + interceptionSnippet);
+    }
+    return interceptionSnippet + userCode;
+  }
+
+  function runCodePreview(notify = true) {
+    if (!AppState.editor) return;
+
+    const rawCode = AppState.editor.getValue();
+    DOM.previewEmpty.classList.add('hidden');
+    
+    // Light HTML analysis
+    checkMarkupLightweight(rawCode);
+
+    const fullSrc = buildSandboxedDocument(rawCode);
+    DOM.previewFrame.srcdoc = fullSrc;
+
+    // Apply Current Zoom
+    applyZoom();
+
+    if (notify) {
+      showToast('Running preview', 'success');
+    }
+  }
+
+  function refreshPreview() {
+    if (DOM.previewFrame.srcdoc) {
+      DOM.previewFrame.srcdoc = DOM.previewFrame.srcdoc;
+      showToast('Preview refreshed', 'info');
+    } else {
+      runCodePreview(true);
+    }
+  }
+
+  /* ==========================================================================
+     CONSOLE ENGINE
+     ========================================================================== */
+  function addConsoleEntry(level, message) {
+    const entry = {
+      level: level,
+      message: String(message),
+      time: new Date().toLocaleTimeString()
+    };
+    AppState.consoleEntries.push(entry);
+
+    if (level === 'error') {
+      AppState.errorCount++;
+      updateConsoleBadge();
+    }
+
+    const row = document.createElement('div');
+    row.className = `console-entry ${level}`;
+    
+    const tag = document.createElement('span');
+    tag.className = 'console-tag';
+    tag.textContent = level.toUpperCase();
+
+    const text = document.createElement('span');
+    text.className = 'console-text';
+    text.textContent = entry.message;
+
+    row.appendChild(tag);
+    row.appendChild(text);
+    DOM.consoleEntries.appendChild(row);
+
+    // Scroll to bottom
+    DOM.consoleEntries.scrollTop = DOM.consoleEntries.scrollHeight;
+  }
+
+  function updateConsoleBadge() {
+    if (AppState.errorCount > 0) {
+      DOM.consoleBadge.style.display = 'inline-block';
+      DOM.consoleBadge.textContent = AppState.errorCount > 99 ? '99+' : AppState.errorCount;
+    } else {
+      DOM.consoleBadge.style.display = 'none';
+      DOM.consoleBadge.textContent = '0';
+    }
+  }
+
+  function clearConsoleEntries() {
+    DOM.consoleEntries.innerHTML = '';
+    AppState.consoleEntries = [];
+    AppState.errorCount = 0;
+    updateConsoleBadge();
+    showToast('Console cleared', 'info');
+  }
+
+  function toggleConsole(force) {
+    const shouldOpen = force !== undefined ? force : !DOM.consoleDrawer.classList.contains('open');
+    if (shouldOpen) {
+      DOM.consoleDrawer.classList.add('open');
+    } else {
+      DOM.consoleDrawer.classList.remove('open');
+    }
+  }
+
+  function copyConsoleLogs() {
+    if (AppState.consoleEntries.length === 0) {
+      showToast('No logs to copy', 'warning');
+      return;
+    }
+    const logDump = AppState.consoleEntries
+      .map(e => `[${e.time}] [${e.level.toUpperCase()}] ${e.message}`)
+      .join('\n');
+    copyStringToClipboard(logDump, 'Console logs copied');
+  }
+
+  // Cross-origin message handler strictly validating our injected token
+  window.addEventListener('message', event => {
+    if (!event.data || typeof event.data !== 'object') return;
+    if (event.data.token !== 'SANDBOX_REPORT') return;
+
+    const { type, payload } = event.data;
+    if (['log', 'info', 'warn', 'error'].includes(type)) {
+      addConsoleEntry(type, payload);
+    }
+  });
+
+  /* ==========================================================================
+     PREVIEW ZOOM
+     ========================================================================== */
+  function setZoom(percent) {
+    const clamped = Math.max(25, Math.min(200, percent));
+    AppState.zoomLevel = clamped;
+    DOM.zoomLabel.textContent = `${clamped}%`;
+    applyZoom();
+  }
+
+  function applyZoom() {
+    const scale = AppState.zoomLevel / 100;
+    DOM.previewFrame.style.transform = `scale(${scale})`;
+    DOM.previewFrame.style.width = `${100 / scale}%`;
+    DOM.previewFrame.style.height = `${100 / scale}%`;
+  }
+
+  /* ==========================================================================
+     DOWNLOAD, UPLOAD & CLIPBOARD
+     ========================================================================== */
+  function downloadActiveCode() {
+    if (!AppState.editor) return;
+    const code = AppState.editor.getValue();
+    const safeName = AppState.currentFileName.endsWith('.html') ? AppState.currentFileName : `${AppState.currentFileName}.html`;
+    
+    try {
+      const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = blobUrl;
+      anchor.download = safeName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      showToast(`Downloaded: ${safeName}`, 'success');
+    } catch (e) {
+      showToast('Download failed: ' + e.message, 'error');
+    }
+  }
+
+  async function copyStringToClipboard(text, successMsg = 'Copied to clipboard') {
+    if (!text) {
+      showToast('Nothing to copy', 'warning');
+      return;
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        showToast(successMsg, 'success');
+      } else {
+        throw new Error('Fallback clipboard execution');
+      }
+    } catch (err) {
+      // Robust textarea fallback
+      try {
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.style.position = 'fixed';
+        area.style.top = '-9999px';
+        document.body.appendChild(area);
+        area.focus();
+        area.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(area);
+        if (ok) {
+          showToast(successMsg, 'success');
+        } else {
+          throw new Error('execCommand copy returned false');
         }
+      } catch (fallbackError) {
+        showToast('Clipboard access denied or unavailable', 'error');
+      }
+    }
+  }
 
-        // 3. Universal System Share Option
-        function shareLocation() {
-            if (!isSharingOn) {
-                alert("कृपया पहले लोकेशन शेयरिंग चालू (ON) करें।");
-                return;
-            }
+  function handleFileRead(file) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('File size exceeds 5MB limit', 'error');
+      return;
+    }
 
-            const shareUrl = `${window.location.origin}${window.location.pathname}?track=${shareId}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 80);
+    const reader = new FileReader();
 
-            if (navigator.share) {
-                navigator.share({
-                    title: 'मेरी लाइव लोकेशन',
-                    text: 'मेरी लाइव लोकेशन देखने के लिए इस लिंक पर क्लिक करें:',
-                    url: shareUrl
-                }).catch((err) => {
-                    console.log('Share cancelled:', err);
-                });
-            } else {
-                navigator.clipboard.writeText(shareUrl).then(() => {
-                    alert("शेयर लिंक कॉपी हो गया है! आप इसे किसी भी ऐप पर शेयर कर सकते हैं:\n\n" + shareUrl);
-                });
-            }
+    reader.onload = function(e) {
+      const content = e.target.result;
+      if (AppState.editor) {
+        AppState.editor.setValue(content);
+        AppState.currentFileName = safeName;
+        DOM.currentFilename.textContent = safeName;
+        detectAndApplyLanguage(content);
+        scheduleAutoSave();
+        showToast(`Loaded ${safeName}`, 'success');
+      }
+    };
+
+    reader.onerror = function() {
+      showToast('Unable to read selected file', 'error');
+    };
+
+    reader.readAsText(file);
+  }
+
+  /* ==========================================================================
+     NEW TAB & FULLSCREEN
+     ========================================================================== */
+  function openInNewTab() {
+    if (!AppState.editor) return;
+    try {
+      const code = AppState.editor.getValue();
+      const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      AppState.activeBlobUrls.add(blobUrl);
+
+      const targetWindow = window.open(blobUrl, '_blank');
+      if (!targetWindow) {
+        showToast('Pop-up blocked. Please allow popups for new tab preview', 'warning');
+      } else {
+        showToast('Preview opened in new tab', 'info');
+      }
+
+      // Cleanup object URL after tab opens
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+        AppState.activeBlobUrls.delete(blobUrl);
+      }, 30000);
+    } catch (e) {
+      showToast('Error opening new tab: ' + e.message, 'error');
+    }
+  }
+
+  function openFullscreenPreview() {
+    if (!AppState.editor) return;
+    const rawCode = AppState.editor.getValue();
+    const fullSrc = buildSandboxedDocument(rawCode);
+
+    DOM.fsFrame.srcdoc = fullSrc;
+    DOM.fsModal.classList.add('active');
+
+    // Attempt native browser fullscreen if supported
+    try {
+      if (DOM.fsModal.requestFullscreen) {
+        DOM.fsModal.requestFullscreen().catch(() => {});
+      }
+    } catch (e) {}
+  }
+
+  function closeFullscreenPreview() {
+    DOM.fsModal.classList.remove('active');
+    DOM.fsFrame.srcdoc = 'about:blank';
+    if (document.fullscreenElement) {
+      try { document.exitFullscreen().catch(() => {}); } catch (e) {}
+    }
+  }
+
+  /* ==========================================================================
+     LANGUAGE DETECTION
+     ========================================================================== */
+  function detectAndApplyLanguage(code) {
+    if (!AppState.editor || !AppState.monaco) return;
+    const str = (code || '').trim();
+    let detected = 'html';
+
+    if (str.startsWith('{') || str.startsWith('[')) {
+      try { JSON.parse(str); detected = 'json'; } catch (e) {}
+    } else if (/^(\/\*[\s\S]*?\*\/|\.[a-zA-Z_-][\w-]*\s*\{|#[a-zA-Z_-][\w-]*\s*\{|[a-z-]+\s*:\s*[^;]+;)/.test(str) && !/<[a-z!]/i.test(str)) {
+      detected = 'css';
+    } else if (/^(import\s+|export\s+|const\s+|let\s+|function\s*[(<]|class\s+)/.test(str) && !/<html|<!DOCTYPE/i.test(str)) {
+      detected = 'javascript';
+    }
+
+    DOM.sbLang.textContent = detected.toUpperCase();
+    const model = AppState.editor.getModel();
+    if (model) {
+      AppState.monaco.editor.setModelLanguage(model, detected);
+    }
+  }
+
+  /* ==========================================================================
+     METRICS & STATUS BAR
+     ========================================================================== */
+  function updateEditorMetrics() {
+    if (!AppState.editor) return;
+    const code = AppState.editor.getValue();
+    const chars = code.length;
+    const bytes = new Blob([code]).size;
+
+    DOM.sbChars.textContent = chars.toLocaleString();
+    DOM.sbSize.textContent = formatBytes(bytes);
+  }
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(2) + ' MB';
+  }
+
+  /* ==========================================================================
+     SPLITTER RESIZING (POINTER EVENTS)
+     ========================================================================== */
+  function initSplitter() {
+    let isDragging = false;
+    let containerWidth = 0;
+
+    DOM.splitter.addEventListener('pointerdown', e => {
+      isDragging = true;
+      containerWidth = DOM.splitter.parentElement.offsetWidth;
+      DOM.splitter.classList.add('active');
+      DOM.splitter.setPointerCapture(e.pointerId);
+      document.body.style.cursor = 'col-resize';
+    });
+
+    DOM.splitter.addEventListener('pointermove', e => {
+      if (!isDragging) return;
+      
+      const newWidth = e.clientX;
+      const minW = 240;
+      const maxW = containerWidth - 240;
+
+      if (newWidth >= minW && newWidth <= maxW) {
+        const percentage = (newWidth / containerWidth) * 100;
+        AppState.settings.panelRatio = percentage;
+        DOM.editorPane.style.width = `${percentage}%`;
+        if (AppState.editor) AppState.editor.layout();
+      }
+    });
+
+    function stopDragging(e) {
+      if (isDragging) {
+        isDragging = false;
+        DOM.splitter.classList.remove('active');
+        try { DOM.splitter.releasePointerCapture(e.pointerId); } catch (err) {}
+        document.body.style.cursor = '';
+        persistSettings();
+        if (AppState.editor) AppState.editor.layout();
+      }
+    }
+
+    DOM.splitter.addEventListener('pointerup', stopDragging);
+    DOM.splitter.addEventListener('pointercancel', stopDragging);
+  }
+
+  /* ==========================================================================
+     MODAL CONTROLS
+     ========================================================================== */
+  function openModal(modalEl) {
+    modalEl.classList.add('active');
+  }
+
+  function closeModal(modalEl) {
+    modalEl.classList.remove('active');
+  }
+
+  function closeAllModals() {
+    closeModal(DOM.modalSettings);
+    closeModal(DOM.modalShortcuts);
+    closeModal(DOM.modalConfirm);
+    closeFullscreenPreview();
+  }
+
+  /* ==========================================================================
+     MONACO INITIALIZATION & CONFIGURATION
+     ========================================================================== */
+  function initMonacoEditor() {
+    require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+
+    // Fallback timer if Monaco fails CDN load
+    const loadTimeout = setTimeout(() => {
+      if (!AppState.monaco) {
+        DOM.loaderMsg.textContent = 'Monaco load failed. Please check internet connection.';
+        DOM.loaderMsg.style.color = 'var(--color-error)';
+      }
+    }, 12000);
+
+    require(['vs/editor/editor.main'], function(monaco) {
+      clearTimeout(loadTimeout);
+      AppState.monaco = monaco;
+
+      // Define Dark Theme
+      monaco.editor.defineTheme('runner-dark', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [
+          { token: 'tag', foreground: 'f43f5e' },
+          { token: 'attribute.name', foreground: '38bdf8' },
+          { token: 'attribute.value', foreground: '34d399' },
+          { token: 'string', foreground: 'fbbf24' },
+          { token: 'comment', foreground: '64748b', fontStyle: 'italic' }
+        ],
+        colors: {
+          'editor.background': '#12121c',
+          'editor.foreground': '#f1f1f9',
+          'editorLineNumber.foreground': '#475569',
+          'editorLineNumber.activeForeground': '#a78bfa',
+          'editor.lineHighlightBackground': '#181827',
+          'editor.selectionBackground': '#7c6af738',
+          'editorCursor.foreground': '#a78bfa'
         }
+      });
 
-        // UI Status Helper
-        function updateStatus(text, bgClass) {
-            const statusElem = document.getElementById('statusText');
-            statusElem.innerText = text;
-            statusElem.className = `text-xs px-3 py-1 rounded-full text-white font-medium ${bgClass}`;
+      // Define Light Theme
+      monaco.editor.defineTheme('runner-light', {
+        base: 'vs',
+        inherit: true,
+        rules: [],
+        colors: {
+          'editor.background': '#ffffff',
+          'editor.foreground': '#131322',
+          'editorLineNumber.foreground': '#94a3b8',
+          'editorLineNumber.activeForeground': '#5b48ee',
+          'editor.lineHighlightBackground': '#f8fafc',
+          'editorCursor.foreground': '#5b48ee'
         }
-    </script>
+      });
+
+      // Retrieve Initial Content
+      let startingCode = DEFAULT_SAMPLE_CODE;
+      try {
+        const cachedCode = localStorage.getItem('htmlrunner_code');
+        if (cachedCode && cachedCode.trim().length > 0) {
+          startingCode = cachedCode;
+        }
+        const cachedFilename = localStorage.getItem('htmlrunner_filename');
+        if (cachedFilename) {
+          AppState.currentFileName = cachedFilename;
+          DOM.currentFilename.textContent = cachedFilename;
+        }
+      } catch (e) {}
+
+      // Create Instance
+      AppState.editor = monaco.editor.create(document.getElementById('monaco-container'), {
+        value: startingCode,
+        language: 'html',
+        theme: AppState.settings.theme === 'dark' ? 'runner-dark' : 'runner-light',
+        fontSize: AppState.settings.fontSize,
+        tabSize: AppState.settings.tabSize,
+        wordWrap: AppState.settings.wordWrap ? 'on' : 'off',
+        lineNumbers: AppState.settings.lineNumbers ? 'on' : 'off',
+        minimap: { enabled: AppState.settings.minimap },
+        fontFamily: "var(--font-mono)",
+        fontLigatures: true,
+        smoothScrolling: true,
+        cursorBlinking: 'smooth',
+        cursorSmoothCaretAnimation: 'on',
+        automaticLayout: true,
+        scrollBeyondLastLine: false,
+        padding: { top: 8, bottom: 8 }
+      });
+
+      // Cursor position tracking
+      AppState.editor.onDidChangeCursorPosition(e => {
+        DOM.sbLine.textContent = e.position.lineNumber;
+        DOM.sbCol.textContent = e.position.column;
+      });
+
+      // Content changes
+      AppState.editor.onDidChangeModelContent(() => {
+        updateEditorMetrics();
+        scheduleAutoSave();
+        triggerLivePreview();
+      });
+
+      // Apply initial ratio
+      if (window.innerWidth > 768 && AppState.settings.panelRatio) {
+        DOM.editorPane.style.width = `${AppState.settings.panelRatio}%`;
+        AppState.editor.layout();
+      }
+
+      // Initial checks & status
+      detectAndApplyLanguage(startingCode);
+      updateEditorMetrics();
+      setUnsavedState(false);
+
+      // Hide Loader
+      DOM.loader.style.opacity = '0';
+      setTimeout(() => DOM.loader.remove(), 320);
+
+      showToast('HTML Runner ready', 'success');
+    });
+  }
+
+  /* ==========================================================================
+     UI EVENT BINDINGS
+     ========================================================================== */
+  function attachEventHandlers() {
+    // Toolbar buttons
+    document.getElementById('btn-run').addEventListener('click', () => runCodePreview(true));
+    document.getElementById('btn-refresh').addEventListener('click', refreshPreview);
+    document.getElementById('btn-download').addEventListener('click', downloadActiveCode);
+    
+    document.getElementById('btn-copy').addEventListener('click', () => {
+      if (AppState.editor) {
+        copyStringToClipboard(AppState.editor.getValue(), 'Source code copied');
+      }
+    });
+
+    document.getElementById('btn-upload').addEventListener('click', () => {
+      DOM.fileSelector.value = '';
+      DOM.fileSelector.click();
+    });
+
+    DOM.fileSelector.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) handleFileRead(file);
+    });
+
+    // Console controls
+    document.getElementById('btn-console').addEventListener('click', () => toggleConsole());
+    document.getElementById('btn-close-console').addEventListener('click', () => toggleConsole(false));
+    document.getElementById('btn-clear-console').addEventListener('click', clearConsoleEntries);
+    document.getElementById('btn-copy-console').addEventListener('click', copyConsoleLogs);
+
+    // Zoom
+    document.getElementById('zoom-in').addEventListener('click', () => setZoom(AppState.zoomLevel + 10));
+    document.getElementById('zoom-out').addEventListener('click', () => setZoom(AppState.zoomLevel - 10));
+    document.getElementById('zoom-reset').addEventListener('click', () => setZoom(100));
+
+    // Fullscreen and Tab
+    document.getElementById('btn-fullscreen').addEventListener('click', openFullscreenPreview);
+    document.getElementById('fs-close').addEventListener('click', closeFullscreenPreview);
+    document.getElementById('btn-new-tab').addEventListener('click', openInNewTab);
+    document.getElementById('fs-open-tab').addEventListener('click', openInNewTab);
+
+    // Modals open
+    document.getElementById('btn-settings').addEventListener('click', () => openModal(DOM.modalSettings));
+    document.getElementById('btn-shortcuts').addEventListener('click', () => openModal(DOM.modalShortcuts));
+    document.getElementById('btn-theme').addEventListener('click', toggleTheme);
+
+    // Modal close buttons
+    document.getElementById('settings-x').addEventListener('click', () => closeModal(DOM.modalSettings));
+    document.getElementById('shortcuts-x').addEventListener('click', () => closeModal(DOM.modalShortcuts));
+    document.getElementById('confirm-x').addEventListener('click', () => closeModal(DOM.modalConfirm));
+    document.getElementById('confirm-cancel').addEventListener('click', () => closeModal(DOM.modalConfirm));
+
+    // Backdrop dismissal
+    [DOM.modalSettings, DOM.modalShortcuts, DOM.modalConfirm].forEach(backdrop => {
+      backdrop.addEventListener('click', e => {
+        if (e.target === backdrop) closeModal(backdrop);
+      });
+    });
+
+    // Clear confirmation
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      openModal(DOM.modalConfirm);
+    });
+
+    document.getElementById('confirm-blank').addEventListener('click', () => {
+      if (AppState.editor) {
+        AppState.editor.setValue('');
+        AppState.currentFileName = 'untitled.html';
+        DOM.currentFilename.textContent = 'untitled.html';
+        scheduleAutoSave();
+        closeModal(DOM.modalConfirm);
+        showToast('Editor cleared', 'info');
+      }
+    });
+
+    document.getElementById('confirm-restore').addEventListener('click', () => {
+      if (AppState.editor) {
+        AppState.editor.setValue(DEFAULT_SAMPLE_CODE);
+        AppState.currentFileName = 'index.html';
+        DOM.currentFilename.textContent = 'index.html';
+        scheduleAutoSave();
+        closeModal(DOM.modalConfirm);
+        showToast('Restored sample code', 'success');
+      }
+    });
+
+    // Purge storage
+    document.getElementById('btn-purge-storage').addEventListener('click', () => {
+      try {
+        localStorage.clear();
+        showToast('Browser storage cleared', 'info');
+        setTimeout(() => location.reload(), 600);
+      } catch (e) {
+        showToast('Storage clear failed: ' + e.message, 'error');
+      }
+    });
+
+    // Settings synchronizations
+    DOM.setLive.addEventListener('change', e => {
+      AppState.settings.livePreview = e.target.checked;
+      persistSettings();
+    });
+
+    DOM.setAutoSave.addEventListener('change', e => {
+      AppState.settings.autoSave = e.target.checked;
+      persistSettings();
+    });
+
+    DOM.setWrap.addEventListener('change', e => {
+      AppState.settings.wordWrap = e.target.checked;
+      if (AppState.editor) {
+        AppState.editor.updateOptions({ wordWrap: e.target.checked ? 'on' : 'off' });
+      }
+      persistSettings();
+    });
+
+    DOM.setMinimap.addEventListener('change', e => {
+      AppState.settings.minimap = e.target.checked;
+      if (AppState.editor) {
+        AppState.editor.updateOptions({ minimap: { enabled: e.target.checked } });
+      }
+      persistSettings();
+    });
+
+    DOM.setLineNo.addEventListener('change', e => {
+      AppState.settings.lineNumbers = e.target.checked;
+      if (AppState.editor) {
+        AppState.editor.updateOptions({ lineNumbers: e.target.checked ? 'on' : 'off' });
+      }
+      persistSettings();
+    });
+
+    DOM.setFontSize.addEventListener('change', e => {
+      const size = parseInt(e.target.value, 10);
+      AppState.settings.fontSize = size;
+      if (AppState.editor) {
+        AppState.editor.updateOptions({ fontSize: size });
+      }
+      persistSettings();
+    });
+
+    DOM.setTabSize.addEventListener('change', e => {
+      const tabs = parseInt(e.target.value, 10);
+      AppState.settings.tabSize = tabs;
+      if (AppState.editor) {
+        AppState.editor.updateOptions({ tabSize: tabs });
+      }
+      persistSettings();
+    });
+
+    // Drag and Drop files over Editor Pane
+    DOM.editorPane.addEventListener('dragover', e => {
+      e.preventDefault();
+      DOM.editorPane.classList.add('dragover');
+    });
+
+    DOM.editorPane.addEventListener('dragleave', () => {
+      DOM.editorPane.classList.remove('dragover');
+    });
+
+    DOM.editorPane.addEventListener('drop', e => {
+      e.preventDefault();
+      DOM.editorPane.classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+        handleFileRead(e.dataTransfer.files[0]);
+      }
+    });
+
+    // Global Keybindings
+    window.addEventListener('keydown', handleGlobalKeydown);
+
+    // Window Resize Observer for Monaco
+    window.addEventListener('resize', () => {
+      if (AppState.editor) AppState.editor.layout();
+    });
+  }
+
+  /* ==========================================================================
+     KEYBOARD SHORTCUTS ENGINE
+     ========================================================================== */
+  function handleGlobalKeydown(e) {
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+    const activeTagName = (document.activeElement && document.activeElement.tagName) || '';
+    const isInputFocused = activeTagName === 'INPUT' || activeTagName === 'SELECT' || activeTagName === 'TEXTAREA';
+
+    // Global Esc
+    if (e.key === 'Escape') {
+      closeAllModals();
+      return;
+    }
+
+    // Help ? (when not typing in form field or editor)
+    if (e.key === '?' && !isCtrlOrCmd && !isInputFocused && !AppState.editor?.hasTextFocus()) {
+      e.preventDefault();
+      openModal(DOM.modalShortcuts);
+      return;
+    }
+
+    if (!isCtrlOrCmd) return;
+
+    // Ctrl/Cmd + Enter: Run
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      runCodePreview(true);
+      return;
+    }
+
+    // Ctrl/Cmd + S: Download
+    if (e.key === 's' || e.key === 'S') {
+      e.preventDefault();
+      downloadActiveCode();
+      return;
+    }
+
+    // Ctrl/Cmd + O: Upload
+    if (e.key === 'o' || e.key === 'O') {
+      e.preventDefault();
+      DOM.fileSelector.value = '';
+      DOM.fileSelector.click();
+      return;
+    }
+
+    // Ctrl/Cmd + R: Refresh Preview (Prevent browser native reload)
+    if (!e.shiftKey && (e.key === 'r' || e.key === 'R')) {
+      e.preventDefault();
+      refreshPreview();
+      return;
+    }
+
+    // Ctrl/Cmd + Shift + C: Copy Code
+    if (e.shiftKey && (e.key === 'C' || e.key === 'c')) {
+      e.preventDefault();
+      if (AppState.editor) {
+        copyStringToClipboard(AppState.editor.getValue(), 'Source code copied');
+      }
+      return;
+    }
+
+    // Ctrl/Cmd + Shift + F: Fullscreen
+    if (e.shiftKey && (e.key === 'F' || e.key === 'f')) {
+      e.preventDefault();
+      if (DOM.fsModal.classList.contains('active')) {
+        closeFullscreenPreview();
+      } else {
+        openFullscreenPreview();
+      }
+      return;
+    }
+
+    // Ctrl/Cmd + Shift + T: Toggle Theme
+    if (e.shiftKey && (e.key === 'T' || e.key === 't')) {
+      e.preventDefault();
+      toggleTheme();
+    }
+  }
+
+  /* ==========================================================================
+     SYNC SETTINGS UI
+     ========================================================================== */
+  function syncSettingsInputs() {
+    DOM.setLive.checked = AppState.settings.livePreview;
+    DOM.setAutoSave.checked = AppState.settings.autoSave;
+    DOM.setWrap.checked = AppState.settings.wordWrap;
+    DOM.setMinimap.checked = AppState.settings.minimap;
+    DOM.setLineNo.checked = AppState.settings.lineNumbers;
+    DOM.setFontSize.value = String(AppState.settings.fontSize);
+    DOM.setTabSize.value = String(AppState.settings.tabSize);
+  }
+
+  /* ==========================================================================
+     BOOTSTRAP ENTRY POINT
+     ========================================================================== */
+  function bootstrap() {
+    loadPersistedSettings();
+    applyTheme(AppState.settings.theme);
+    syncSettingsInputs();
+    initSplitter();
+    attachEventHandlers();
+    initMonacoEditor();
+  }
+
+  // Launch when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrap);
+  } else {
+    bootstrap();
+  }
+  </script>
 </body>
 </html>
