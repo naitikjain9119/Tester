@@ -1,0 +1,2227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>REALISTIC AIR DRUMS // Pro Percussion Studio</title>
+
+  <!-- MediaPipe Hands & Camera Utils via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0b0e14;
+      --panel-bg: rgba(18, 22, 34, 0.88);
+      --panel-border: rgba(255, 215, 0, 0.25);
+      --brass-light: #f7d560;
+      --brass-base: #d4af37;
+      --brass-dark: #8c6d17;
+      --chrome-light: #f5f7fa;
+      --chrome-mid: #c0c6ce;
+      --chrome-dark: #636b75;
+      --skin-white: #f3f3f2;
+      --skin-dark: #dadada;
+      --wood-rim: #3d1b11;
+      --cyan: #00f0ff;
+      --magenta: #ff007f;
+      --gold: #ffcc00;
+      --text-main: #f0f6fc;
+      --text-muted: #9aa4b2;
+      --font-mono: 'SF Pro Mono', 'Consolas', 'Roboto Mono', monospace;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+    }
+
+    /* Background Studio Ambience */
+    #studio-backdrop {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 50% 40%, #171d2b 0%, #07090e 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Video & Canvas Overlay */
+    #stage-container {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2;
+    }
+
+    #webcam-video {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* Mirrored camera view */
+      opacity: 0.38;
+      filter: contrast(1.1) brightness(0.85);
+      transition: opacity 0.3s ease;
+      z-index: 2;
+    }
+
+    #canvas-overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* UI Layout Wrapper */
+    #app-ui {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    /* TOP HUD */
+    #top-hud {
+      width: 100%;
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(180deg, rgba(7, 10, 16, 0.95) 0%, rgba(7, 10, 16, 0) 100%);
+      pointer-events: auto;
+    }
+
+    .hud-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-text {
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-badge {
+      font-size: 0.65rem;
+      background: rgba(255, 204, 0, 0.15);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+    }
+
+    /* HUD Stats Bar */
+    .hud-stats {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 28px;
+      padding: 5px 18px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 55px;
+    }
+
+    .stat-label {
+      font-size: 0.58rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    .stat-value {
+      font-size: 1.05rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: #fff;
+    }
+
+    .highlight-gold {
+      color: var(--gold);
+      text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+    }
+    .highlight-cyan {
+      color: var(--cyan);
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+    }
+
+    /* Gesture & Camera Status */
+    #tracking-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #666;
+      box-shadow: 0 0 6px #666;
+      transition: all 0.3s ease;
+    }
+    .status-dot.active { background: #00ff88; box-shadow: 0 0 8px #00ff88; }
+    .status-dot.searching { background: var(--gold); box-shadow: 0 0 8px var(--gold); animation: blink 1s infinite; }
+    .status-dot.off { background: #ff334b; box-shadow: 0 0 8px #ff334b; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Mini Spectrum Visualizer */
+    #hud-visualizer {
+      width: 65px;
+      height: 22px;
+      display: block;
+    }
+
+    /* REALISTIC DRUM KIT STAGE */
+    #drum-kit-stage {
+      position: absolute;
+      inset: 60px 15px 75px 15px;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-template-rows: repeat(12, 1fr);
+      gap: 12px;
+      pointer-events: none;
+      transition: transform 0.08s ease-out;
+    }
+
+    .screen-shake {
+      animation: kitShake 0.13s ease-out;
+    }
+
+    @keyframes kitShake {
+      0% { transform: translate(0, 0); }
+      25% { transform: translate(-3px, 4px); }
+      50% { transform: translate(3px, -3px); }
+      75% { transform: translate(-2px, -2px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    /* BASE DRUM PAD CONTAINER */
+    .drum-unit {
+      position: relative;
+      pointer-events: auto;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
+      transition: transform 0.07s cubic-bezier(0.1, 0.8, 0.2, 1), filter 0.07s ease;
+      filter: drop-shadow(0 12px 18px rgba(0,0,0,0.65));
+    }
+
+    .drum-unit:hover {
+      filter: drop-shadow(0 14px 24px rgba(255, 204, 0, 0.3));
+    }
+
+    .drum-unit:active, .drum-unit.hit {
+      transform: scale(0.95) translateY(4px);
+    }
+
+    /* KEYBOARD HINT BADGE */
+    .pad-key {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #fff;
+      font-size: 0.65rem;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      z-index: 10;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+      pointer-events: none;
+    }
+
+    .drum-label {
+      position: relative;
+      font-size: 0.88rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #222;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .drum-sub {
+      font-size: 0.62rem;
+      font-family: var(--font-mono);
+      color: #555;
+      font-weight: bold;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .pad-hits-count {
+      position: absolute;
+      bottom: 8px;
+      right: 12px;
+      font-size: 0.65rem;
+      font-family: var(--font-mono);
+      color: rgba(0, 0, 0, 0.45);
+      font-weight: 700;
+      z-index: 5;
+    }
+
+    /* 1. REALISTIC BRASS CYMBALS (Hi-Hat, Crash, Ride) */
+    .cymbal-disc {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: 
+        radial-gradient(circle at 50% 50%, #ffe97d 0%, #d4af37 12%, #a88420 30%, #ffd966 45%, #b58d1f 65%, #7a5a0f 100%),
+        repeating-radial-gradient(circle at 50% 50%, transparent 0, transparent 3px, rgba(0,0,0,0.06) 4px);
+      border: 3px solid #6d4f0a;
+      box-shadow: 
+        inset 0 0 15px rgba(0, 0, 0, 0.5),
+        inset 0 0 35px rgba(255, 240, 160, 0.4),
+        0 8px 24px rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cymbal-disc::before {
+      content: '';
+      position: absolute;
+      width: 26%;
+      height: 26%;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff1a8 0%, #c49a23 70%, #684d0b 100%);
+      box-shadow: 0 0 8px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.7);
+      border: 2px solid #5a4107;
+      z-index: 2;
+    }
+
+    .cymbal-disc::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #111;
+      z-index: 3;
+    }
+
+    .drum-unit.hit .cymbal-disc {
+      filter: brightness(1.25);
+      box-shadow: inset 0 0 25px #fff, 0 0 30px var(--brass-light);
+    }
+
+    /* Cymbal Tilt / Wobble on Strike */
+    .cymbal-wobble {
+      animation: cymbalWobble 0.45s ease-out;
+    }
+    @keyframes cymbalWobble {
+      0% { transform: rotate(0deg) scale(0.97); }
+      20% { transform: rotate(-4deg) scale(1.02); }
+      45% { transform: rotate(3deg) scale(0.99); }
+      70% { transform: rotate(-1.5deg) scale(1.01); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+
+    /* 2. REALISTIC ACOUSTIC DRUMS (Snare, Toms) */
+    .drum-shell {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: 
+        radial-gradient(circle at 45% 45%, #ffffff 0%, var(--skin-white) 55%, var(--skin-dark) 85%, #a8a8a8 100%);
+      border: 8px solid var(--chrome-mid);
+      box-shadow: 
+        inset 0 4px 14px rgba(0, 0, 0, 0.45),
+        inset 0 0 25px rgba(0, 0, 0, 0.15),
+        0 8px 24px rgba(0, 0, 0, 0.8),
+        0 0 0 2px #444,
+        0 0 0 5px var(--wood-rim);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    /* Chrome Tension Lugs Around Rim */
+    .drum-shell::before {
+      content: '';
+      position: absolute;
+      inset: -12px;
+      border-radius: 50%;
+      background: 
+        radial-gradient(circle at 50% 2%, var(--chrome-light) 0%, var(--chrome-dark) 4px, transparent 6px),
+        radial-gradient(circle at 98% 50%, var(--chrome-light) 0%, var(--chrome-dark) 4px, transparent 6px),
+        radial-gradient(circle at 50% 98%, var(--chrome-light) 0%, var(--chrome-dark) 4px, transparent 6px),
+        radial-gradient(circle at 2% 50%, var(--chrome-light) 0%, var(--chrome-dark) 4px, transparent 6px);
+      pointer-events: none;
+    }
+
+    /* Center Dot on Snare Drum */
+    .snare-dot {
+      position: absolute;
+      width: 28%;
+      height: 28%;
+      border-radius: 50%;
+      background: radial-gradient(circle, #f0f0f0 0%, #333 90%, #111 100%);
+      opacity: 0.22;
+      pointer-events: none;
+    }
+
+    .drum-unit.hit .drum-shell {
+      filter: brightness(1.2);
+      box-shadow: inset 0 0 35px #ffffff, 0 0 30px rgba(255, 255, 255, 0.7);
+    }
+
+    /* 3. REALISTIC BASS KICK DRUM */
+    .kick-shell {
+      width: 100%;
+      height: 100%;
+      border-radius: 40px;
+      background: 
+        radial-gradient(circle at 50% 50%, #20242b 0%, #101217 75%, #050608 100%);
+      border: 12px solid #1c110b; /* Thick Wooden Hoop */
+      box-shadow: 
+        inset 0 0 30px rgba(0,0,0,0.9),
+        0 10px 30px rgba(0,0,0,0.9),
+        0 0 0 3px var(--chrome-mid);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    .kick-shell .drum-label {
+      color: #fff;
+      font-size: 1.15rem;
+      letter-spacing: 2px;
+      text-shadow: 0 2px 6px #000;
+    }
+    .kick-shell .drum-sub {
+      color: var(--gold);
+    }
+    .kick-shell .pad-hits-count {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Front Port Hole on Kick */
+    .kick-porthole {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #000;
+      border: 3px solid #282828;
+      box-shadow: inset 0 3px 8px rgba(0,0,0,0.95);
+      pointer-events: none;
+    }
+
+    .drum-unit.hit .kick-shell {
+      filter: brightness(1.3);
+      box-shadow: inset 0 0 40px #ff334b, 0 0 40px rgba(255, 50, 75, 0.8);
+    }
+
+    /* DRUM KIT PHYSICAL ERGONOMIC LAYOUT (Standard 5-Piece Kit Grid) */
+    /* TOP ROW: Cymbals and Mounted Rack Toms */
+    #pad-hihat {
+      grid-column: 1 / 4;
+      grid-row: 1 / 5;
+    }
+    #pad-crash {
+      grid-column: 4 / 7;
+      grid-row: 1 / 5;
+    }
+    #pad-hightom {
+      grid-column: 7 / 10;
+      grid-row: 1 / 5;
+    }
+    #pad-ride {
+      grid-column: 10 / 13;
+      grid-row: 1 / 5;
+    }
+
+    /* MIDDLE ROW: Snare Drum, Mid Tom, Floor Tom */
+    #pad-snare {
+      grid-column: 2 / 5;
+      grid-row: 5 / 9;
+    }
+    #pad-midtom {
+      grid-column: 5 / 9;
+      grid-row: 5 / 9;
+    }
+    #pad-floortom {
+      grid-column: 9 / 12;
+      grid-row: 5 / 9;
+    }
+
+    /* BOTTOM ROW: Kick Bass Drum */
+    #pad-kick {
+      grid-column: 4 / 10;
+      grid-row: 9 / 13;
+    }
+
+    /* BOTTOM CONTROLS DOCK */
+    #bottom-dock {
+      width: 100%;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(0deg, rgba(7, 10, 16, 0.98) 0%, rgba(7, 10, 16, 0.7) 75%, transparent 100%);
+      pointer-events: auto;
+    }
+
+    .dock-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 6px 12px;
+      border-radius: 14px;
+    }
+
+    .btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-gold {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: rgba(255, 204, 0, 0.12);
+    }
+    .btn-gold:hover {
+      background: rgba(255, 204, 0, 0.28);
+      box-shadow: 0 0 12px rgba(255, 204, 0, 0.4);
+    }
+
+    .btn-rec.recording {
+      background: #ff1744 !important;
+      color: #fff !important;
+      border-color: #ff1744 !important;
+      animation: recBlink 1.2s infinite;
+    }
+
+    @keyframes recBlink {
+      0%, 100% { box-shadow: 0 0 6px #ff1744; }
+      50% { box-shadow: 0 0 20px #ff1744; }
+    }
+
+    .slider-control {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 65px;
+    }
+
+    .slider-label {
+      font-size: 0.58rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.25);
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--gold);
+      cursor: pointer;
+      box-shadow: 0 0 6px var(--gold);
+    }
+
+    #metronome-led {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #333;
+      border: 1px solid #666;
+    }
+    #metronome-led.pulse {
+      background: var(--gold);
+      box-shadow: 0 0 10px var(--gold);
+    }
+
+    /* FLOATING TIMING & ACCURACY TEXT */
+    .floating-feedback {
+      position: absolute;
+      pointer-events: none;
+      font-family: var(--font-mono);
+      font-weight: 900;
+      font-size: 1.25rem;
+      letter-spacing: 1px;
+      transform: translate(-50%, -50%);
+      animation: floatUp 0.7s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+      z-index: 50;
+    }
+
+    .feedback-perfect { color: #ffe600; text-shadow: 0 0 12px #ffbb00; }
+    .feedback-great { color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
+    .feedback-nice { color: #00ff88; text-shadow: 0 0 10px #00ff88; }
+    .feedback-hit { color: #fff; text-shadow: 0 0 8px rgba(255,255,255,0.8); }
+
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translate(-50%, -20%) scale(0.7); }
+      30% { transform: translate(-50%, -70%) scale(1.15); }
+      100% { opacity: 0; transform: translate(-50%, -120%) scale(1); }
+    }
+
+    /* START SCREEN MODAL */
+    #start-screen {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(14, 18, 28, 0.96) 0%, rgba(6, 8, 12, 0.98) 100%);
+      backdrop-filter: blur(18px);
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    #start-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .start-card {
+      max-width: 600px;
+      width: 100%;
+      background: var(--panel-bg);
+      border: 1px solid rgba(255, 204, 0, 0.35);
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 204, 0, 0.15);
+      border-radius: 20px;
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      text-align: center;
+    }
+
+    .start-title {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #fff;
+      text-shadow: 0 0 15px rgba(255, 204, 0, 0.6);
+    }
+
+    .pinch-instruction-box {
+      background: rgba(255, 204, 0, 0.08);
+      border: 1px dashed var(--gold);
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      color: #fce899;
+    }
+
+    .start-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .btn-hero {
+      background: linear-gradient(135deg, var(--gold) 0%, #ff9900 100%);
+      color: #000;
+      font-weight: 900;
+      font-size: 1.05rem;
+      padding: 14px 26px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 25px rgba(255, 204, 0, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    .btn-hero:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 35px rgba(255, 204, 0, 0.7);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      font-size: 0.85rem;
+      padding: 10px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    /* ERROR BANNER */
+    #error-banner {
+      position: fixed;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 30, 60, 0.95);
+      border: 1px solid #ff4d6d;
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 30px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #rec-indicator {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: #ff334b;
+      font-weight: bold;
+    }
+    #rec-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff334b;
+      animation: recBlink 1s infinite;
+    }
+
+    /* RESPONSIVE LAYOUT */
+    @media (max-width: 900px) {
+      .logo-badge, #hud-visualizer { display: none; }
+      #top-hud { padding: 8px 12px; }
+      .hud-stats { padding: 4px 10px; gap: 8px; }
+      #bottom-dock { flex-wrap: wrap; justify-content: center; gap: 8px; padding: 6px; }
+      .drum-label { font-size: 0.75rem; }
+      .drum-sub { display: none; }
+    }
+
+    @media (max-width: 600px) {
+      #drum-kit-stage {
+        grid-template-columns: repeat(6, 1fr);
+        grid-template-rows: repeat(12, 1fr);
+        inset: 55px 5px 120px 5px;
+        gap: 8px;
+      }
+      #pad-hihat { grid-column: 1 / 4; grid-row: 1 / 4; }
+      #pad-crash { grid-column: 4 / 7; grid-row: 1 / 4; }
+      #pad-hightom { grid-column: 1 / 4; grid-row: 4 / 7; }
+      #pad-ride { grid-column: 4 / 7; grid-row: 4 / 7; }
+      #pad-snare { grid-column: 1 / 4; grid-row: 7 / 10; }
+      #pad-midtom { grid-column: 4 / 7; grid-row: 7 / 10; }
+      #pad-floortom { grid-column: 1 / 3; grid-row: 10 / 13; }
+      #pad-kick { grid-column: 3 / 7; grid-row: 10 / 13; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="studio-backdrop"></div>
+
+  <!-- VIDEO & CANVAS OVERLAY -->
+  <div id="stage-container">
+    <video id="webcam-video" playsinline muted autoplay></video>
+    <canvas id="canvas-overlay"></canvas>
+  </div>
+
+  <!-- ERROR NOTIFICATION BANNER -->
+  <div id="error-banner">
+    <span id="error-msg">Camera unavailable. Fallback to manual mode.</span>
+    <button class="btn" style="padding:2px 8px;" onclick="document.getElementById('error-banner').style.display='none'">✕</button>
+  </div>
+
+  <!-- MAIN INTERACTIVE UI -->
+  <div id="app-ui">
+    
+    <!-- TOP HUD -->
+    <header id="top-hud">
+      <div class="hud-title-group">
+        <div class="logo-text">
+          <span>🥁 REAL AIR DRUMS</span>
+          <span class="logo-badge">PINCH TRIGGER</span>
+        </div>
+        <div id="tracking-status-pill">
+          <div class="status-dot searching" id="tracking-status-dot"></div>
+          <span id="tracking-status-text">INITIALIZING</span>
+        </div>
+      </div>
+
+      <div class="hud-stats">
+        <div class="stat-item">
+          <span class="stat-label">SCORE</span>
+          <span class="stat-value highlight-gold" id="stat-score">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">COMBO</span>
+          <span class="stat-value highlight-cyan" id="stat-combo">0x</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">HIGH</span>
+          <span class="stat-value" id="stat-highscore">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">BPM</span>
+          <span class="stat-value" id="stat-bpm">110</span>
+        </div>
+        <canvas id="hud-visualizer"></canvas>
+      </div>
+    </header>
+
+    <!-- REALISTIC ACOUSTIC DRUM KIT STAGE -->
+    <main id="drum-kit-stage">
+      
+      <!-- 1. Hi-Hat Cymbal (A) -->
+      <div class="drum-unit" id="pad-hihat" data-key="a" data-instrument="hihat" role="button" aria-label="Play Hi-Hat">
+        <div class="cymbal-disc">
+          <span class="pad-key">A</span>
+          <span class="drum-label">HI-HAT</span>
+          <span class="drum-sub">BRASS 14"</span>
+          <span class="pad-hits-count" id="hits-hihat">0</span>
+        </div>
+      </div>
+
+      <!-- 2. Crash Cymbal (J) -->
+      <div class="drum-unit" id="pad-crash" data-key="j" data-instrument="crash" role="button" aria-label="Play Crash Cymbal">
+        <div class="cymbal-disc">
+          <span class="pad-key">J</span>
+          <span class="drum-label">CRASH</span>
+          <span class="drum-sub">BRONZE 18"</span>
+          <span class="pad-hits-count" id="hits-crash">0</span>
+        </div>
+      </div>
+
+      <!-- 3. High Tom (D) -->
+      <div class="drum-unit" id="pad-hightom" data-key="d" data-instrument="hightom" role="button" aria-label="Play High Tom">
+        <div class="drum-shell">
+          <span class="pad-key">D</span>
+          <span class="drum-label">HIGH TOM</span>
+          <span class="drum-sub">10" RACK</span>
+          <span class="pad-hits-count" id="hits-hightom">0</span>
+        </div>
+      </div>
+
+      <!-- 4. Ride Cymbal (H) -->
+      <div class="drum-unit" id="pad-ride" data-key="h" data-instrument="ride" role="button" aria-label="Play Ride Cymbal">
+        <div class="cymbal-disc">
+          <span class="pad-key">H</span>
+          <span class="drum-label">RIDE</span>
+          <span class="drum-sub">HEAVY 20"</span>
+          <span class="pad-hits-count" id="hits-ride">0</span>
+        </div>
+      </div>
+
+      <!-- 5. Snare Drum (S) -->
+      <div class="drum-unit" id="pad-snare" data-key="s" data-instrument="snare" role="button" aria-label="Play Snare Drum">
+        <div class="drum-shell">
+          <div class="snare-dot"></div>
+          <span class="pad-key">S</span>
+          <span class="drum-label">SNARE</span>
+          <span class="drum-sub">STEEL 14"</span>
+          <span class="pad-hits-count" id="hits-snare">0</span>
+        </div>
+      </div>
+
+      <!-- 6. Mid Tom (F) -->
+      <div class="drum-unit" id="pad-midtom" data-key="f" data-instrument="midtom" role="button" aria-label="Play Mid Tom">
+        <div class="drum-shell">
+          <span class="pad-key">F</span>
+          <span class="drum-label">MID TOM</span>
+          <span class="drum-sub">12" RACK</span>
+          <span class="pad-hits-count" id="hits-midtom">0</span>
+        </div>
+      </div>
+
+      <!-- 7. Floor Tom (G) -->
+      <div class="drum-unit" id="pad-floortom" data-key="g" data-instrument="floortom" role="button" aria-label="Play Floor Tom">
+        <div class="drum-shell">
+          <span class="pad-key">G</span>
+          <span class="drum-label">FLOOR TOM</span>
+          <span class="drum-sub">DEEP 16"</span>
+          <span class="pad-hits-count" id="hits-floortom">0</span>
+        </div>
+      </div>
+
+      <!-- 8. Bass Kick Drum (SPACE) -->
+      <div class="drum-unit" id="pad-kick" data-key=" " data-instrument="kick" role="button" aria-label="Play Bass Drum">
+        <div class="kick-shell">
+          <div class="kick-porthole"></div>
+          <span class="pad-key">SPACE</span>
+          <span class="drum-label">BASS DRUM</span>
+          <span class="drum-sub">SUB 22"</span>
+          <span class="pad-hits-count" id="hits-kick">0</span>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- BOTTOM CONTROL DOCK -->
+    <footer id="bottom-dock">
+      
+      <!-- Camera Toggle -->
+      <div class="dock-group">
+        <button class="btn btn-gold" id="btn-toggle-cam" aria-label="Toggle Camera">
+          <span>📹</span> <span id="cam-text">CAM ON</span>
+        </button>
+        <button class="btn" id="btn-switch-cam" aria-label="Switch Camera">🔄 FLIP</button>
+      </div>
+
+      <!-- Rhythm & BGM -->
+      <div class="dock-group">
+        <button class="btn" id="btn-toggle-bgm" aria-label="Toggle BGM">
+          <span>🎵</span> <span id="bgm-text">BGM OFF</span>
+        </button>
+        <button class="btn" id="btn-toggle-metro" aria-label="Toggle Metronome">
+          <span id="metronome-led"></span>
+          <span>CLICK</span>
+        </button>
+        <div class="slider-control">
+          <div class="slider-label"><span>BPM</span><span id="label-bpm-val">110</span></div>
+          <input type="range" id="slider-bpm" min="60" max="180" value="110" step="1">
+        </div>
+        <div class="slider-control">
+          <div class="slider-label"><span>VOL</span><span id="label-vol-val">85%</span></div>
+          <input type="range" id="slider-drum-vol" min="0" max="100" value="85">
+        </div>
+      </div>
+
+      <!-- Session Recording Station -->
+      <div class="dock-group">
+        <div id="rec-indicator"><span id="rec-dot"></span><span id="rec-time">00:00</span></div>
+        <button class="btn btn-rec" id="btn-record" aria-label="Record Drum Session">● REC</button>
+        <button class="btn" id="btn-stop-rec" disabled aria-label="Stop Recording">■ STOP</button>
+        <button class="btn" id="btn-play-rec" disabled aria-label="Play Recording">▶ PLAY</button>
+        <button class="btn btn-gold" id="btn-save-rec" disabled aria-label="Save Recording">⬇ SAVE</button>
+        <button class="btn" id="btn-clear-rec" disabled aria-label="Clear Recording">🗑</button>
+      </div>
+
+      <!-- Extras -->
+      <div class="dock-group">
+        <button class="btn" id="btn-reset-game" aria-label="Reset Score">🔄 RESET</button>
+        <button class="btn" id="btn-fullscreen" aria-label="Fullscreen">⛶ FULL</button>
+      </div>
+
+    </footer>
+
+  </div>
+
+  <!-- START OVERLAY SCREEN -->
+  <div id="start-screen">
+    <div class="start-card">
+      <h1 class="start-title">AIR DRUMS STUDIO</h1>
+      
+      <div class="pinch-instruction-box">
+        <strong>👌 उंगली और अंगूठे से Pinch करें:</strong><br>
+        जिस ड्रम के ऊपर आपका हाथ होगा, जैसे ही आपकी <b>Index Finger</b> और <b>Thumb</b> आपस में टच (Pinch) होंगे, उसी क्षण वह ड्रम <b>तुरंत बजेगा</b>! दोनों हाथों से खेलें।
+      </div>
+
+      <div class="start-actions">
+        <button class="btn-hero" id="btn-start-camera">START AIR DRUMS (CAMERA & AUDIO)</button>
+        <button class="btn-secondary" id="btn-start-manual">MANUAL PLAY (KEYBOARD & TOUCH ONLY)</button>
+      </div>
+
+      <p style="font-size:0.75rem; color:var(--text-muted);">
+        Keyboard keys: [A] Hi-Hat, [S] Snare, [D] High Tom, [F] Mid Tom, [G] Floor Tom, [H] Ride, [J] Crash, [SPACE] Kick
+      </p>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION CODE -->
+  <script>
+  // --- 1. APP CONFIGURATION & STATE ---
+  const CONFIG = {
+    DEFAULT_BPM: 110,
+    PINCH_RATIO_THRESHOLD: 0.32, // Relative pinch distance to hand size
+    PINCH_PIXEL_THRESHOLD: 42,   // Maximum pixels between thumb & index for instant touch
+    COOLDOWN_PER_DRUM: 120,      // Minimum ms between strikes on same drum
+    COMBO_TIMEOUT: 2500,
+    MAX_PARTICLES: 150,
+    STORAGE_KEY_HIGHSCORE: 'real_air_drums_highscore_v2'
+  };
+
+  const state = {
+    isStarted: false,
+    cameraActive: false,
+    cameraFacing: 'user',
+    score: 0,
+    combo: 0,
+    comboMultiplier: 1,
+    highScore: parseInt(localStorage.getItem(CONFIG.STORAGE_KEY_HIGHSCORE) || '0', 10),
+    lastHitTime: 0,
+    bpm: CONFIG.DEFAULT_BPM,
+    bgmActive: false,
+    metronomeActive: false,
+    drumVolume: 0.85,
+    bgmVolume: 0.32,
+    isRecording: false,
+    recordingTime: 0,
+    recordedBlob: null,
+    recordedAudioUrl: null,
+    playbackAudio: null,
+    totalHits: 0,
+    drumHitStats: {
+      hihat: 0, crash: 0, hightom: 0, ride: 0,
+      snare: 0, midtom: 0, floortom: 0, kick: 0
+    }
+  };
+
+  // State for both tracked hands:
+  const handTrackerState = [
+    { 
+      active: false,
+      handedness: 'Left',
+      thumbX: 0, thumbY: 0,
+      indexX: 0, indexY: 0,
+      pinchX: 0, pinchY: 0,
+      isPinching: false,
+      wasPinching: false,
+      lastHitTime: 0,
+      trail: []
+    },
+    { 
+      active: false,
+      handedness: 'Right',
+      thumbX: 0, thumbY: 0,
+      indexX: 0, indexY: 0,
+      pinchX: 0, pinchY: 0,
+      isPinching: false,
+      wasPinching: false,
+      lastHitTime: 0,
+      trail: []
+    }
+  ];
+
+  // DOM Elements
+  const videoEl = document.getElementById('webcam-video');
+  const canvasEl = document.getElementById('canvas-overlay');
+  const ctx = canvasEl.getContext('2d');
+  const hudCanvas = document.getElementById('hud-visualizer');
+  const hudCtx = hudCanvas.getContext('2d');
+
+  const statScoreEl = document.getElementById('stat-score');
+  const statComboEl = document.getElementById('stat-combo');
+  const statHighEl = document.getElementById('stat-highscore');
+  const statBpmEl = document.getElementById('stat-bpm');
+  const labelBpmVal = document.getElementById('label-bpm-val');
+  const labelVolVal = document.getElementById('label-vol-val');
+  const trackingDot = document.getElementById('tracking-status-dot');
+  const trackingText = document.getElementById('tracking-status-text');
+  const metronomeLed = document.getElementById('metronome-led');
+  const drumKitStage = document.getElementById('drum-kit-stage');
+  const errorBanner = document.getElementById('error-banner');
+  const errorMsg = document.getElementById('error-msg');
+
+  // Recorder Elements
+  const recIndicator = document.getElementById('rec-indicator');
+  const recTimeText = document.getElementById('rec-time');
+  const btnRec = document.getElementById('btn-record');
+  const btnStopRec = document.getElementById('btn-stop-rec');
+  const btnPlayRec = document.getElementById('btn-play-rec');
+  const btnSaveRec = document.getElementById('btn-save-rec');
+  const btnClearRec = document.getElementById('btn-clear-rec');
+
+  statHighEl.textContent = state.highScore;
+
+  // --- 2. HIGH-FIDELITY WEB AUDIO DRUM ENGINE ---
+  class AudioEngine {
+    constructor() {
+      this.ctx = null;
+      this.masterGain = null;
+      this.drumGain = null;
+      this.bgmGain = null;
+      this.metronomeGain = null;
+      this.recDestination = null;
+      this.analyser = null;
+
+      // Sequencer
+      this.nextNoteTime = 0;
+      this.current16thStep = 0;
+      this.timerID = null;
+      this.lookahead = 25.0;
+      this.scheduleAheadTime = 0.1;
+    }
+
+    init() {
+      if (this.ctx) return;
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioContextClass();
+
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = 1.0;
+
+      this.drumGain = this.ctx.createGain();
+      this.drumGain.gain.value = state.drumVolume;
+
+      this.bgmGain = this.ctx.createGain();
+      this.bgmGain.gain.value = state.bgmVolume;
+
+      this.metronomeGain = this.ctx.createGain();
+      this.metronomeGain.gain.value = 0.45;
+
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 64;
+
+      this.recDestination = this.ctx.createMediaStreamDestination();
+
+      this.drumGain.connect(this.masterGain);
+      this.bgmGain.connect(this.masterGain);
+      this.metronomeGain.connect(this.masterGain);
+
+      this.masterGain.connect(this.analyser);
+      this.analyser.connect(this.ctx.destination);
+      this.masterGain.connect(this.recDestination);
+
+      this.nextNoteTime = this.ctx.currentTime + 0.1;
+      this.schedulerLoop();
+    }
+
+    resume() {
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+
+    // --- PROCEDURAL DRUM GENERATORS ---
+    playKick(time = 0) {
+      this.resume();
+      const t = time || this.ctx.currentTime;
+      
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(155, t);
+      osc.frequency.exponentialRampToValueAtTime(36, t + 0.11);
+
+      gain.gain.setValueAtTime(1.0, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+
+      // Acoustic Beater Impact Click
+      const click = this.ctx.createOscillator();
+      const clickGain = this.ctx.createGain();
+      click.type = 'triangle';
+      click.frequency.setValueAtTime(280, t);
+      click.frequency.exponentialRampToValueAtTime(28, t + 0.025);
+      clickGain.gain.setValueAtTime(0.7, t);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+
+      osc.connect(gain);
+      click.connect(clickGain);
+      gain.connect(this.drumGain);
+      clickGain.connect(this.drumGain);
+
+      osc.start(t);
+      osc.stop(t + 0.4);
+      click.start(t);
+      click.stop(t + 0.03);
+    }
+
+    playSnare(time = 0) {
+      this.resume();
+      const t = time || this.ctx.currentTime;
+
+      // 1. Snare Wires Noise
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.22);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const noiseFilter = this.ctx.createBiquadFilter();
+      noiseFilter.type = 'highpass';
+      noiseFilter.frequency.value = 950;
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.85, t);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+      noise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(this.drumGain);
+
+      // 2. Shell Fundamental Body
+      const osc = this.ctx.createOscillator();
+      const oscGain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(195, t);
+      osc.frequency.exponentialRampToValueAtTime(115, t + 0.09);
+
+      oscGain.gain.setValueAtTime(0.75, t);
+      oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.12);
+
+      osc.connect(oscGain);
+      oscGain.connect(this.drumGain);
+
+      noise.start(t);
+      noise.stop(t + 0.23);
+      osc.start(t);
+      osc.stop(t + 0.13);
+    }
+
+    playHiHat(time = 0) {
+      this.resume();
+      const t = time || this.ctx.currentTime;
+      const fundamental = 42;
+      const ratios = [2, 3.05, 4.15, 5.4, 6.8, 8.4];
+      const bandpass = this.ctx.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.frequency.value = 9200;
+
+      const highpass = this.ctx.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.value = 7500;
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.7, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.065);
+
+      ratios.forEach(ratio => {
+        const osc = this.ctx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.value = fundamental * ratio;
+        osc.connect(bandpass);
+        osc.start(t);
+        osc.stop(t + 0.07);
+      });
+
+      bandpass.connect(highpass);
+      highpass.connect(gain);
+      gain.connect(this.drumGain);
+    }
+
+    playCrash(time = 0) {
+      this.resume();
+      const t = time || this.ctx.currentTime;
+      const bufferSize = Math.floor(this.ctx.sampleRate * 2.0);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.value = 4500;
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.85, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.9);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.drumGain);
+
+      noise.start(t);
+      noise.stop(t + 2.0);
+    }
+
+    playRide(time = 0) {
+      this.resume();
+      const t = time || this.ctx.currentTime;
+      [830, 1480, 2980, 5600].forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+        osc.frequency.value = freq;
+        const decay = idx === 0 ? 0.85 : 1.25;
+        gain.gain.setValueAtTime(0.28 / (idx + 1), t);
+        gain.gain.exponentialRampToValueAtTime(0.0008, t + decay);
+
+        osc.connect(gain);
+        gain.connect(this.drumGain);
+        osc.start(t);
+        osc.stop(t + decay + 0.05);
+      });
+    }
+
+    playTom(startFreq, endFreq, decay, time = 0) {
+      this.resume();
+      const t = time || this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(startFreq, t);
+      osc.frequency.exponentialRampToValueAtTime(endFreq, t + decay * 0.45);
+
+      gain.gain.setValueAtTime(0.85, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + decay);
+
+      const click = this.ctx.createOscillator();
+      const clickGain = this.ctx.createGain();
+      click.type = 'triangle';
+      click.frequency.setValueAtTime(startFreq * 1.8, t);
+      click.frequency.exponentialRampToValueAtTime(startFreq, t + 0.03);
+      clickGain.gain.setValueAtTime(0.35, t);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+
+      osc.connect(gain);
+      click.connect(clickGain);
+      gain.connect(this.drumGain);
+      clickGain.connect(this.drumGain);
+
+      osc.start(t);
+      osc.stop(t + decay + 0.02);
+      click.start(t);
+      click.stop(t + 0.035);
+    }
+
+    playMetronomeClick(isAccent, time) {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = isAccent ? 1600 : 880;
+      gain.gain.setValueAtTime(0.55, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.035);
+
+      osc.connect(gain);
+      gain.connect(this.metronomeGain);
+      osc.start(time);
+      osc.stop(time + 0.04);
+    }
+
+    playSynthBassNote(freq, time, dur) {
+      const osc = this.ctx.createOscillator();
+      const filter = this.ctx.createBiquadFilter();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1300, time);
+      filter.frequency.exponentialRampToValueAtTime(260, time + dur);
+      filter.Q.value = 4.0;
+
+      gain.gain.setValueAtTime(0.38, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.bgmGain);
+
+      osc.start(time);
+      osc.stop(time + dur + 0.02);
+    }
+
+    schedulerLoop() {
+      while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
+        this.schedule16thStep(this.current16thStep, this.nextNoteTime);
+        const secondsPer16th = (60.0 / state.bpm) / 4.0;
+        this.nextNoteTime += secondsPer16th;
+        this.current16thStep = (this.current16thStep + 1) % 16;
+      }
+      this.timerID = setTimeout(() => this.schedulerLoop(), this.lookahead);
+    }
+
+    schedule16thStep(step, time) {
+      if (step % 4 === 0) {
+        const beatNumber = step / 4;
+        if (state.metronomeActive) {
+          this.playMetronomeClick(beatNumber === 0, time);
+        }
+
+        const delayMs = Math.max(0, (time - this.ctx.currentTime) * 1000);
+        setTimeout(() => {
+          metronomeLed.classList.add('pulse');
+          setTimeout(() => metronomeLed.classList.remove('pulse'), 90);
+        }, delayMs);
+      }
+
+      if (state.bgmActive) {
+        const notes = [
+          55, 0, 55, 55,
+          65.4, 0, 55, 0,
+          73.4, 0, 82.4, 0,
+          49, 0, 41.2, 0
+        ];
+        const freq = notes[step];
+        if (freq > 0) {
+          const dur = (60.0 / state.bpm) / 4.0 * 0.9;
+          this.playSynthBassNote(freq, time, dur);
+        }
+      }
+    }
+  }
+
+  const audio = new AudioEngine();
+
+  // --- 3. PERFORMANCE AUDIO RECORDER ---
+  class RecorderEngine {
+    constructor() {
+      this.mediaRecorder = null;
+      this.recordedChunks = [];
+      this.timerInterval = null;
+    }
+
+    start() {
+      if (!audio.ctx) audio.init();
+      if (!audio.recDestination) return;
+
+      this.recordedChunks = [];
+      let options = { mimeType: 'audio/webm;codecs=opus' };
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: 'audio/webm' };
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) options = {};
+      }
+
+      try {
+        this.mediaRecorder = new MediaRecorder(audio.recDestination.stream, options);
+      } catch (err) {
+        showError('Recording unsupported in browser: ' + err.message);
+        return;
+      }
+
+      this.mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) this.recordedChunks.push(e.data);
+      };
+
+      this.mediaRecorder.onstop = () => {
+        state.recordedBlob = new Blob(this.recordedChunks, { type: this.mediaRecorder.mimeType || 'audio/webm' });
+        if (state.recordedAudioUrl) URL.revokeObjectURL(state.recordedAudioUrl);
+        state.recordedAudioUrl = URL.createObjectURL(state.recordedBlob);
+        
+        btnPlayRec.disabled = false;
+        btnSaveRec.disabled = false;
+        btnClearRec.disabled = false;
+      };
+
+      this.mediaRecorder.start(100);
+      state.isRecording = true;
+      state.recordingTime = 0;
+
+      btnRec.classList.add('recording');
+      btnStopRec.disabled = false;
+      btnPlayRec.disabled = true;
+      btnSaveRec.disabled = true;
+      recIndicator.style.display = 'flex';
+      recTimeText.textContent = '00:00';
+
+      this.timerInterval = setInterval(() => {
+        state.recordingTime++;
+        const mins = String(Math.floor(state.recordingTime / 60)).padStart(2, '0');
+        const secs = String(state.recordingTime % 60).padStart(2, '0');
+        recTimeText.textContent = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    stop() {
+      if (!state.isRecording || !this.mediaRecorder) return;
+      this.mediaRecorder.stop();
+      state.isRecording = false;
+      clearInterval(this.timerInterval);
+
+      btnRec.classList.remove('recording');
+      btnStopRec.disabled = true;
+      recIndicator.style.display = 'none';
+    }
+
+    play() {
+      if (!state.recordedAudioUrl) return;
+      if (state.playbackAudio) {
+        state.playbackAudio.pause();
+        state.playbackAudio = null;
+      }
+      state.playbackAudio = new Audio(state.recordedAudioUrl);
+      state.playbackAudio.play();
+      btnPlayRec.textContent = '⏸ PAUSE';
+      state.playbackAudio.onended = () => { btnPlayRec.textContent = '▶ PLAY'; };
+    }
+
+    save() {
+      if (!state.recordedBlob) return;
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = state.recordedAudioUrl;
+      a.download = `Real_AirDrums_${Date.now()}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => document.body.removeChild(a), 200);
+    }
+
+    clear() {
+      if (state.playbackAudio) {
+        state.playbackAudio.pause();
+        state.playbackAudio = null;
+      }
+      if (state.recordedAudioUrl) URL.revokeObjectURL(state.recordedAudioUrl);
+      state.recordedBlob = null;
+      state.recordedAudioUrl = null;
+      btnPlayRec.disabled = true;
+      btnSaveRec.disabled = true;
+      btnClearRec.disabled = true;
+      btnPlayRec.textContent = '▶ PLAY';
+    }
+  }
+
+  const recorder = new RecorderEngine();
+
+  // --- 4. PARTICLES & VISUALS ---
+  class ParticleEngine {
+    constructor() {
+      this.particles = [];
+    }
+
+    emit(x, y, color = '#ffd700', count = 20) {
+      if (this.particles.length > CONFIG.MAX_PARTICLES) {
+        this.particles.splice(0, count);
+      }
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 6.5 + 2.0;
+        this.particles.push({
+          x: x, y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.2,
+          radius: Math.random() * 3.5 + 1.5,
+          color: color,
+          alpha: 1.0,
+          decay: Math.random() * 0.035 + 0.025
+        });
+      }
+    }
+
+    updateAndRender(ctx) {
+      for (let i = this.particles.length - 1; i >= 0; i--) {
+        const p = this.particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.16;
+        p.alpha -= p.decay;
+
+        if (p.alpha <= 0) {
+          this.particles.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+  }
+
+  const particleFX = new ParticleEngine();
+
+  // --- 5. GAME SCORE & COMBO ENGINE ---
+  class GameEngine {
+    registerHit(instrument, clientX, clientY) {
+      const now = performance.now();
+      if (now - state.lastHitTime > CONFIG.COMBO_TIMEOUT) {
+        state.combo = 0;
+        state.comboMultiplier = 1;
+      }
+      state.lastHitTime = now;
+
+      state.combo++;
+      if (state.combo >= 24) state.comboMultiplier = 8;
+      else if (state.combo >= 12) state.comboMultiplier = 4;
+      else if (state.combo >= 5) state.comboMultiplier = 2;
+      else state.comboMultiplier = 1;
+
+      let timingFeedback = 'HIT!';
+      let addedPoints = 100;
+
+      if (audio.ctx && (state.bgmActive || state.metronomeActive)) {
+        const secondsPerBeat = 60.0 / state.bpm;
+        const curTime = audio.ctx.currentTime;
+        const timeFromBeat = curTime % secondsPerBeat;
+        const diff = Math.min(timeFromBeat, secondsPerBeat - timeFromBeat);
+
+        if (diff < 0.06) {
+          timingFeedback = 'PERFECT!';
+          addedPoints = 250;
+        } else if (diff < 0.12) {
+          timingFeedback = 'GREAT!';
+          addedPoints = 180;
+        } else {
+          timingFeedback = 'NICE!';
+          addedPoints = 100;
+        }
+      }
+
+      const hitScore = addedPoints * state.comboMultiplier;
+      state.score += hitScore;
+      state.totalHits++;
+      state.drumHitStats[instrument] = (state.drumHitStats[instrument] || 0) + 1;
+
+      if (state.score > state.highScore) {
+        state.highScore = state.score;
+        localStorage.setItem(CONFIG.STORAGE_KEY_HIGHSCORE, state.highScore);
+        statHighEl.textContent = state.highScore;
+      }
+
+      statScoreEl.textContent = state.score;
+      statComboEl.textContent = `${state.combo}x (x${state.comboMultiplier})`;
+
+      this.spawnFloatingFeedback(timingFeedback, hitScore, clientX, clientY);
+
+      const countEl = document.getElementById(`hits-${instrument}`);
+      if (countEl) countEl.textContent = state.drumHitStats[instrument];
+    }
+
+    spawnFloatingFeedback(feedbackText, points, x, y) {
+      const el = document.createElement('div');
+      const feedbackClass = feedbackText.includes('PERFECT') ? 'feedback-perfect' :
+                           feedbackText.includes('GREAT') ? 'feedback-great' :
+                           feedbackText.includes('NICE') ? 'feedback-nice' : 'feedback-hit';
+      
+      el.className = `floating-feedback ${feedbackClass}`;
+      el.innerHTML = `${feedbackText} <span style="font-size:0.85rem;">+${points}</span>`;
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+
+      document.body.appendChild(el);
+      setTimeout(() => {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }, 700);
+    }
+
+    reset() {
+      state.score = 0;
+      state.combo = 0;
+      state.comboMultiplier = 1;
+      statScoreEl.textContent = '0';
+      statComboEl.textContent = '0x';
+    }
+  }
+
+  const game = new GameEngine();
+
+  // --- 6. DRUM TRIGGER & PAD STRIKE HANDLER ---
+  function triggerDrum(instrument, clientX = null, clientY = null, source = 'manual') {
+    if (!audio.ctx) audio.init();
+
+    switch (instrument) {
+      case 'kick':
+        audio.playKick();
+        drumKitStage.classList.remove('screen-shake');
+        void drumKitStage.offsetWidth;
+        drumKitStage.classList.add('screen-shake');
+        setTimeout(() => drumKitStage.classList.remove('screen-shake'), 140);
+        break;
+      case 'snare':
+        audio.playSnare();
+        break;
+      case 'hihat':
+        audio.playHiHat();
+        break;
+      case 'crash':
+        audio.playCrash();
+        const crashEl = document.getElementById('pad-crash');
+        crashEl.classList.remove('cymbal-wobble');
+        void crashEl.offsetWidth;
+        crashEl.classList.add('cymbal-wobble');
+        setTimeout(() => crashEl.classList.remove('cymbal-wobble'), 450);
+        break;
+      case 'ride':
+        audio.playRide();
+        const rideEl = document.getElementById('pad-ride');
+        rideEl.classList.remove('cymbal-wobble');
+        void rideEl.offsetWidth;
+        rideEl.classList.add('cymbal-wobble');
+        setTimeout(() => rideEl.classList.remove('cymbal-wobble'), 450);
+        break;
+      case 'hightom':
+        audio.playTom(215, 118, 0.34);
+        break;
+      case 'midtom':
+        audio.playTom(160, 88, 0.40);
+        break;
+      case 'floortom':
+        audio.playTom(110, 56, 0.52);
+        break;
+    }
+
+    const padEl = document.getElementById(`pad-${instrument}`);
+    if (padEl) {
+      padEl.classList.remove('hit');
+      void padEl.offsetWidth;
+      padEl.classList.add('hit');
+      setTimeout(() => padEl.classList.remove('hit'), 150);
+
+      const rect = padEl.getBoundingClientRect();
+      const hitX = clientX !== null ? clientX : (rect.left + rect.width / 2);
+      const hitY = clientY !== null ? clientY : (rect.top + rect.height / 2);
+
+      const colors = {
+        hihat: '#ffd700', crash: '#ffcc00', hightom: '#ffffff', ride: '#ffd700',
+        snare: '#ffffff', midtom: '#ffffff', floortom: '#ffffff', kick: '#ff334b'
+      };
+      particleFX.emit(hitX, hitY, colors[instrument] || '#ffd700', 22);
+
+      game.registerHit(instrument, hitX, hitY);
+    }
+  }
+
+  // --- 7. PINCH GESTURE DETECTION & WEBCAM TRACKING ---
+  let cachedPadRects = [];
+  function updatePadBoundingBoxes() {
+    const pads = document.querySelectorAll('.drum-unit');
+    cachedPadRects = Array.from(pads).map(pad => ({
+      element: pad,
+      instrument: pad.getAttribute('data-instrument'),
+      rect: pad.getBoundingClientRect()
+    }));
+  }
+  window.addEventListener('resize', updatePadBoundingBoxes);
+  window.addEventListener('scroll', updatePadBoundingBoxes);
+  setTimeout(updatePadBoundingBoxes, 350);
+
+  function initMediaPipe() {
+    if (typeof Hands === 'undefined') {
+      showError("MediaPipe library could not load. Manual mode enabled.");
+      updateTrackingStatus('off', 'CAMERA OFF');
+      return;
+    }
+
+    updateTrackingStatus('searching', 'STARTING HAND TRACKER...');
+
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    hands.onResults(onHandResults);
+    startWebcam(hands);
+  }
+
+  async function startWebcam(handsInstance) {
+    try {
+      const constraints = {
+        video: {
+          facingMode: state.cameraFacing,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      videoEl.srcObject = stream;
+      await videoEl.play();
+
+      state.cameraActive = true;
+      document.getElementById('cam-text').textContent = 'CAM ON';
+      document.getElementById('btn-toggle-cam').classList.add('btn-gold');
+      updateTrackingStatus('searching', 'PINCH TO PLAY');
+
+      let isProcessing = false;
+      const processFrame = async () => {
+        if (state.cameraActive && videoEl.readyState >= 2 && !isProcessing) {
+          isProcessing = true;
+          await handsInstance.send({ image: videoEl });
+          isProcessing = false;
+        }
+        if (state.cameraActive) {
+          requestAnimationFrame(processFrame);
+        }
+      };
+      requestAnimationFrame(processFrame);
+
+    } catch (err) {
+      console.warn("Camera access error:", err);
+      showError("Camera unavailable or permission denied. Keyboard/Touch ready!");
+      updateTrackingStatus('off', 'CAMERA OFF');
+      state.cameraActive = false;
+      document.getElementById('cam-text').textContent = 'CAM OFF';
+      document.getElementById('btn-toggle-cam').classList.remove('btn-gold');
+    }
+  }
+
+  function updateTrackingStatus(status, text) {
+    trackingDot.className = `status-dot ${status}`;
+    trackingText.textContent = text;
+  }
+
+  // CORE PINCH DETECTION LOGIC
+  function onHandResults(results) {
+    const now = performance.now();
+    const numHands = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
+
+    if (numHands === 0) {
+      updateTrackingStatus('searching', 'SHOW HANDS TO PLAY');
+      handTrackerState[0].active = false;
+      handTrackerState[1].active = false;
+    } else {
+      updateTrackingStatus('active', `${numHands} HAND${numHands > 1 ? 'S' : ''} ACTIVE (PINCH READY)`);
+    }
+
+    if (!results.multiHandLandmarks) return;
+
+    for (let i = 0; i < 2; i++) {
+      if (i < numHands) {
+        const landmarks = results.multiHandLandmarks[i];
+        const handedness = results.multiHandedness && results.multiHandedness[i] 
+          ? results.multiHandedness[i].label 
+          : (i === 0 ? 'Left' : 'Right');
+
+        // Landmarks: 4 = Thumb Tip, 8 = Index Tip, 0 = Wrist, 5 = Index MCP
+        const thumbTip = landmarks[4];
+        const indexTip = landmarks[8];
+        const wrist = landmarks[0];
+        const indexMCP = landmarks[5];
+
+        // Mirrored coordinate calculations
+        const tX = (1.0 - thumbTip.x) * window.innerWidth;
+        const tY = thumbTip.y * window.innerHeight;
+        const iX = (1.0 - indexTip.x) * window.innerWidth;
+        const iY = indexTip.y * window.innerHeight;
+        const wX = (1.0 - wrist.x) * window.innerWidth;
+        const wY = wrist.y * window.innerHeight;
+        const mX = (1.0 - indexMCP.x) * window.innerWidth;
+        const mY = indexMCP.y * window.innerHeight;
+
+        const hState = handTrackerState[i];
+        hState.active = true;
+        hState.handedness = handedness;
+        hState.thumbX = tX; hState.thumbY = tY;
+        hState.indexX = iX; hState.indexY = iY;
+
+        // Contact point is the center between thumb tip and index tip
+        hState.pinchX = (tX + iX) / 2;
+        hState.pinchY = (tY + iY) / 2;
+
+        // Distance calculations for accurate pinch detection
+        const pinchDistance = Math.hypot(tX - iX, tY - iY);
+        const handScale = Math.hypot(wX - mX, wY - mY) || 120;
+        const normalizedPinchRatio = pinchDistance / handScale;
+
+        // Detect if thumb and index finger touch
+        const isPinchNow = (normalizedPinchRatio < CONFIG.PINCH_RATIO_THRESHOLD) || (pinchDistance < CONFIG.PINCH_PIXEL_THRESHOLD);
+        hState.isPinching = isPinchNow;
+
+        // INSTANT HIT: If pinch started on this exact frame -> Strike immediately!
+        if (isPinchNow && !hState.wasPinching) {
+          evaluatePinchHit(hState.pinchX, hState.pinchY);
+          hState.lastHitTime = now;
+        }
+
+        hState.wasPinching = isPinchNow;
+
+        // Store trail
+        hState.trail.unshift({ x: hState.pinchX, y: hState.pinchY, isPinch: isPinchNow });
+        if (hState.trail.length > 8) hState.trail.pop();
+
+      } else {
+        handTrackerState[i].active = false;
+        handTrackerState[i].trail = [];
+        handTrackerState[i].wasPinching = false;
+      }
+    }
+  }
+
+  // Check collision with the drum pad under the pinch point
+  function evaluatePinchHit(x, y) {
+    for (let k = 0; k < cachedPadRects.length; k++) {
+      const item = cachedPadRects[k];
+      const r = item.rect;
+      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+        // Immediate Strike!
+        triggerDrum(item.instrument, x, y, 'pinch');
+        break;
+      }
+    }
+  }
+
+  // --- 8. CANVAS OVERLAY & GESTURE RENDERING ---
+  function renderOverlay() {
+    if (canvasEl.width !== window.innerWidth || canvasEl.height !== window.innerHeight) {
+      canvasEl.width = window.innerWidth;
+      canvasEl.height = window.innerHeight;
+      updatePadBoundingBoxes();
+    }
+
+    ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+
+    // Draw Pinch Indicator for each hand
+    for (let i = 0; i < 2; i++) {
+      const hState = handTrackerState[i];
+      if (!hState.active) continue;
+
+      const handColor = hState.handedness === 'Left' ? '#00f0ff' : '#ffcc00';
+
+      ctx.save();
+
+      // Dotted connecting line between Thumb and Index
+      ctx.beginPath();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = hState.isPinching ? '#ffffff' : 'rgba(255, 255, 255, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.moveTo(hState.thumbX, hState.thumbY);
+      ctx.lineTo(hState.indexX, hState.indexY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Thumb Tip Circle
+      ctx.beginPath();
+      ctx.arc(hState.thumbX, hState.thumbY, 8, 0, Math.PI * 2);
+      ctx.fillStyle = handColor;
+      ctx.shadowColor = handColor;
+      ctx.shadowBlur = 10;
+      ctx.fill();
+
+      // Index Tip Circle
+      ctx.beginPath();
+      ctx.arc(hState.indexX, hState.indexY, 8, 0, Math.PI * 2);
+      ctx.fillStyle = handColor;
+      ctx.fill();
+
+      // PINCH CONTACT POINT
+      if (hState.isPinching) {
+        // Bright strike aura
+        ctx.beginPath();
+        ctx.arc(hState.pinchX, hState.pinchY, 26, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 25;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(hState.pinchX, hState.pinchY, 14, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        ctx.font = 'bold 12px monospace';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('STRIKE!', hState.pinchX + 20, hState.pinchY - 10);
+      } else {
+        // Open hand target reticle
+        ctx.beginPath();
+        ctx.arc(hState.pinchX, hState.pinchY, 10, 0, Math.PI * 2);
+        ctx.strokeStyle = handColor;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      // Hand Label
+      ctx.font = '10px monospace';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(`${hState.handedness.toUpperCase()}`, hState.indexX + 12, hState.indexY + 4);
+
+      ctx.restore();
+    }
+
+    // Render Particles
+    particleFX.updateAndRender(ctx);
+
+    // Render Mini Spectrum
+    if (audio.analyser) {
+      renderHudSpectrum();
+    }
+
+    requestAnimationFrame(renderOverlay);
+  }
+
+  function renderHudSpectrum() {
+    const freqData = new Uint8Array(audio.analyser.frequencyBinCount);
+    audio.analyser.getByteFrequencyData(freqData);
+
+    hudCtx.clearRect(0, 0, hudCanvas.width, hudCanvas.height);
+    const barWidth = 4;
+    const gap = 2;
+    const numBars = Math.floor(hudCanvas.width / (barWidth + gap));
+
+    for (let b = 0; b < numBars; b++) {
+      const val = freqData[b * 2] || 0;
+      const barHeight = (val / 255) * hudCanvas.height;
+      const x = b * (barWidth + gap);
+      const y = hudCanvas.height - barHeight;
+
+      hudCtx.fillStyle = '#ffcc00';
+      hudCtx.fillRect(x, y, barWidth, barHeight);
+    }
+  }
+
+  requestAnimationFrame(renderOverlay);
+
+  // --- 9. INPUT LISTENERS (TOUCH, MOUSE, KEYBOARD) ---
+  function setupInputEventListeners() {
+    // Mouse & Multi-Touch interaction
+    const pads = document.querySelectorAll('.drum-unit');
+    pads.forEach(pad => {
+      const instrument = pad.getAttribute('data-instrument');
+      pad.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        triggerDrum(instrument, e.clientX, e.clientY, 'touch');
+      });
+    });
+
+    // Keyboard Shortcuts
+    const keyMap = {
+      'a': 'hihat',
+      's': 'snare',
+      'd': 'hightom',
+      'f': 'midtom',
+      'g': 'floortom',
+      'h': 'ride',
+      'j': 'crash',
+      ' ': 'kick'
+    };
+
+    window.addEventListener('keydown', (e) => {
+      if (e.repeat) return;
+      const key = e.key.toLowerCase();
+      if (keyMap[key]) {
+        e.preventDefault();
+        triggerDrum(keyMap[key], null, null, 'keyboard');
+      }
+    });
+
+    // Start Screen
+    document.getElementById('btn-start-camera').addEventListener('click', () => {
+      audio.init();
+      audio.resume();
+      document.getElementById('start-screen').classList.add('hidden');
+      state.isStarted = true;
+      initMediaPipe();
+    });
+
+    document.getElementById('btn-start-manual').addEventListener('click', () => {
+      audio.init();
+      audio.resume();
+      document.getElementById('start-screen').classList.add('hidden');
+      state.isStarted = true;
+      videoEl.style.opacity = '0';
+      updateTrackingStatus('off', 'MANUAL PLAY MODE');
+    });
+
+    // Camera Dock Controls
+    document.getElementById('btn-toggle-cam').addEventListener('click', () => {
+      if (state.cameraActive) {
+        if (videoEl.srcObject) {
+          videoEl.srcObject.getTracks().forEach(track => track.stop());
+          videoEl.srcObject = null;
+        }
+        state.cameraActive = false;
+        videoEl.style.opacity = '0';
+        document.getElementById('cam-text').textContent = 'CAM OFF';
+        document.getElementById('btn-toggle-cam').classList.remove('btn-gold');
+        updateTrackingStatus('off', 'CAMERA OFF');
+      } else {
+        videoEl.style.opacity = '0.38';
+        document.getElementById('btn-toggle-cam').classList.add('btn-gold');
+        initMediaPipe();
+      }
+    });
+
+    document.getElementById('btn-switch-cam').addEventListener('click', () => {
+      state.cameraFacing = state.cameraFacing === 'user' ? 'environment' : 'user';
+      if (state.cameraActive) {
+        if (videoEl.srcObject) {
+          videoEl.srcObject.getTracks().forEach(track => track.stop());
+        }
+        initMediaPipe();
+      }
+    });
+
+    // BGM & Metronome
+    const btnBgm = document.getElementById('btn-toggle-bgm');
+    btnBgm.addEventListener('click', () => {
+      if (!audio.ctx) audio.init();
+      audio.resume();
+      state.bgmActive = !state.bgmActive;
+      if (state.bgmActive) {
+        btnBgm.classList.add('btn-gold');
+        document.getElementById('bgm-text').textContent = 'BGM ON';
+      } else {
+        btnBgm.classList.remove('btn-gold');
+        document.getElementById('bgm-text').textContent = 'BGM OFF';
+      }
+    });
+
+    const btnMetro = document.getElementById('btn-toggle-metro');
+    btnMetro.addEventListener('click', () => {
+      if (!audio.ctx) audio.init();
+      audio.resume();
+      state.metronomeActive = !state.metronomeActive;
+      if (state.metronomeActive) {
+        btnMetro.classList.add('btn-gold');
+      } else {
+        btnMetro.classList.remove('btn-gold');
+      }
+    });
+
+    // Sliders
+    const bpmSlider = document.getElementById('slider-bpm');
+    bpmSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      state.bpm = val;
+      statBpmEl.textContent = val;
+      labelBpmVal.textContent = val;
+    });
+
+    const volSlider = document.getElementById('slider-drum-vol');
+    volSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10) / 100;
+      state.drumVolume = val;
+      if (audio.drumGain) audio.drumGain.gain.value = val;
+      labelVolVal.textContent = `${Math.round(val * 100)}%`;
+    });
+
+    // Recording Controls
+    btnRec.addEventListener('click', () => recorder.start());
+    btnStopRec.addEventListener('click', () => recorder.stop());
+    btnPlayRec.addEventListener('click', () => recorder.play());
+    btnSaveRec.addEventListener('click', () => recorder.save());
+    btnClearRec.addEventListener('click', () => recorder.clear());
+
+    // Fullscreen & Reset
+    document.getElementById('btn-fullscreen').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    });
+
+    document.getElementById('btn-reset-game').addEventListener('click', () => {
+      game.reset();
+    });
+  }
+
+  function showError(message) {
+    errorMsg.textContent = message;
+    errorBanner.style.display = 'flex';
+    setTimeout(() => {
+      errorBanner.style.display = 'none';
+    }, 6000);
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    setupInputEventListeners();
+    updatePadBoundingBoxes();
+    updatePadBoundingBoxes();
+
+    // पहले यूजर इंटरैक्शन पर ऑडियो संदर्भ (AudioContext) को तुरंत एक्टिवेट करने के लिए
+    const unlockAudio = () => {
+      if (audio && audio.ctx && audio.ctx.state === 'suspended') {
+        audio.ctx.resume();
+      }
+      document.removeEventListener('pointerdown', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+    };
+    document.addEventListener('pointerdown', unlockAudio, { passive: true });
+    document.addEventListener('keydown', unlockAudio, { passive: true });
+
+    // विंडो रीसाइज़ और ओरिएंटेशन चेंज के दौरान पैड्स की लोकेशन अपडेट रखना
+    window.addEventListener('orientationchange', () => {
+      setTimeout(updatePadBoundingBoxes, 200);
+    });
+  });
+  </script>
+
+</body>
+</html>
