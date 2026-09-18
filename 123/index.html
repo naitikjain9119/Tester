@@ -2422,12 +2422,7 @@ function handleVideo(e) {
 }
 
 // ============ PAGES ============
-function saveCurrentPage() {
-const pageData = App.canvas.toJSON(['background', 'backgroundColor']);
-pageData.width = App.canvas.width;
-pageData.height = App.canvas.height;
-App.pages[App.currentPageIndex] = JSON.stringify(pageData);
-}
+function saveCurrentPage() { App.pages[App.currentPageIndex] = JSON.stringify(App.canvas.toJSON(['background','backgroundColor'])); }
 function addPage() {
     saveCurrentPage(); App.canvas.clear();
     App.canvas.backgroundColor = App.settings.globalBgColor || 'transparent';
@@ -2822,28 +2817,13 @@ async function launchViewer(shareId) {
     document.getElementById('viewer-page-input').max = Viewer.totalPages;
     document.getElementById('viewer-page-input').value = 1;
     const vc = document.getElementById('viewer-canvas');
-    
-    let firstPageData = {};
-    try {
-    firstPageData = JSON.parse(Viewer.pages[0] || '{}');
-    } catch (e) {
-    firstPageData = {};
-    }
-    
-    // Use the actual saved board size.
-    // If old saved pages don't contain dimensions, use the editor's standard 1280×720 size.
-    Viewer.canvasW = Number(firstPageData.width) || 1280;
-    Viewer.canvasH = Number(firstPageData.height) || 720;
-    
-    Viewer.canvasW = Math.max(800, Viewer.canvasW);
-    Viewer.canvasH = Math.max(500, Viewer.canvasH);
-    
-    vc.width = Viewer.canvasW;
-    vc.height = Viewer.canvasH;
-    
+    const tmpEl = document.createElement('canvas'); tmpEl.width = 99999; tmpEl.height = 99999;
+    const tmp = new fabric.Canvas(tmpEl);
+    await new Promise(r => tmp.loadFromJSON(Viewer.pages[0] || '{}', () => { r(); }));
+    Viewer.canvasW = Math.max(800, tmp.width || 1280); Viewer.canvasH = Math.max(500, tmp.height || 720);
+    tmp.dispose();
+    vc.width = Viewer.canvasW; vc.height = Viewer.canvasH;
     Viewer.zoomLevel = 0;
-    Viewer.panX = 0;
-    Viewer.panY = 0;
     document.getElementById('viewer-loading').classList.remove('show');
     document.getElementById('viewer-mode').classList.add('show');
     bindViewerEvents(); await viewerRenderPage(0); viewerFitScreen(); renderViewerThumbs();
@@ -2892,38 +2872,20 @@ async function renderViewerThumbs() {
 function viewerGotoPage(idx) { if (idx < 0 || idx >= Viewer.pages.length) return; viewerRenderPage(idx); }
 
 function viewerFitScreen() {
-const area = document.getElementById('viewer-canvas-area');
-
-const availableW = area.clientWidth - 30;
-const availableH = area.clientHeight - 30;
-
-// Calculate exact scale required to show the ENTIRE canvas.
-const scaleX = availableW / Viewer.canvasW;
-const scaleY = availableH / Viewer.canvasH;
-
-const scale = Math.min(scaleX, scaleY);
-
-// Convert exact scale to the viewer zoom system.
-Viewer.zoomLevel = Math.log(scale) / Math.log(1.15);
-
-// Keep the complete canvas centered inside the preview.
-Viewer.panX = (area.clientWidth - Viewer.canvasW * scale) / 2;
-Viewer.panY = (area.clientHeight - Viewer.canvasH * scale) / 2;
-
-const wrap = document.getElementById('viewer-canvas-wrap');
-
-wrap.style.transition =
-'transform 0.28s cubic-bezier(0.4,0,0.2,1)';
-
-wrap.style.transform =
-`translate(${Viewer.panX}px, ${Viewer.panY}px) scale(${scale})`;
-
-setTimeout(() => {
-wrap.style.transition = 'none';
-}, 300);
-
-document.getElementById('viewer-zoom-display').innerText =
-'Fit Screen';
+    const area = document.getElementById('viewer-canvas-area');
+    const aW = area.clientWidth - 30, aH = area.clientHeight - 30;
+    const zX = aW / Viewer.canvasW, zY = aH / Viewer.canvasH;
+    const targetScale = Math.min(zX, zY, viewerZoomLevelToScale(V_MAX_ZOOM));
+    let best = 0, bestDiff = Infinity;
+    for (let lv = V_MIN_ZOOM; lv <= V_MAX_ZOOM; lv++) {
+        const diff = Math.abs(viewerZoomLevelToScale(lv) - targetScale);
+        if (diff < bestDiff) { bestDiff = diff; best = lv; }
+    }
+    Viewer.zoomLevel = best;
+    const scale = viewerZoomLevelToScale(Viewer.zoomLevel);
+    Viewer.panX = (aW - Viewer.canvasW * scale) / 2 + 15;
+    Viewer.panY = (aH - Viewer.canvasH * scale) / 2 + 15;
+    applyViewerTransform(true);
 }
 
 function viewerFitWidth() {
