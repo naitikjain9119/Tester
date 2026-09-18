@@ -2778,6 +2778,31 @@ function viewerApplyZoom(deltaSign, cx, cy) {
     const pY = cy !== undefined ? cy : rect.height / 2;
    Viewer.panX = pX - (pX - Viewer.panX) * (newScale / prevScale);
 Viewer.panY = pY - (pY - Viewer.panY) * (newScale / prevScale);
+
+const areaW = rect.width;
+const areaH = rect.height;
+const canvasW = Viewer.canvasW * newScale;
+const canvasH = Viewer.canvasH * newScale;
+const margin = 15;
+
+if (canvasW <= areaW - margin * 2) {
+    Viewer.panX = (areaW - canvasW) / 2;
+} else {
+    Viewer.panX = Math.min(
+        margin,
+        Math.max(areaW - canvasW - margin, Viewer.panX)
+    );
+}
+
+if (canvasH <= areaH - margin * 2) {
+    Viewer.panY = (areaH - canvasH) / 2;
+} else {
+    Viewer.panY = Math.min(
+        margin,
+        Math.max(areaH - canvasH - margin, Viewer.panY)
+    );
+}
+
 applyViewerTransform(false);
 }
 
