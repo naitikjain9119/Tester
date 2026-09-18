@@ -2817,7 +2817,7 @@ async function launchViewer(shareId) {
     document.getElementById('viewer-page-input').max = Viewer.totalPages;
     document.getElementById('viewer-page-input').value = 1;
     const vc = document.getElementById('viewer-canvas');
-    const tmpEl = document.createElement('canvas'); tmpEl.width = 2560; tmpEl.height = 1440;
+    const tmpEl = document.createElement('canvas'); tmpEl.width = 3840; tmpEl.height = 2160;
     const tmp = new fabric.Canvas(tmpEl);
     await new Promise(r => tmp.loadFromJSON(Viewer.pages[0] || '{}', () => { r(); }));
     Viewer.canvasW = Math.max(800, tmp.width || 1280); Viewer.canvasH = Math.max(500, tmp.height || 720);
