@@ -1704,7 +1704,21 @@ function updateShareUI() {
     const file = AppData.files[App.currentFileId]; if (!file) return;
     const enabled = !!file.shareEnabled;
     const baseUrl = window.location.href.split('#')[0].split('?')[0];
-    const link = baseUrl + '#view=' + (file.shareId || '');
+   const folderPath = getFileFolderPath(file);
+
+const urlPathParts = [
+    ...folderPath,
+    file.name || 'Board'
+].map(part => encodeURIComponent(part));
+
+const readablePath = urlPathParts.join('/');
+
+const link =
+    baseUrl +
+    '#view=' +
+    encodeURIComponent(file.shareId || '') +
+    '/' +
+    readablePath;
     document.getElementById('share-link-input').value = link;
     document.getElementById('share-status-text').innerText = enabled ? 'Link काम करेगी ✓' : 'Link काम नहीं करेगी';
     document.getElementById('share-disabled-notice').style.display = enabled ? 'none' : 'block';
@@ -2817,79 +2831,12 @@ async function launchViewer(shareId) {
     document.getElementById('viewer-page-input').max = Viewer.totalPages;
     document.getElementById('viewer-page-input').value = 1;
     const vc = document.getElementById('viewer-canvas');
-    async function buildViewerCanvas(pageData) {
-    let bgColor = '#ffffff';
-
-    try {
-        const parsed = JSON.parse(pageData || '{}');
-        bgColor = parsed.backgroundColor || '#ffffff';
-    } catch (e) {}
-
-    // Large working canvas so negative / zoomed-out coordinates are preserved
-    const workEl = document.createElement('canvas');
-    workEl.width = 6400;
-    workEl.height = 3600;
-
-    const workCanvas = new fabric.Canvas(workEl, {
-        width: 6400,
-        height: 3600,
-        backgroundColor: bgColor
-    });
-
-    await new Promise(resolve => {
-        workCanvas.loadFromJSON(pageData || '{}', () => {
-            workCanvas.renderAll();
-            resolve();
-        });
-    });
-
-    // Default logical board area
-    let minX = 0;
-    let minY = 0;
-    let maxX = 1280;
-    let maxY = 720;
-
-    // Include every object, including objects created after zooming out
-    workCanvas.getObjects().forEach(obj => {
-        const rect = obj.getBoundingRect(true, true);
-
-        minX = Math.min(minX, rect.left);
-        minY = Math.min(minY, rect.top);
-        maxX = Math.max(maxX, rect.left + rect.width);
-        maxY = Math.max(maxY, rect.top + rect.height);
-    });
-
-    minX = Math.floor(minX);
-    minY = Math.floor(minY);
-    maxX = Math.ceil(maxX);
-    maxY = Math.ceil(maxY);
-
-    const offsetX = -minX;
-    const offsetY = -minY;
-
-    // Move every object so even negative-coordinate drawings become visible
-    workCanvas.getObjects().forEach(obj => {
-        obj.set({
-            left: obj.left + offsetX,
-            top: obj.top + offsetY
-        });
-        obj.setCoords();
-    });
-
-    const finalWidth = Math.max(800, maxX - minX);
-    const finalHeight = Math.max(500, maxY - minY);
-
-    workCanvas.setWidth(finalWidth);
-    workCanvas.setHeight(finalHeight);
-    workCanvas.renderAll();
-
-    return {
-        canvas: workCanvas,
-        width: finalWidth,
-        height: finalHeight,
-        backgroundColor: bgColor
-    };
-}
+    const tmpEl = document.createElement('canvas'); tmpEl.width = 6400; tmpEl.height = 3600;
+    const tmp = new fabric.Canvas(tmpEl);
+    await new Promise(r => tmp.loadFromJSON(Viewer.pages[0] || '{}', () => { r(); }));
+    Viewer.canvasW = Math.max(800, tmp.width || 1280); Viewer.canvasH = Math.max(500, tmp.height || 720);
+    tmp.dispose();
+    vc.width = Viewer.canvasW; vc.height = Viewer.canvasH;
     Viewer.zoomLevel = 0;
     document.getElementById('viewer-loading').classList.remove('show');
     document.getElementById('viewer-mode').classList.add('show');
