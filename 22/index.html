@@ -480,7 +480,6 @@
         .eraser-type-btn { font-size:11px; font-weight:700; padding:4px 8px; border-radius:7px; border:1.5px solid var(--border); background:var(--hover); color:var(--text-muted); cursor:pointer; transition:all 0.15s; }
         .eraser-type-btn.active { background:var(--danger); color:#fff; border-color:var(--danger); }
     </style>
-<base target="_blank">
 </head>
 <body data-theme="light">
 
@@ -2423,12 +2422,11 @@ function handleVideo(e) {
 }
 
 // ============ PAGES ============
-const SAVE_PROPS = ['background','backgroundColor','isLinkObject','linkUrl','isPDFBackground','isVideoElementObject'];
-function saveCurrentPage() { App.pages[App.currentPageIndex] = JSON.stringify(App.canvas.toJSON(SAVE_PROPS)); }
+function saveCurrentPage() { App.pages[App.currentPageIndex] = JSON.stringify(App.canvas.toJSON(['background','backgroundColor'])); }
 function addPage() {
     saveCurrentPage(); App.canvas.clear();
     App.canvas.backgroundColor = App.settings.globalBgColor || 'transparent';
-    App.pages.splice(App.currentPageIndex + 1, 0, JSON.stringify(App.canvas.toJSON(SAVE_PROPS)));
+    App.pages.splice(App.currentPageIndex + 1, 0, JSON.stringify(App.canvas.toJSON(['backgroundColor'])));
     App.pageHidden.splice(App.currentPageIndex + 1, 0, false);
     App.currentPageIndex++;
     App.history = []; App.historyIndex = -1; saveHistory(); updatePageIndicator();
@@ -2464,7 +2462,7 @@ function undo() { if (App.historyIndex > 0) { App.isHistoryAction = true; App.hi
 function redo() { if (App.historyIndex < App.history.length - 1) { App.isHistoryAction = true; App.historyIndex++; App.canvas.loadFromJSON(App.history[App.historyIndex], () => { App.canvas.requestRenderAll(); App.isHistoryAction = false; saveCurrentPage(); }); } }
 function saveHistory() {
     if (App.isHistoryAction) return;
-    const jsn = JSON.stringify(App.canvas.toJSON(SAVE_PROPS));
+    const jsn = JSON.stringify(App.canvas.toJSON(['backgroundColor']));
     App.history = App.history.slice(0, App.historyIndex + 1); App.history.push(jsn); App.historyIndex++; saveCurrentPage();
     App.isDirty = true;
     App.currentBgColor = App.canvas.backgroundColor || '#ffffff';
@@ -2819,56 +2817,98 @@ async function launchViewer(shareId) {
     document.getElementById('viewer-page-input').max = Viewer.totalPages;
     document.getElementById('viewer-page-input').value = 1;
     const vc = document.getElementById('viewer-canvas');
-    // FIX: Use the LARGEST page dimensions across ALL visible pages, so every page
-    // fits fully inside the viewer canvas (no more cropped "special part" preview).
-    let maxW = 1280, maxH = 720;
-    Viewer.pages.forEach(p => {
-        try {
-            const j = JSON.parse(p || '{}');
-            if (j.width) maxW = Math.max(maxW, j.width);
-            if (j.height) maxH = Math.max(maxH, j.height);
-        } catch (e) {}
+    async function buildViewerCanvas(pageData) {
+    let bgColor = '#ffffff';
+
+    try {
+        const parsed = JSON.parse(pageData || '{}');
+        bgColor = parsed.backgroundColor || '#ffffff';
+    } catch (e) {}
+
+    // Large working canvas so negative / zoomed-out coordinates are preserved
+    const workEl = document.createElement('canvas');
+    workEl.width = 6400;
+    workEl.height = 3600;
+
+    const workCanvas = new fabric.Canvas(workEl, {
+        width: 6400,
+        height: 3600,
+        backgroundColor: bgColor
     });
-    Viewer.canvasW = Math.max(800, maxW); Viewer.canvasH = Math.max(500, maxH);
-    Viewer.pageOffset = { dx: 0, dy: 0, scale: 1 };
-    vc.width = Viewer.canvasW; vc.height = Viewer.canvasH;
+
+    await new Promise(resolve => {
+        workCanvas.loadFromJSON(pageData || '{}', () => {
+            workCanvas.renderAll();
+            resolve();
+        });
+    });
+
+    // Default logical board area
+    let minX = 0;
+    let minY = 0;
+    let maxX = 1280;
+    let maxY = 720;
+
+    // Include every object, including objects created after zooming out
+    workCanvas.getObjects().forEach(obj => {
+        const rect = obj.getBoundingRect(true, true);
+
+        minX = Math.min(minX, rect.left);
+        minY = Math.min(minY, rect.top);
+        maxX = Math.max(maxX, rect.left + rect.width);
+        maxY = Math.max(maxY, rect.top + rect.height);
+    });
+
+    minX = Math.floor(minX);
+    minY = Math.floor(minY);
+    maxX = Math.ceil(maxX);
+    maxY = Math.ceil(maxY);
+
+    const offsetX = -minX;
+    const offsetY = -minY;
+
+    // Move every object so even negative-coordinate drawings become visible
+    workCanvas.getObjects().forEach(obj => {
+        obj.set({
+            left: obj.left + offsetX,
+            top: obj.top + offsetY
+        });
+        obj.setCoords();
+    });
+
+    const finalWidth = Math.max(800, maxX - minX);
+    const finalHeight = Math.max(500, maxY - minY);
+
+    workCanvas.setWidth(finalWidth);
+    workCanvas.setHeight(finalHeight);
+    workCanvas.renderAll();
+
+    return {
+        canvas: workCanvas,
+        width: finalWidth,
+        height: finalHeight,
+        backgroundColor: bgColor
+    };
+}
     Viewer.zoomLevel = 0;
     document.getElementById('viewer-loading').classList.remove('show');
     document.getElementById('viewer-mode').classList.add('show');
     bindViewerEvents(); await viewerRenderPage(0); viewerFitScreen(); renderViewerThumbs();
 }
 
-// FIX: Render a page onto a destination canvas, scaling the page's NATIVE size
-// to fit the destination fully (letterboxed, centered). Returns the mapping so
-// click/hit-testing can convert screen -> page coordinates.
-async function renderViewerPageData(pageData, destCanvas) {
-    const ctx = destCanvas.getContext('2d');
-    ctx.clearRect(0, 0, destCanvas.width, destCanvas.height);
-    let bgColor = '#ffffff', nativeW = 1280, nativeH = 720;
-    try {
-        const j = JSON.parse(pageData || '{}');
-        bgColor = j.backgroundColor || '#ffffff';
-        if (j.width) nativeW = j.width;
-        if (j.height) nativeH = j.height;
-    } catch (e) {}
-    const tmpEl = document.createElement('canvas');
-    tmpEl.width = nativeW; tmpEl.height = nativeH;
-    const tmp = new fabric.Canvas(tmpEl, { width: nativeW, height: nativeH, backgroundColor: bgColor });
-    await new Promise(r => tmp.loadFromJSON(pageData || '{}', () => { tmp.renderAll(); r(); }));
-    const ew = tmp.getWidth() || nativeW, eh = tmp.getHeight() || nativeH;
-    const s = Math.min(destCanvas.width / ew, destCanvas.height / eh);
-    const dx = (destCanvas.width - ew * s) / 2, dy = (destCanvas.height - eh * s) / 2;
-    ctx.fillStyle = bgColor; ctx.fillRect(0, 0, destCanvas.width, destCanvas.height);
-    ctx.drawImage(tmpEl, 0, 0, ew, eh, dx, dy, ew * s, eh * s);
-    tmp.dispose();
-    return { dx: dx, dy: dy, scale: s, pageW: ew, pageH: eh };
-}
-
 async function viewerRenderPage(idx) {
     if (idx < 0 || idx >= Viewer.pages.length) return;
     Viewer.currentPage = idx;
     const vc = document.getElementById('viewer-canvas');
-    Viewer.pageOffset = await renderViewerPageData(Viewer.pages[idx], vc);
+    const ctx = vc.getContext('2d'); ctx.clearRect(0, 0, vc.width, vc.height);
+    const pageData = Viewer.pages[idx];
+    let bgColor = '#ffffff';
+    try { const parsed = JSON.parse(pageData); bgColor = parsed.backgroundColor || '#ffffff'; } catch(e){}
+    ctx.fillStyle = bgColor; ctx.fillRect(0, 0, vc.width, vc.height);
+    const tmpEl = document.createElement('canvas'); tmpEl.width = vc.width; tmpEl.height = vc.height;
+    const tmp = new fabric.Canvas(tmpEl, { width: vc.width, height: vc.height, backgroundColor: bgColor });
+    await new Promise(r => tmp.loadFromJSON(pageData || '{}', () => { tmp.renderAll(); r(); }));
+    ctx.drawImage(tmpEl, 0, 0); tmp.dispose();
     document.getElementById('viewer-page-input').value = idx + 1;
     document.querySelectorAll('.viewer-thumb').forEach((t, i) => t.classList.toggle('active', i === idx));
 }
@@ -2883,8 +2923,16 @@ async function renderViewerThumbs() {
         wrap.appendChild(numLabel);
         const idx = i; wrap.onclick = () => viewerGotoPage(idx);
         panel.appendChild(wrap);
-        // FIX: thumbnails render via the same full-fit helper (no cropping)
-        await renderViewerPageData(Viewer.pages[i], tc);
+        const pageData = Viewer.pages[i];
+        let bgColor = '#ffffff';
+        try { const parsed = JSON.parse(pageData); bgColor = parsed.backgroundColor || '#ffffff'; } catch(e){}
+        const tmpEl = document.createElement('canvas'); tmpEl.width = Viewer.canvasW; tmpEl.height = Viewer.canvasH;
+        const tmp = new fabric.Canvas(tmpEl, { width: Viewer.canvasW, height: Viewer.canvasH, backgroundColor: bgColor });
+        (async (thumbCanvas, canvas, pg, bg) => {
+            await new Promise(r => canvas.loadFromJSON(pg || '{}', () => { canvas.renderAll(); r(); }));
+            const ctx2 = thumbCanvas.getContext('2d'); ctx2.fillStyle = bg; ctx2.fillRect(0, 0, 120, 68);
+            ctx2.drawImage(tmpEl, 0, 0, 120, 68); canvas.dispose();
+        })(tc, tmp, pageData, bgColor);
     }
 }
 
@@ -2960,39 +3008,10 @@ function bindViewerEvents() {
     });
     document.getElementById('viewer-thumbs-btn').onclick = () => { document.getElementById('viewer-thumbs-panel').classList.toggle('open'); };
 
-    let _vPanning = false, _vLX = 0, _vLY = 0, _vMoved = false;
-    area.addEventListener('mousedown', e => { if (e.button === 0 || e.button === 1) { _vPanning = true; _vMoved = false; _vLX = e.clientX; _vLY = e.clientY; area.classList.add('panning'); } });
-    document.addEventListener('mousemove', e => {
-        if (!_vPanning) return;
-        if (Math.abs(e.clientX - _vLX) + Math.abs(e.clientY - _vLY) > 4) _vMoved = true;
-        Viewer.panX += e.clientX - _vLX; Viewer.panY += e.clientY - _vLY; _vLX = e.clientX; _vLY = e.clientY; applyViewerTransform(false);
-    });
+    let _vPanning = false, _vLX = 0, _vLY = 0;
+    area.addEventListener('mousedown', e => { if (e.button === 0 || e.button === 1) { _vPanning = true; _vLX = e.clientX; _vLY = e.clientY; area.classList.add('panning'); } });
+    document.addEventListener('mousemove', e => { if (!_vPanning) return; Viewer.panX += e.clientX - _vLX; Viewer.panY += e.clientY - _vLY; _vLX = e.clientX; _vLY = e.clientY; applyViewerTransform(false); });
     document.addEventListener('mouseup', () => { _vPanning = false; area.classList.remove('panning'); });
-
-    // FIX: Click (without dragging) on the board opens inserted URL links in the viewer.
-    area.addEventListener('click', e => {
-        if (_vMoved) return;
-        const off = Viewer.pageOffset || { dx: 0, dy: 0, scale: 1 };
-        const z = viewerZoomLevelToScale(Viewer.zoomLevel);
-        const rect = area.getBoundingClientRect();
-        const cx = (e.clientX - rect.left - Viewer.panX) / z;
-        const cy = (e.clientY - rect.top - Viewer.panY) / z;
-        const lx = (cx - off.dx) / off.scale, ly = (cy - off.dy) / off.scale;
-        let hitUrl = null;
-        try {
-            const j = JSON.parse(Viewer.pages[Viewer.currentPage] || '{}');
-            const objs = (j.objects || []).slice().reverse();
-            for (const o of objs) {
-                if (!o || !(o.isLinkObject || o.linkUrl)) continue;
-                const sx = o.scaleX || 1, sy = o.scaleY || 1;
-                const w = (o.width || 0) * sx, h = (o.height || 0) * sy;
-                const ox = o.originX === 'center' ? o.left - w / 2 : (o.originX === 'right' ? o.left - w : o.left);
-                const oy = o.originY === 'center' ? o.top - h / 2 : (o.originY === 'bottom' ? o.top - h : o.top);
-                if (lx >= ox && lx <= ox + w && ly >= oy && ly <= oy + h) { hitUrl = o.linkUrl; break; }
-            }
-        } catch (err) {}
-        if (hitUrl) window.open(hitUrl, '_blank');
-    });
 
     let _vtouches = [], _vtStartDist = 0, _vtStartLevel = 0, _vtStartPanX = 0, _vtStartPanY = 0;
     area.addEventListener('touchstart', e => {
