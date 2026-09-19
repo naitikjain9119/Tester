@@ -859,12 +859,23 @@ let AppData = { files: {}, folders: {} };
 
 // ============ INIT ============
 function init() {
-    const hash = window.location.hash;
-    if (hash.startsWith('#view=')) {
-        const shareId = hash.slice(6);
-        launchViewer(shareId);
-        return;
-    }
+   const hash = window.location.hash;
+
+if (hash.startsWith('#view=')) {
+    // Supports both old:
+    // #view=SHARE_ID
+    //
+    // and new:
+    // #view=SHARE_ID/Folder/SubFolder/Board
+
+    const viewData = hash.slice(6);
+    const shareIdPart = viewData.split('/')[0];
+
+    const shareId = decodeURIComponent(shareIdPart);
+
+    launchViewer(shareId);
+    return;
+}
 
     const wrapper = document.getElementById('canvas-wrapper');
     const el = document.getElementById('board');
