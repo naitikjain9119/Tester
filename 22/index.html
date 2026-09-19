@@ -859,23 +859,33 @@ let AppData = { files: {}, folders: {} };
 
 // ============ INIT ============
 function init() {
-   const hash = window.location.hash;
+    const hash = window.location.hash;
 
 if (hash.startsWith('#view=')) {
-    // Supports both old:
-    // #view=SHARE_ID
-    //
-    // and new:
-    // #view=SHARE_ID/Folder/SubFolder/Board
-
     const viewData = hash.slice(6);
-    const shareIdPart = viewData.split('/')[0];
 
-    const shareId = decodeURIComponent(shareIdPart);
+    // New share URL format:
+    // #view=Folder/Subfolder/Board?sid=SHARE_ID
+
+    let shareId = '';
+
+    if (viewData.includes('?sid=')) {
+        shareId = decodeURIComponent(
+            viewData.split('?sid=')[1]
+        );
+    }
+
+    // Backward compatibility:
+    // Old links were:
+    // #view=SHARE_ID
+    if (!shareId) {
+        shareId = viewData;
+    }
 
     launchViewer(shareId);
     return;
 }
+    
 
     const wrapper = document.getElementById('canvas-wrapper');
     const el = document.getElementById('board');
@@ -1712,32 +1722,91 @@ function openShareModal() {
 }
 function updateShareUI() {
     if (!App.currentFileId) return;
-    const file = AppData.files[App.currentFileId]; if (!file) return;
+
+    const file = AppData.files[App.currentFileId];
+    if (!file) return;
+
     const enabled = !!file.shareEnabled;
+
+    // ------------------------------------------------------------
+    // BUILD COMPLETE FOLDER PATH
+    // Home
+    //   Folder
+    //      Subfolder
+    //          Board
+    // ------------------------------------------------------------
+    function getFolderPath(folderId) {
+        const path = [];
+        let currentId = folderId;
+
+        while (currentId) {
+            const folder = AppData.folders[currentId];
+            if (!folder) break;
+
+            path.unshift(folder.name);
+            currentId = folder.parentId;
+        }
+
+        return path;
+    }
+
+    const folderPath = getFolderPath(file.folderId);
+
+    // URL-safe path segments
+    const pathParts = [...folderPath, file.name]
+        .map(name => encodeURIComponent(String(name).trim()))
+        .filter(Boolean);
+
+    /*
+        Examples:
+
+        Board only:
+        #view=My%20Board?sid=id_xxx
+
+        One folder:
+        #view=Science/My%20Board?sid=id_xxx
+
+        Nested folder:
+        #view=Science/Physics/My%20Board?sid=id_xxx
+    */
+
+    const displayPath = pathParts.join('/');
     const baseUrl = window.location.href.split('#')[0].split('?')[0];
-   const folderPath = getFileFolderPath(file);
 
-const urlPathParts = [
-    ...folderPath,
-    file.name || 'Board'
-].map(part => encodeURIComponent(part));
+    const link =
+        baseUrl +
+        '#view=' +
+        displayPath +
+        '?sid=' +
+        encodeURIComponent(file.shareId || '');
 
-const readablePath = urlPathParts.join('/');
-
-const link =
-    baseUrl +
-    '#view=' +
-    encodeURIComponent(file.shareId || '') +
-    '/' +
-    readablePath;
     document.getElementById('share-link-input').value = link;
-    document.getElementById('share-status-text').innerText = enabled ? 'Link काम करेगी ✓' : 'Link काम नहीं करेगी';
-    document.getElementById('share-disabled-notice').style.display = enabled ? 'none' : 'block';
-    const qrDiv = document.getElementById('share-qr-div'); qrDiv.innerHTML = '';
-    if (_shareQrInstance) { _shareQrInstance = null; }
-    try { _shareQrInstance = new QRCode(qrDiv, { text: link, width: 160, height: 160, colorDark: enabled ? '#5b6cf9' : '#9ca3af', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M }); } catch(e) {}
-}
 
+    document.getElementById('share-status-text').innerText =
+        enabled ? 'Link काम करेगी ✓' : 'Link काम नहीं करेगी';
+
+    document.getElementById('share-disabled-notice').style.display =
+        enabled ? 'none' : 'block';
+
+    // QR Code
+    const qrDiv = document.getElementById('share-qr-div');
+    qrDiv.innerHTML = '';
+
+    if (_shareQrInstance) {
+        _shareQrInstance = null;
+    }
+
+    try {
+        _shareQrInstance = new QRCode(qrDiv, {
+            text: link,
+            width: 160,
+            height: 160,
+            colorDark: enabled ? '#5b6cf9' : '#9ca3af',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    } catch(e) {}
+}
 // ============ PASTE PANEL ============
 function bindPastePanel() {
     document.getElementById('btn-paste-panel').onclick = e => {
@@ -2612,19 +2681,90 @@ function loadCurrentFileIntoCanvas() {
     // Reset zoom to level 0 on file load
     App.zoomLevel = 0; resetZoom();
 }
-
 function createNewFile() {
-    const name = prompt('Board का नाम डालें:', 'Untitled Board'); if (name === null) return;
-    const id = genId();
-    AppData.files[id] = { id, name: name.trim() || 'Untitled Board', folderId: App.home.currentFolderId, favorite: false, pages: [blankPageJSON(App.settings.globalBgColor || null)], pageHidden: [false], globalBgColor: App.settings.globalBgColor || null, createdAt: Date.now(), updatedAt: Date.now(), shareId: genId(), shareEnabled: false };
-    persistAppData(); openFile(id);
-}
+    const inputName = prompt(
+        'Board का नाम डालें:',
+        'Untitled Board'
+    );
 
-function createNewFolder() {
-    const name = prompt('Folder का नाम:', 'New Folder'); if (!name) return;
+    if (inputName === null) return;
+
+    const baseName = inputName.trim() || 'Untitled Board';
+
+    // Check names inside the current folder
+    const siblingNames = Object.values(AppData.files)
+        .filter(file => file.folderId === App.home.currentFolderId)
+        .map(file => file.name.trim().toLowerCase());
+
+    let finalName = baseName;
+    let counter = 1;
+
+    while (siblingNames.includes(finalName.toLowerCase())) {
+        counter++;
+        finalName = `${baseName} (${counter})`;
+    }
+
     const id = genId();
-    AppData.folders[id] = { id, name: name.trim(), parentId: App.home.currentFolderId, createdAt: Date.now() };
-    persistAppData(); renderHome();
+
+    AppData.files[id] = {
+        id,
+        name: finalName,
+        folderId: App.home.currentFolderId,
+        favorite: false,
+        pages: [
+            blankPageJSON(
+                App.settings.globalBgColor || null
+            )
+        ],
+        pageHidden: [false],
+        globalBgColor: App.settings.globalBgColor || null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        shareId: genId(),
+        shareEnabled: false
+    };
+
+    persistAppData();
+    openFile(id);
+}
+function createNewFolder() {
+    const inputName = prompt(
+        'Folder का नाम:',
+        'New Folder'
+    );
+
+    if (!inputName || !inputName.trim()) return;
+
+    const baseName = inputName.trim();
+
+    // Check folders inside the current parent folder
+    const siblingNames = Object.values(AppData.folders)
+        .filter(folder =>
+            folder.parentId === App.home.currentFolderId
+        )
+        .map(folder =>
+            folder.name.trim().toLowerCase()
+        );
+
+    let finalName = baseName;
+    let counter = 1;
+
+    while (siblingNames.includes(finalName.toLowerCase())) {
+        counter++;
+        finalName = `${baseName} (${counter})`;
+    }
+
+    const id = genId();
+
+    AppData.folders[id] = {
+        id,
+        name: finalName,
+        parentId: App.home.currentFolderId,
+        createdAt: Date.now()
+    };
+
+    persistAppData();
+    renderHome();
 }
 
 function openFile(id) {
