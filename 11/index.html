@@ -1,2320 +1,993 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HTML Runner</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" />
-  <style>
-    /* ===== CSS CUSTOM PROPERTIES & TOKENS ===== */
-    :root {
-      --bg-base: #0a0a0f;
-      --bg-surface: #12121c;
-      --bg-surface-elevated: #1a1a28;
-      --bg-surface-subtle: #212134;
-      --bg-glass: rgba(18, 18, 28, 0.78);
-      --bg-glass-card: rgba(26, 26, 40, 0.65);
-      
-      --border-subtle: rgba(255, 255, 255, 0.07);
-      --border-medium: rgba(255, 255, 255, 0.14);
-      --border-focus: #7c6af7;
-      
-      --accent: #7c6af7;
-      --accent-hover: #9080ff;
-      --accent-gradient: linear-gradient(135deg, #7c6af7 0%, #a78bfa 100%);
-      --accent-contrast: #ffffff;
-      
-      --text-main: #f1f1f9;
-      --text-muted: #9595b2;
-      --text-faint: #5e5e7c;
-      
-      --color-error: #f43f5e;
-      --color-warning: #f59e0b;
-      --color-info: #38bdf8;
-      --color-success: #10b981;
-      
-      --header-h: 38px;
-      --toolbar-h: 48px;
-      --status-h: 26px;
-      --radius-sm: 4px;
-      --radius-md: 7px;
-      --radius-lg: 11px;
-      --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
-      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    [data-theme="light"] {
-      --bg-base: #f4f4fa;
-      --bg-surface: #ffffff;
-      --bg-surface-elevated: #f0f0f8;
-      --bg-surface-subtle: #e4e4f2;
-      --bg-glass: rgba(255, 255, 255, 0.85);
-      --bg-glass-card: rgba(244, 244, 250, 0.75);
-      
-      --border-subtle: rgba(0, 0, 0, 0.08);
-      --border-medium: rgba(0, 0, 0, 0.16);
-      --border-focus: #5b48ee;
-      
-      --accent: #5b48ee;
-      --accent-hover: #4937dc;
-      --accent-gradient: linear-gradient(135deg, #5b48ee 0%, #7c6af7 100%);
-      --accent-contrast: #ffffff;
-      
-      --text-main: #131322;
-      --text-muted: #5e5e78;
-      --text-faint: #9898b0;
-      
-      --color-error: #e11d48;
-      --color-warning: #d97706;
-      --color-info: #0284c7;
-      --color-success: #059669;
-    }
-
-    /* ===== BASE RESET ===== */
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    html, body {
-      height: 100%;
-      width: 100%;
-      overflow: hidden;
-      background: var(--bg-base);
-      color: var(--text-main);
-      font-family: var(--font-sans);
-      font-size: 13px;
-      line-height: 1.4;
-      user-select: none;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    /* ===== LAYOUT SYSTEM ===== */
-    #app {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      width: 100vw;
-      position: relative;
-    }
-
-    /* ===== HEADER ===== */
-    #site-header {
-      height: var(--header-h);
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 14px;
-      flex-shrink: 0;
-      z-index: 10;
-    }
-
-    .brand-group {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-
-    .brand-icon {
-      font-size: 15px;
-      line-height: 1;
-    }
-
-    .brand-title {
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      background: var(--accent-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .brand-subtitle {
-      font-size: 11px;
-      color: var(--text-muted);
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .brand-subtitle strong {
-      color: var(--text-main);
-    }
-
-    .header-info {
-      font-size: 11px;
-      color: var(--text-faint);
-    }
-
-    .header-info kbd {
-      background: var(--bg-surface-elevated);
-      border: 1px solid var(--border-medium);
-      padding: 1px 5px;
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      font-family: var(--font-mono);
-      font-size: 10px;
-    }
-
-    /* ===== TOOLBAR ===== */
-    #toolbar {
-      height: var(--toolbar-h);
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      padding: 0 10px;
-      gap: 5px;
-      flex-shrink: 0;
-      overflow-x: auto;
-      overflow-y: hidden;
-      scrollbar-width: none;
-    }
-    #toolbar::-webkit-scrollbar { display: none; }
-
-    .tb-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      height: 32px;
-      padding: 0 10px;
-      background: var(--bg-surface-elevated);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      font-size: 12px;
-      font-weight: 500;
-      font-family: inherit;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
-      position: relative;
-      user-select: none;
-    }
-
-    .tb-btn:hover {
-      background: var(--bg-surface-subtle);
-      color: var(--text-main);
-      border-color: var(--border-medium);
-    }
-
-    .tb-btn:active {
-      transform: scale(0.98);
-    }
-
-    .tb-btn:focus-visible {
-      outline: 2px solid var(--border-focus);
-      outline-offset: 1px;
-    }
-
-    .tb-btn.primary {
-      background: var(--accent);
-      color: var(--accent-contrast);
-      border-color: var(--accent);
-      font-weight: 600;
-      padding: 0 14px;
-    }
-
-    .tb-btn.primary:hover {
-      background: var(--accent-hover);
-      border-color: var(--accent-hover);
-      box-shadow: 0 2px 10px rgba(124, 106, 247, 0.35);
-    }
-
-    .tb-btn .tb-icon {
-      font-size: 13px;
-      line-height: 1;
-      display: inline-block;
-    }
-
-    .tb-sep {
-      width: 1px;
-      height: 20px;
-      background: var(--border-subtle);
-      margin: 0 3px;
-      flex-shrink: 0;
-    }
-
-    .tb-badge {
-      display: none;
-      min-width: 17px;
-      height: 17px;
-      padding: 0 4px;
-      border-radius: 9px;
-      background: var(--color-error);
-      color: #fff;
-      font-size: 10px;
-      font-weight: 700;
-      line-height: 17px;
-      text-align: center;
-      margin-left: 2px;
-    }
-
-    /* ===== MAIN WORKSPACE ===== */
-    #workspace {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-      position: relative;
-      background: var(--bg-base);
-    }
-
-    /* ===== EDITOR PANEL ===== */
-    #editor-pane {
-      display: flex;
-      flex-direction: column;
-      width: 50%;
-      min-width: 240px;
-      height: 100%;
-      position: relative;
-      background: var(--bg-surface);
-    }
-
-    .pane-header {
-      height: 32px;
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 10px;
-      flex-shrink: 0;
-    }
-
-    .pane-tab-title {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .file-tag {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-faint);
-      background: var(--bg-surface-elevated);
-      padding: 2px 7px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-subtle);
-      max-width: 180px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    #monaco-container {
-      flex: 1;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      position: relative;
-    }
-
-    /* Drag over highlight */
-    #editor-pane.dragover::after {
-      content: "Drop file to load in editor";
-      position: absolute;
-      inset: 0;
-      background: rgba(124, 106, 247, 0.2);
-      border: 2px dashed var(--accent);
-      z-index: 50;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 15px;
-      font-weight: 600;
-      color: #fff;
-      backdrop-filter: blur(2px);
-      pointer-events: none;
-    }
-
-    /* ===== CONSOLE DRAWER ===== */
-    #console-drawer {
-      height: 0;
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border-subtle);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      flex-shrink: 0;
-      position: relative;
-      z-index: 2;
-    }
-
-    #console-drawer.open {
-      height: 180px;
-    }
-
-    .console-header {
-      height: 28px;
-      background: var(--bg-surface-elevated);
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 10px;
-      flex-shrink: 0;
-    }
-
-    .console-title {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .console-actions {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .console-btn {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      font-size: 11px;
-      cursor: pointer;
-      padding: 2px 6px;
-      border-radius: var(--radius-sm);
-    }
-    .console-btn:hover {
-      background: var(--bg-surface-subtle);
-      color: var(--text-main);
-    }
-
-    #console-entries {
-      flex: 1;
-      overflow-y: auto;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      user-select: text;
-    }
-
-    .console-entry {
-      padding: 4px 10px;
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      line-height: 1.45;
-      word-break: break-word;
-    }
-
-    .console-tag {
-      font-size: 9px;
-      font-weight: 700;
-      padding: 1px 4px;
-      border-radius: 3px;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    .console-entry.log .console-tag { background: var(--bg-surface-subtle); color: var(--text-muted); }
-    .console-entry.info .console-tag { background: rgba(56, 189, 248, 0.15); color: var(--color-info); }
-    .console-entry.warn .console-tag { background: rgba(245, 158, 11, 0.15); color: var(--color-warning); }
-    .console-entry.error .console-tag { background: rgba(244, 63, 94, 0.15); color: var(--color-error); }
-
-    .console-text {
-      flex: 1;
-      color: var(--text-main);
-      white-space: pre-wrap;
-    }
-    .console-entry.error .console-text { color: var(--color-error); }
-    .console-entry.warn .console-text { color: var(--color-warning); }
-
-    /* ===== SPLITTER BAR ===== */
-    #splitter {
-      width: 6px;
-      background: var(--bg-base);
-      border-left: 1px solid var(--border-subtle);
-      border-right: 1px solid var(--border-subtle);
-      cursor: col-resize;
-      flex-shrink: 0;
-      position: relative;
-      touch-action: none;
-      transition: background var(--transition-fast);
-      z-index: 5;
-    }
-
-    #splitter:hover, #splitter.active {
-      background: var(--accent);
-      border-color: var(--accent);
-    }
-
-    /* ===== PREVIEW PANEL ===== */
-    #preview-pane {
-      display: flex;
-      flex-direction: column;
-      flex: 1;
-      min-width: 240px;
-      height: 100%;
-      position: relative;
-      background: var(--bg-surface);
-    }
-
-    .preview-actions {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .ctrl-btn {
-      height: 22px;
-      padding: 0 6px;
-      background: var(--bg-surface-elevated);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      color: var(--text-muted);
-      font-size: 11px;
-      font-family: inherit;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-    }
-
-    .ctrl-btn:hover {
-      background: var(--bg-surface-subtle);
-      color: var(--text-main);
-    }
-
-    .zoom-text {
-      font-family: var(--font-mono);
-      font-size: 10px;
-      min-width: 32px;
-      text-align: center;
-      color: var(--text-faint);
-    }
-
-    #preview-stage {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-      background: #ffffff;
-    }
-
-    #preview-frame {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-      transform-origin: 0 0;
-      background: #ffffff;
-    }
-
-    #preview-empty {
-      position: absolute;
-      inset: 0;
-      background: var(--bg-surface);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      z-index: 2;
-      color: var(--text-muted);
-      pointer-events: none;
-      transition: opacity var(--transition-fast);
-    }
-
-    #preview-empty.hidden {
-      opacity: 0;
-      display: none;
-    }
-
-    #preview-empty .empty-icon {
-      font-size: 40px;
-    }
-
-    #preview-empty p {
-      font-size: 13px;
-      color: var(--text-faint);
-    }
-
-    #preview-empty strong {
-      color: var(--accent);
-    }
-
-    /* ===== STATUS BAR ===== */
-    #status-bar {
-      height: var(--status-h);
-      background: var(--bg-surface-elevated);
-      border-top: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 12px;
-      font-size: 11px;
-      color: var(--text-muted);
-      flex-shrink: 0;
-      font-family: var(--font-mono);
-      z-index: 10;
-    }
-
-    .sb-section {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .sb-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .sb-item span {
-      color: var(--text-main);
-    }
-
-    .sb-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--color-success);
-    }
-
-    .status-dot.unsaved {
-      background: var(--color-warning);
-    }
-
-    /* ===== TOAST NOTIFICATION STACK ===== */
-    #toast-container {
-      position: fixed;
-      bottom: 34px;
-      right: 16px;
-      display: flex;
-      flex-direction: column-reverse;
-      gap: 8px;
-      z-index: 99999;
-      pointer-events: none;
-    }
-
-    .toast {
-      pointer-events: auto;
-      min-width: 200px;
-      max-width: 380px;
-      background: var(--bg-surface-elevated);
-      border: 1px solid var(--border-medium);
-      color: var(--text-main);
-      padding: 8px 12px;
-      border-radius: var(--radius-md);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      opacity: 0;
-      transform: translateY(10px) scale(0.96);
-      animation: toastIn 0.2s cubic-bezier(0.2, 0, 0, 1) forwards;
-      border-left: 3px solid var(--accent);
-    }
-
-    .toast.success { border-left-color: var(--color-success); }
-    .toast.error { border-left-color: var(--color-error); }
-    .toast.warning { border-left-color: var(--color-warning); }
-    .toast.info { border-left-color: var(--color-info); }
-
-    .toast.hide {
-      animation: toastOut 0.2s cubic-bezier(0.2, 0, 0, 1) forwards;
-    }
-
-    @keyframes toastIn {
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes toastOut {
-      to { opacity: 0; transform: translateY(8px) scale(0.96); }
-    }
-
-    /* ===== MODALS & OVERLAYS ===== */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(4px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity var(--transition-fast);
-      padding: 16px;
-    }
-
-    .modal-backdrop.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .modal-card {
-      width: 100%;
-      max-width: 440px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-medium);
-      border-radius: var(--radius-lg);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-      overflow: hidden;
-      transform: scale(0.95);
-      transition: transform var(--transition-fast);
-    }
-
-    .modal-backdrop.active .modal-card {
-      transform: scale(1);
-    }
-
-    .modal-header {
-      padding: 12px 16px;
-      background: var(--bg-surface-elevated);
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .modal-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .modal-close {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 16px;
-      padding: 2px 4px;
-      line-height: 1;
-      border-radius: var(--radius-sm);
-    }
-    .modal-close:hover {
-      background: var(--bg-surface-subtle);
-      color: var(--text-main);
-    }
-
-    .modal-body {
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      max-height: 75vh;
-      overflow-y: auto;
-    }
-
-    /* Modal Form Elements */
-    .setting-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .setting-label {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
-
-    .setting-desc {
-      font-size: 11px;
-      color: var(--text-faint);
-    }
-
-    /* Custom Toggle Switch */
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 36px;
-      height: 20px;
-      flex-shrink: 0;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      inset: 0;
-      background: var(--bg-surface-subtle);
-      border: 1px solid var(--border-medium);
-      transition: var(--transition-fast);
-      border-radius: 20px;
-    }
-
-    .slider::before {
-      position: absolute;
-      content: "";
-      height: 14px;
-      width: 14px;
-      left: 2px;
-      bottom: 2px;
-      background: var(--text-muted);
-      transition: var(--transition-fast);
-      border-radius: 50%;
-    }
-
-    input:checked + .slider {
-      background: var(--accent);
-      border-color: var(--accent);
-    }
-
-    input:checked + .slider::before {
-      transform: translateX(16px);
-      background: #ffffff;
-    }
-
-    select.ui-select {
-      background: var(--bg-surface-elevated);
-      color: var(--text-main);
-      border: 1px solid var(--border-medium);
-      padding: 4px 8px;
-      border-radius: var(--radius-sm);
-      font-size: 12px;
-      font-family: inherit;
-      outline: none;
-    }
-    select.ui-select:focus {
-      border-color: var(--border-focus);
-    }
-
-    /* Shortcut table */
-    .shortcut-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 6px 0;
-      border-bottom: 1px solid var(--border-subtle);
-      font-size: 12px;
-    }
-    .shortcut-row:last-child { border-bottom: none; }
-    .shortcut-row span { color: var(--text-muted); }
-    .shortcut-keys { display: flex; gap: 4px; }
-    .shortcut-keys kbd {
-      background: var(--bg-surface-elevated);
-      border: 1px solid var(--border-medium);
-      padding: 2px 6px;
-      border-radius: var(--radius-sm);
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--text-main);
-    }
-
-    /* Confirmation Box Actions */
-    .dialog-buttons {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    /* Fullscreen Modal View */
-    #fs-modal {
-      position: fixed;
-      inset: 0;
-      background: #000000;
-      z-index: 20000;
-      display: none;
-      flex-direction: column;
-    }
-    #fs-modal.active { display: flex; }
-    #fs-bar {
-      height: 36px;
-      background: var(--bg-surface-elevated);
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 12px;
-      flex-shrink: 0;
-    }
-    #fs-frame {
-      flex: 1;
-      width: 100%;
-      border: none;
-      background: #fff;
-    }
-
-    /* Loading overlay */
-    #app-loader {
-      position: fixed;
-      inset: 0;
-      background: var(--bg-base);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      z-index: 50000;
-      transition: opacity 0.3s;
-    }
-    .loader-ring {
-      width: 36px;
-      height: 36px;
-      border: 3px solid var(--border-subtle);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ===== RESPONSIVE BREAKPOINTS ===== */
-    @media (max-width: 768px) {
-      #workspace {
-        flex-direction: column;
-      }
-      #editor-pane {
-        width: 100% !important;
-        height: 50%;
-        border-bottom: 1px solid var(--border-subtle);
-      }
-      #splitter {
-        display: none;
-      }
-      #preview-pane {
-        width: 100% !important;
-        height: 50%;
-      }
-      .brand-subtitle { display: none; }
-      .header-info { display: none; }
-      .btn-text { display: none; }
-      .tb-btn { padding: 0 8px; }
-      .tb-btn.primary { padding: 0 10px; }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- APP WRAPPER -->
-  <div id="app">
-
-    <!-- HEADER -->
-    <header id="site-header">
-      <div class="brand-group">
-        <span class="brand-icon">🚀</span>
-        <span class="brand-title">HTML RUNNER</span>
-        <span class="brand-subtitle">Made by <strong>Naitik Jain</strong></span>
-      </div>
-      <div class="header-info">
-        Press <kbd>?</kbd> for shortcuts
-      </div>
-    </header>
-
-    <!-- TOOLBAR -->
-    <div id="toolbar" role="toolbar" aria-label="Editor controls">
-      <button class="tb-btn" id="btn-upload" title="Upload HTML/JS/CSS (Ctrl+O)" aria-label="Upload File">
-        <span class="tb-icon">📂</span><span class="btn-text">Upload</span>
-      </button>
-      <button class="tb-btn" id="btn-download" title="Download Source File (Ctrl+S)" aria-label="Download Source">
-        <span class="tb-icon">💾</span><span class="btn-text">Download</span>
-      </button>
-      <button class="tb-btn" id="btn-copy" title="Copy Code (Ctrl+Shift+C)" aria-label="Copy Code">
-        <span class="tb-icon">📋</span><span class="btn-text">Copy</span>
-      </button>
-
-      <div class="tb-sep" role="separator"></div>
-
-      <button class="tb-btn primary" id="btn-run" title="Execute Code (Ctrl+Enter)" aria-label="Run Code">
-        <span class="tb-icon">▶</span><span class="btn-text">Run</span>
-      </button>
-      <button class="tb-btn" id="btn-refresh" title="Reload Preview Frame (Ctrl+R)" aria-label="Refresh Preview">
-        <span class="tb-icon">🔄</span><span class="btn-text">Refresh</span>
-      </button>
-
-      <div class="tb-sep" role="separator"></div>
-
-      <button class="tb-btn" id="btn-clear" title="Reset/Clear Editor" aria-label="Reset Editor">
-        <span class="tb-icon">🗑️</span><span class="btn-text">Clear</span>
-      </button>
-
-      <button class="tb-btn" id="btn-console" title="Toggle Console Drawer" aria-label="Toggle Console">
-        <span class="tb-icon">🐞</span><span class="btn-text">Console</span>
-        <span class="tb-badge" id="console-badge">0</span>
-      </button>
-
-      <button class="tb-btn" id="btn-settings" title="Preferences" aria-label="Settings">
-        <span class="tb-icon">⚙️</span><span class="btn-text">Settings</span>
-      </button>
-
-      <button class="tb-btn" id="btn-theme" title="Switch Light/Dark Mode (Ctrl+Shift+T)" aria-label="Toggle Theme">
-        <span class="tb-icon" id="theme-icon">🌙</span><span class="btn-text">Theme</span>
-      </button>
-
-      <button class="tb-btn" id="btn-shortcuts" title="Keyboard Navigation (?)" aria-label="Keyboard Shortcuts">
-        <span class="tb-icon">⌨️</span><span class="btn-text">Shortcuts</span>
-      </button>
-    </div>
-
-    <!-- MAIN WORKSPACE -->
-    <main id="workspace">
-
-      <!-- LEFT: MONACO EDITOR -->
-      <section id="editor-pane">
-        <div class="pane-header">
-          <span class="pane-tab-title">📝 <span>Editor</span></span>
-          <span class="file-tag" id="current-filename">index.html</span>
-        </div>
-        <div id="monaco-container" role="region" aria-label="Code Editor"></div>
-
-        <!-- CONSOLE DRAWER -->
-        <div id="console-drawer" role="region" aria-label="Developer Console">
-          <div class="console-header">
-            <span class="console-title">🐞 Console Output</span>
-            <div class="console-actions">
-              <button class="console-btn" id="btn-copy-console" title="Copy Console Logs">Copy</button>
-              <button class="console-btn" id="btn-clear-console" title="Clear All Messages">Clear</button>
-              <button class="console-btn" id="btn-close-console" title="Close Console">✕</button>
-            </div>
-          </div>
-          <div id="console-entries"></div>
-        </div>
-      </section>
-
-      <!-- SPLITTER -->
-      <div id="splitter" role="separator" aria-orientation="vertical" tabindex="0" title="Drag to resize panels"></div>
-
-      <!-- RIGHT: LIVE PREVIEW -->
-      <section id="preview-pane">
-        <div class="pane-header">
-          <span class="pane-tab-title">🖥️ <span>Live Preview</span></span>
-          <div class="preview-actions">
-            <button class="ctrl-btn" id="zoom-out" title="Zoom Out Preview">−</button>
-            <span class="zoom-text" id="zoom-label">100%</span>
-            <button class="ctrl-btn" id="zoom-in" title="Zoom In Preview">+</button>
-            <button class="ctrl-btn" id="zoom-reset" title="Reset Zoom">1:1</button>
-            <div class="tb-sep" style="height:14px;margin:0 2px;"></div>
-            <button class="ctrl-btn" id="btn-new-tab" title="Open Clean Preview in New Tab">↗ Tab</button>
-            <button class="ctrl-btn" id="btn-fullscreen" title="Fullscreen Preview (Ctrl+Shift+F)">⛶ Full</button>
-          </div>
-        </div>
-        <div id="preview-stage">
-          <div id="preview-empty">
-            <div class="empty-icon">🖥️</div>
-            <p>Press <strong>▶ Run</strong> or <kbd>Ctrl+Enter</kbd> to execute preview</p>
-          </div>
-          <iframe id="preview-frame" sandbox="allow-scripts allow-modals allow-forms" title="Execution Preview"></iframe>
-        </div>
-      </section>
-    </main>
-
-    <!-- STATUS BAR -->
-    <footer id="status-bar" role="status">
-      <div class="sb-section">
-        <div class="sb-item">Ln <span id="sb-line">1</span></div>
-        <div class="sb-item">Col <span id="sb-col">1</span></div>
-        <div class="sb-item"><span id="sb-lang">HTML</span></div>
-      </div>
-      <div class="sb-section">
-        <div class="sb-item"><span id="sb-size">0 B</span></div>
-        <div class="sb-item"><span id="sb-chars">0</span> chars</div>
-        <div class="sb-item sb-pill">
-          <span class="status-dot" id="save-status-dot"></span>
-          <span id="save-status-text">Saved</span>
-        </div>
-      </div>
-    </footer>
-  </div>
-
-  <!-- FULLSCREEN PREVIEW MODAL -->
-  <div id="fs-modal" role="dialog" aria-modal="true" aria-label="Fullscreen Preview">
-    <div id="fs-bar">
-      <span style="font-size:12px;font-weight:600;color:var(--text-muted)">Fullscreen Preview</span>
-      <div style="display:flex;gap:6px;">
-        <button class="ctrl-btn" id="fs-open-tab">Open in Tab ↗</button>
-        <button class="ctrl-btn" id="fs-close">Exit Fullscreen ✕</button>
-      </div>
-    </div>
-    <iframe id="fs-frame" sandbox="allow-scripts allow-modals allow-forms" title="Fullscreen Preview Frame"></iframe>
-  </div>
-
-  <!-- SETTINGS MODAL -->
-  <div class="modal-backdrop" id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-    <div class="modal-card">
-      <div class="modal-header">
-        <span class="modal-title" id="settings-title">⚙️ Preferences</span>
-        <button class="modal-close" id="settings-x">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="setting-item">
-          <div>
-            <div class="setting-label">Live Preview</div>
-            <div class="setting-desc">Auto-execute preview while typing (debounced)</div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="set-live" />
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="setting-item">
-          <div>
-            <div class="setting-label">Auto Save</div>
-            <div class="setting-desc">Persist editor content to browser storage</div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="set-autosave" checked />
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="setting-item">
-          <div>
-            <div class="setting-label">Word Wrap</div>
-            <div class="setting-desc">Wrap long code lines in editor</div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="set-wrap" checked />
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="setting-item">
-          <div>
-            <div class="setting-label">Minimap</div>
-            <div class="setting-desc">Show miniature code overview</div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="set-minimap" checked />
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="setting-item">
-          <div>
-            <div class="setting-label">Line Numbers</div>
-            <div class="setting-desc">Display margin line indicators</div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="set-lineno" checked />
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="setting-item">
-          <div>
-            <div class="setting-label">Font Size</div>
-            <div class="setting-desc">Editor text scale</div>
-          </div>
-          <select class="ui-select" id="set-fontsize">
-            <option value="12">12 px</option>
-            <option value="13" selected>13 px</option>
-            <option value="14">14 px</option>
-            <option value="16">16 px</option>
-            <option value="18">18 px</option>
-          </select>
-        </div>
-
-        <div class="setting-item">
-          <div>
-            <div class="setting-label">Tab Size</div>
-            <div class="setting-desc">Indent column width</div>
-          </div>
-          <select class="ui-select" id="set-tabsize">
-            <option value="2" selected>2 Spaces</option>
-            <option value="4">4 Spaces</option>
-          </select>
-        </div>
-
-        <div style="margin-top:8px;padding-top:12px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div class="setting-label" style="color:var(--color-error)">Purge Storage</div>
-            <div class="setting-desc">Reset all saved data and settings</div>
-          </div>
-          <button class="ctrl-btn" id="btn-purge-storage" style="color:var(--color-error);border-color:rgba(244,63,94,0.3)">Reset All</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SHORTCUTS MODAL -->
-  <div class="modal-backdrop" id="modal-shortcuts" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
-    <div class="modal-card">
-      <div class="modal-header">
-        <span class="modal-title" id="shortcuts-title">⌨️ Keyboard Shortcuts</span>
-        <button class="modal-close" id="shortcuts-x">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="shortcut-row"><span>Run Preview</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Enter</kbd></div></div>
-        <div class="shortcut-row"><span>Download Code</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>S</kbd></div></div>
-        <div class="shortcut-row"><span>Upload File</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>O</kbd></div></div>
-        <div class="shortcut-row"><span>Copy All Code</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd></div></div>
-        <div class="shortcut-row"><span>Refresh Preview</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>R</kbd></div></div>
-        <div class="shortcut-row"><span>Fullscreen Preview</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>F</kbd></div></div>
-        <div class="shortcut-row"><span>Toggle Theme</span><div class="shortcut-keys"><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd></div></div>
-        <div class="shortcut-row"><span>Open Shortcuts</span><div class="shortcut-keys"><kbd>?</kbd></div></div>
-        <div class="shortcut-row"><span>Close Modal / Fullscreen</span><div class="shortcut-keys"><kbd>Esc</kbd></div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CLEAR CONFIRMATION MODAL -->
-  <div class="modal-backdrop" id="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-    <div class="modal-card" style="max-width:360px;">
-      <div class="modal-header">
-        <span class="modal-title" id="confirm-title">Reset Editor</span>
-        <button class="modal-close" id="confirm-x">✕</button>
-      </div>
-      <div class="modal-body">
-        <p id="confirm-msg" style="font-size:12px;color:var(--text-muted);">Are you sure you want to discard your current code? Unsaved changes will be lost.</p>
-        <div class="dialog-buttons">
-          <button class="ctrl-btn" id="confirm-cancel">Cancel</button>
-          <button class="ctrl-btn" id="confirm-restore" style="color:var(--accent)">Load Sample</button>
-          <button class="ctrl-btn" id="confirm-blank" style="color:var(--color-error)">Clear Empty</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- NOTIFICATIONS & LOADERS -->
-  <div id="toast-container" aria-live="polite"></div>
-
-  <div id="app-loader">
-    <div class="loader-ring"></div>
-    <div id="loader-msg" style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono)">Initializing workspace...</div>
-  </div>
-
-  <!-- HIDDEN UPLOAD INPUT -->
-  <input type="file" id="file-selector" accept=".html,.htm,.css,.js,.txt" style="display:none" />
-
-  <!-- MONACO EDITOR VIA AMD LOADER -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
-
-  <script>
-  'use strict';
-
-  /* ==========================================================================
-     APPLICATION STATE & CONFIGURATION
-     ========================================================================== */
-  const DEFAULT_SAMPLE_CODE = `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .card {
-      background: rgba(255,255,255,0.15);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.3);
-      border-radius: 20px;
-      padding: 48px 64px;
-      text-align: center;
-      color: white;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.2);
-    }
-    h1 { font-size: 3rem; margin-bottom: 12px; }
-    p { font-size: 1.1rem; opacity: 0.9; }
-    .badge {
-      display: inline-block;
-      margin-top: 20px;
-      padding: 6px 18px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 20px;
-      font-size: 0.85rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#121212">
+    <meta name="description" content="Professional QR Code and Barcode Scanner Web Application">
+    <title>QR & Barcode Scanner</title>
+    
+    <!-- External Library for robust barcode scanning fallback -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg-dark: #121212;
+            --surface: #1e1e1e;
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --success: #10b981;
+            --error: #ef4444;
+            --border-radius: 12px;
+            --spacing: 16px;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Reset & Base */
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* App-like feel */
+        }
+
+        /* Utility Classes */
+        .hidden { display: none !important; }
+        .flex-center { display: flex; justify-content: center; align-items: center; }
+        .btn {
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: opacity 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background-color: var(--primary); color: white; padding: 12px 24px; font-size: 1rem; }
+        .btn-secondary { background-color: var(--surface); color: var(--text-main); padding: 10px 20px; border: 1px solid #333; }
+        .btn-icon { background: rgba(0,0,0,0.6); color: white; width: 44px; height: 44px; border-radius: 50%; backdrop-filter: blur(4px); }
+        
+        /* Layout */
+        header {
+            padding: var(--spacing);
+            background: rgba(18, 18, 18, 0.9);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: absolute;
+            top: 0;
+            width: 100%;
+        }
+        h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.5px; }
+
+        main {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* Views */
+        .view-section {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Intro View */
+        #intro-view {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+        }
+        .logo-area {
+            width: 80px;
+            height: 80px;
+            background: var(--surface);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .logo-area svg { width: 40px; height: 40px; fill: var(--primary); }
+        .intro-text { color: var(--text-muted); margin-bottom: 32px; line-height: 1.5; }
+
+        /* Scanner View */
+        #scanner-container {
+            position: relative;
+            flex: 1;
+            background: black;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Video Element Wrapper */
+        #reader {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        /* Override library styles for better integration */
+        #reader video { object-fit: cover; width: 100%; height: 100%; }
+        #reader__scan_region { display: none; } /* Hide default library overlay */
+        #reader__dashboard { display: none; } /* Hide default library dashboard */
+
+        /* Custom Overlay UI */
+        .scanner-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .scan-frame {
+            width: 280px;
+            height: 280px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            position: relative;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); /* Dim surrounding area */
+        }
+
+        /* Corners */
+        .corner {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-color: var(--primary);
+            border-style: solid;
+            border-width: 4px;
+        }
+        .tl { top: -2px; left: -2px; border-right: 0; border-bottom: 0; border-top-left-radius: 24px; }
+        .tr { top: -2px; right: -2px; border-left: 0; border-bottom: 0; border-top-right-radius: 24px; }
+        .bl { bottom: -2px; left: -2px; border-right: 0; border-top: 0; border-bottom-left-radius: 24px; }
+        .br { bottom: -2px; right: -2px; border-left: 0; border-top: 0; border-bottom-right-radius: 24px; }
+
+        /* Scanning Laser Animation */
+        .laser {
+            width: 100%;
+            height: 2px;
+            background: var(--primary);
+            position: absolute;
+            top: 0;
+            left: 0;
+            box-shadow: 0 0 4px var(--primary);
+            animation: scan 2.5s infinite linear;
+            opacity: 0.8;
+        }
+        @keyframes scan {
+            0% { top: 5%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 95%; opacity: 0; }
+        }
+        @media (prefers-reduced-motion) {
+            .laser { animation: none; top: 50%; opacity: 0.5; }
+        }
+
+        .instruction-text {
+            margin-top: 24px;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: white;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Controls Bar */
+        .controls-bar {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            z-index: 20;
+            pointer-events: auto;
+        }
+
+        /* Result View */
+        #result-view {
+            padding: var(--spacing);
+            align-items: center;
+            background: var(--bg-dark);
+            overflow-y: auto;
+        }
+        .result-card {
+            background: var(--surface);
+            width: 100%;
+            max-width: 500px;
+            border-radius: var(--border-radius);
+            padding: 24px;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .result-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; border-bottom: 1px solid #333; padding-bottom: 12px; }
+        .format-badge { background: #333; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; color: var(--text-muted); }
+        .type-badge { background: rgba(59, 130, 246, 0.2); color: var(--primary); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
+
+        .result-content {
+            background: #121212;
+            padding: 16px;
+            border-radius: 8px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 1rem;
+            color: var(--text-main);
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .full-width { grid-column: span 2; }
+
+        /* History View */
+        #history-view { padding: var(--spacing); overflow-y: auto; }
+        .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .history-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+        .history-item {
+            background: var(--surface);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .history-item:hover { background: #2a2a2a; }
+        .h-info { flex: 1; overflow: hidden; }
+        .h-format { font-size: 0.75rem; color: var(--primary); font-weight: bold; margin-bottom: 4px; }
+        .h-value { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main); }
+        .h-date { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+        .empty-state { text-align: center; color: var(--text-muted); margin-top: 40px; }
+
+        /* Manual Input */
+        #manual-input-area { margin-top: 20px; width: 100%; max-width: 500px; }
+        textarea {
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid #333;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            resize: none;
+            font-family: inherit;
+        }
+
+        /* Toast Notification */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        #toast.show { opacity: 1; }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 12px;
+            font-size: 0.75rem;
+            color: #555;
+            background: var(--bg-dark);
+            border-top: 1px solid #222;
+        }
+
+        /* Modal for Image Upload */
+        #file-input { display: none; }
+
+        /* Responsive adjustments */
+        @media (min-width: 768px) {
+            .scan-frame { width: 350px; height: 350px; }
+            #reader { max-width: 800px; margin: 0 auto; }
+        }
+    </style>
 </head>
 <body>
-  <div class="card">
-    <h1>🚀 Hello World!</h1>
-    <p>Welcome to HTML Runner by Naitik Jain</p>
-    <span class="badge">Edit code in the editor → Press Run ▶</span>
-  </div>
-</body>
-</html>`;
 
-  const AppState = {
-    editor: null,
-    monaco: null,
-    currentFileName: 'index.html',
-    zoomLevel: 100,
-    hasUnsavedChanges: false,
-    consoleEntries: [],
-    errorCount: 0,
-    activeBlobUrls: new Set(),
-    
-    // Configurable Preferences
-    settings: {
-      theme: 'dark',
-      wordWrap: true,
-      minimap: true,
-      lineNumbers: true,
-      fontSize: 13,
-      tabSize: 2,
-      autoSave: true,
-      livePreview: false,
-      panelRatio: 50
-    }
-  };
+    <header>
+        <div class="flex-center" style="gap:10px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+            <h1>Scanner</h1>
+        </div>
+        <button id="theme-toggle" class="btn btn-icon" aria-label="Toggle Theme" style="background:none; color:white;">
+            <!-- Sun/Moon icon handled by JS/CSS if needed, keeping simple -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+    </header>
 
-  /* ==========================================================================
-     DOM CACHE
-     ========================================================================== */
-  const DOM = {
-    loader: document.getElementById('app-loader'),
-    loaderMsg: document.getElementById('loader-msg'),
-    currentFilename: document.getElementById('current-filename'),
-    splitter: document.getElementById('splitter'),
-    editorPane: document.getElementById('editor-pane'),
-    previewPane: document.getElementById('preview-pane'),
-    previewStage: document.getElementById('preview-stage'),
-    previewFrame: document.getElementById('preview-frame'),
-    previewEmpty: document.getElementById('preview-empty'),
-    fileSelector: document.getElementById('file-selector'),
-    toastContainer: document.getElementById('toast-container'),
-    
-    // Status Elements
-    sbLine: document.getElementById('sb-line'),
-    sbCol: document.getElementById('sb-col'),
-    sbLang: document.getElementById('sb-lang'),
-    sbSize: document.getElementById('sb-size'),
-    sbChars: document.getElementById('sb-chars'),
-    saveStatusDot: document.getElementById('save-status-dot'),
-    saveStatusText: document.getElementById('save-status-text'),
+    <main>
+        <!-- INTRO VIEW -->
+        <section id="intro-view" class="view-section">
+            <div class="logo-area">
+                <svg viewBox="0 0 24 24"><path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 13h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v2h-3v-2zm-3 0h2v2h-2v-2zm3 3h3v3h-3v-3zm-3 3h2v-2h-2v2zm-3 0h2v2h-2v-2z"/></svg>
+            </div>
+            <h2>QR & Barcode Scanner</h2>
+            <p class="intro-text">Scan QR codes, barcodes, and data matrices instantly using your device camera. Fast, secure, and private.</p>
+            
+            <button id="btn-start-scan" class="btn btn-primary">Start Scanning</button>
+            
+            <div style="margin-top: 20px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+                <button id="btn-go-manual" class="btn btn-secondary">Enter Manually</button>
+                <button id="btn-go-history" class="btn btn-secondary">History</button>
+            </div>
+        </section>
 
-    // Console
-    consoleDrawer: document.getElementById('console-drawer'),
-    consoleEntries: document.getElementById('console-entries'),
-    consoleBadge: document.getElementById('console-badge'),
+        <!-- SCANNER VIEW -->
+        <section id="scanner-view" class="view-section hidden">
+            <div id="scanner-container">
+                <div id="reader"></div>
+                
+                <div class="scanner-overlay">
+                    <div class="scan-frame">
+                        <div class="corner tl"></div>
+                        <div class="corner tr"></div>
+                        <div class="corner bl"></div>
+                        <div class="corner br"></div>
+                        <div class="laser"></div>
+                    </div>
+                    <div class="instruction-text" id="scan-instruction">Point camera at a code</div>
+                </div>
 
-    // Zoom
-    zoomLabel: document.getElementById('zoom-label'),
+                <div class="controls-bar">
+                    <button id="btn-switch-camera" class="btn btn-icon" title="Switch Camera">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0-2.21-1.79-4-4-4H8c-2.21 0-4 1.79-4 4v8c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4v-8z"/><path d="M12 14l4-4h-3V7h-2v3H8l4 4z"/></svg>
+                    </button>
+                    
+                    <button id="btn-stop-scan" class="btn btn-icon" style="background:var(--error);" title="Stop Camera">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"/></svg>
+                    </button>
 
-    // Modals
-    modalSettings: document.getElementById('modal-settings'),
-    modalShortcuts: document.getElementById('modal-shortcuts'),
-    modalConfirm: document.getElementById('modal-confirm'),
-    fsModal: document.getElementById('fs-modal'),
-    fsFrame: document.getElementById('fs-frame'),
+                    <button id="btn-torch" class="btn btn-icon hidden" title="Flashlight">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-2l-2-6h-4l-2 6H6l-2 2v8h16v-8z"/><line x1="12" y1="22" x2="12" y2="22"/></svg>
+                    </button>
 
-    // Settings inputs
-    setLive: document.getElementById('set-live'),
-    setAutoSave: document.getElementById('set-autosave'),
-    setWrap: document.getElementById('set-wrap'),
-    setMinimap: document.getElementById('set-minimap'),
-    setLineNo: document.getElementById('set-lineno'),
-    setFontSize: document.getElementById('set-fontsize'),
-    setTabSize: document.getElementById('set-tabsize'),
-    themeIcon: document.getElementById('theme-icon')
-  };
+                    <button id="btn-upload-img" class="btn btn-icon" title="Scan from Image">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </button>
+                </div>
+            </div>
+        </section>
 
-  /* ==========================================================================
-     STORAGE & PERSISTENCE
-     ========================================================================== */
-  function loadPersistedSettings() {
-    try {
-      const stored = localStorage.getItem('htmlrunner_settings');
-      if (stored) {
-        Object.assign(AppState.settings, JSON.parse(stored));
-      }
-      const savedTheme = localStorage.getItem('htmlrunner_theme');
-      if (savedTheme) {
-        AppState.settings.theme = savedTheme;
-      }
-    } catch (e) {
-      console.warn('localStorage is restricted or unavailable:', e);
-    }
-  }
+        <!-- RESULT VIEW -->
+        <section id="result-view" class="view-section hidden">
+            <div class="result-card">
+                <div class="result-header">
+                    <span id="res-format" class="format-badge">QR_CODE</span>
+                    <span id="res-type" class="type-badge">URL</span>
+                </div>
+                
+                <div id="res-content" class="result-content">https://example.com</div>
+                
+                <div class="action-grid">
+                    <button id="btn-copy" class="btn btn-secondary full-width">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copy
+                    </button>
+                    <button id="btn-open-url" class="btn btn-primary full-width hidden">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        Open Link
+                    </button>
+                    <button id="btn-share" class="btn btn-secondary hidden">Share</button>
+                    <button id="btn-scan-again" class="btn btn-secondary">Scan Again</button>
+                </div>
+            </div>
+        </section>
 
-  function persistSettings() {
-    try {
-      localStorage.setItem('htmlrunner_settings', JSON.stringify(AppState.settings));
-      localStorage.setItem('htmlrunner_theme', AppState.settings.theme);
-    } catch (e) {
-      console.warn('Failed saving settings to localStorage:', e);
-    }
-  }
+        <!-- HISTORY VIEW -->
+        <section id="history-view" class="view-section hidden">
+            <div class="history-header">
+                <h2>Recent Scans</h2>
+                <button id="btn-clear-history" class="btn btn-secondary" style="color:var(--error); border-color:var(--error);">Clear All</button>
+            </div>
+            <ul id="history-list" class="history-list">
+                <!-- Items injected here -->
+            </ul>
+            <div id="history-empty" class="empty-state hidden">No scans yet.</div>
+            <button id="btn-back-from-history" class="btn btn-primary" style="margin-top:20px; width:100%;">Back to Home</button>
+        </section>
 
-  let autoSaveTimer = null;
-  function scheduleAutoSave() {
-    if (!AppState.settings.autoSave) {
-      setUnsavedState(true);
-      return;
-    }
-    
-    setUnsavedState(true);
-    clearTimeout(autoSaveTimer);
-    autoSaveTimer = setTimeout(() => {
-      try {
-        if (AppState.editor) {
-          const code = AppState.editor.getValue();
-          localStorage.setItem('htmlrunner_code', code);
-          localStorage.setItem('htmlrunner_filename', AppState.currentFileName);
-          setUnsavedState(false);
-        }
-      } catch (e) {
-        console.warn('AutoSave storage limit exceeded or inaccessible:', e);
-      }
-    }, 700);
-  }
+        <!-- MANUAL INPUT VIEW -->
+        <section id="manual-view" class="view-section hidden" style="padding:20px; align-items:center;">
+            <h2>Manual Entry</h2>
+            <p style="color:var(--text-muted); margin-bottom:20px;">Paste or type a code result below.</p>
+            <div id="manual-input-area">
+                <textarea id="manual-text" rows="4" placeholder="Paste code content here..."></textarea>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button id="btn-process-manual" class="btn btn-primary" style="flex:1;">Process</button>
+                    <button id="btn-cancel-manual" class="btn btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </section>
 
-  function setUnsavedState(isUnsaved) {
-    AppState.hasUnsavedChanges = isUnsaved;
-    if (isUnsaved) {
-      DOM.saveStatusDot.classList.add('unsaved');
-      DOM.saveStatusText.textContent = 'Unsaved';
-    } else {
-      DOM.saveStatusDot.classList.remove('unsaved');
-      DOM.saveStatusText.textContent = 'Saved';
-    }
-  }
+    </main>
 
-  /* ==========================================================================
-     THEME MANAGEMENT
-     ========================================================================== */
-  function applyTheme(themeName) {
-    AppState.settings.theme = themeName;
-    document.documentElement.setAttribute('data-theme', themeName);
-    DOM.themeIcon.textContent = themeName === 'dark' ? '🌙' : '☀️';
+    <footer>
+        This website is made by Naitik Rakish Kumar Jain.
+    </footer>
 
-    if (AppState.monaco && AppState.editor) {
-      AppState.monaco.editor.setTheme(themeName === 'dark' ? 'runner-dark' : 'runner-light');
-    }
-    persistSettings();
-  }
+    <div id="toast">Copied!</div>
+    <input type="file" id="file-input" accept="image/*">
 
-  function toggleTheme() {
-    const next = AppState.settings.theme === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    showToast(`Switched to ${next} theme`, 'info');
-  }
+    <script>
+        /**
+         * APPLICATION STATE & CONFIGURATION
+         */
+        const App = {
+            state: 'idle', // idle, scanning, result, history, manual
+            html5QrCode: null,
+            currentCameraId: null,
+            cameras: [],
+            torchSupported: false,
+            torchOn: false,
+            lastResult: null,
+            debounceTime: 3000, // ms to wait before scanning same code again
+            
+            // DOM Elements
+            dom: {
+                views: {
+                    intro: document.getElementById('intro-view'),
+                    scanner: document.getElementById('scanner-view'),
+                    result: document.getElementById('result-view'),
+                    history: document.getElementById('history-view'),
+                    manual: document.getElementById('manual-view')
+                },
+                buttons: {
+                    start: document.getElementById('btn-start-scan'),
+                    stop: document.getElementById('btn-stop-scan'),
+                    switchCam: document.getElementById('btn-switch-camera'),
+                    torch: document.getElementById('btn-torch'),
+                    upload: document.getElementById('btn-upload-img'),
+                    copy: document.getElementById('btn-copy'),
+                    openUrl: document.getElementById('btn-open-url'),
+                    share: document.getElementById('btn-share'),
+                    scanAgain: document.getElementById('btn-scan-again'),
+                    clearHistory: document.getElementById('btn-clear-history'),
+                    backHistory: document.getElementById('btn-back-from-history'),
+                    goManual: document.getElementById('btn-go-manual'),
+                    processManual: document.getElementById('btn-process-manual'),
+                    cancelManual: document.getElementById('btn-cancel-manual'),
+                    theme: document.getElementById('theme-toggle')
+                },
+                inputs: {
+                    file: document.getElementById('file-input'),
+                    manualText: document.getElementById('manual-text')
+                },
+                result: {
+                    format: document.getElementById('res-format'),
+                    type: document.getElementById('res-type'),
+                    content: document.getElementById('res-content')
+                },
+                historyList: document.getElementById('history-list'),
+                historyEmpty: document.getElementById('history-empty'),
+                toast: document.getElementById('toast'),
+                instruction: document.getElementById('scan-instruction')
+            }
+        };
 
-  /* ==========================================================================
-     TOAST NOTIFICATIONS
-     ========================================================================== */
-  function showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    
-    const icons = {
-      success: '✓',
-      error: '✕',
-      warning: '⚠',
-      info: 'ℹ'
-    };
-    
-    const iconSpan = document.createElement('span');
-    iconSpan.style.fontWeight = '700';
-    iconSpan.textContent = icons[type] || '•';
-
-    const textSpan = document.createElement('span');
-    textSpan.textContent = String(message).slice(0, 180);
-
-    toast.appendChild(iconSpan);
-    toast.appendChild(textSpan);
-    DOM.toastContainer.appendChild(toast);
-
-    setTimeout(() => {
-      toast.classList.add('hide');
-      setTimeout(() => toast.remove(), 220);
-    }, 2800);
-  }
-
-  /* ==========================================================================
-     LIGHTWEIGHT HTML STATIC CHECKER
-     ========================================================================== */
-  function checkMarkupLightweight(code) {
-    if (!code || code.trim().length === 0) return;
-    
-    // Check missing foundational elements for complete HTML files
-    if (/<html/i.test(code)) {
-      if (!/<\/html>/i.test(code)) addConsoleEntry('warn', 'Lightweight Analysis: Unclosed <html> element');
-      if (!/<body/i.test(code)) addConsoleEntry('warn', 'Lightweight Analysis: Document contains <html> but is missing <body>');
-      if (!/<title>/i.test(code)) addConsoleEntry('info', 'Document has no <title> tag in head');
-    }
-  }
-
-  /* ==========================================================================
-     PREVIEW ENGINE & ISOLATED SANDBOX
-     ========================================================================== */
-  let livePreviewDebounce = null;
-  function triggerLivePreview() {
-    if (!AppState.settings.livePreview) return;
-    clearTimeout(livePreviewDebounce);
-    livePreviewDebounce = setTimeout(() => {
-      runCodePreview(false);
-    }, 650);
-  }
-
-  function buildSandboxedDocument(userCode) {
-    // Client-side execution script injected to intercept uncaught errors and console methods
-    const interceptionSnippet = `
-      <script>
-        (function() {
-          const originToken = 'SANDBOX_REPORT';
-          function report(type, args) {
+        /**
+         * INITIALIZATION
+         */
+        function init() {
+            setupEventListeners();
+            loadTheme();
+            renderHistory();
+            
+            // Initialize Html5Qrcode instance
+            // We use the library for broad compatibility (1D + 2D codes)
             try {
-              const sanitizedArgs = args.map(arg => {
-                if (arg instanceof Error) {
-                  return arg.stack || (arg.name + ': ' + arg.message);
+                App.html5QrCode = new Html5Qrcode("reader");
+            } catch (e) {
+                console.error("Library failed to load", e);
+                alert("Scanner engine failed to initialize. Please refresh.");
+            }
+        }
+
+        /**
+         * NAVIGATION & UI MANAGEMENT
+         */
+        function switchView(viewName) {
+            // Hide all views
+            Object.values(App.dom.views).forEach(el => el.classList.add('hidden'));
+            // Show target view
+            App.dom.views[viewName].classList.remove('hidden');
+            App.state = viewName.replace('-view', '');
+        }
+
+        function showToast(msg) {
+            App.dom.toast.textContent = msg;
+            App.dom.toast.classList.add('show');
+            setTimeout(() => App.dom.toast.classList.remove('show'), 2000);
+        }
+
+        /**
+         * CAMERA & SCANNING LOGIC
+         */
+        async function startScanning() {
+            if (App.state === 'scanning') return;
+
+            // Check for HTTPS/Localhost
+            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                alert("Camera access requires a secure connection (HTTPS) or localhost.");
+                return;
+            }
+
+            switchView('scanner');
+            App.dom.instruction.textContent = "Starting camera...";
+
+            try {
+                // Get capabilities
+                const capabilities = await Html5Qrcode.getCameras();
+                if (!capabilities || capabilities.length === 0) {
+                    throw new Error("No cameras found");
                 }
-                if (typeof arg === 'object' && arg !== null) {
-                  try { return JSON.stringify(arg, null, 2); } catch(e) { return String(arg); }
+
+                App.cameras = capabilities;
+
+                // Determine camera ID (prefer back/environment)
+                let selectedCamera = App.cameras.find(c => c.label.toLowerCase().includes('back')) || 
+                                     App.cameras.find(c => c.label.toLowerCase().includes('environment')) || 
+                                     App.cameras[0];
+                
+                App.currentCameraId = selectedCamera.id;
+
+                // Config for scanner
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0,
+                    disableFlip: false
+                };
+
+                await App.html5QrCode.start(
+                    App.currentCameraId, 
+                    config, 
+                    onScanSuccess, 
+                    onScanFailure
+                );
+
+                App.dom.instruction.textContent = "Point camera at a code";
+                checkTorchSupport();
+                
+                // Handle visibility change to pause/resume
+                document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            } catch (err) {
+                console.error(err);
+                App.dom.instruction.textContent = "Error: " + (err.message || "Could not start camera");
+                // If permission denied, show friendly message
+                if (err.name === 'NotAllowedError' || err.message.includes('Permission')) {
+                     alert("Camera permission denied. Please allow access in browser settings.");
+                     stopScanning();
+                     switchView('intro');
                 }
-                return String(arg);
-              });
-              window.parent.postMessage({
-                token: originToken,
-                type: type,
-                payload: sanitizedArgs.join(' ')
-              }, '*');
-            } catch (err) {}
-          }
-
-          const _log = console.log;
-          const _info = console.info;
-          const _warn = console.warn;
-          const _error = console.error;
-
-          console.log = function(...a) { _log.apply(console, a); report('log', a); };
-          console.info = function(...a) { _info.apply(console, a); report('info', a); };
-          console.warn = function(...a) { _warn.apply(console, a); report('warn', a); };
-          console.error = function(...a) { _error.apply(console, a); report('error', a); };
-
-          window.onerror = function(msg, url, line, col, err) {
-            const detail = err && err.stack ? err.stack : (msg + ' (line ' + line + ', col ' + col + ')');
-            report('error', [detail]);
-            return false;
-          };
-
-          window.addEventListener('unhandledrejection', function(event) {
-            report('error', ['Unhandled Promise Rejection: ' + (event.reason ? (event.reason.stack || event.reason) : event.reason)]);
-          });
-        })();
-      <\/script>
-    `;
-
-    // Inject interceptor before first head/html or right at the top
-    if (/<head[^>]*>/i.test(userCode)) {
-      return userCode.replace(/<head[^>]*>/i, match => match + interceptionSnippet);
-    }
-    if (/<html[^>]*>/i.test(userCode)) {
-      return userCode.replace(/<html[^>]*>/i, match => match + interceptionSnippet);
-    }
-    return interceptionSnippet + userCode;
-  }
-
-  function runCodePreview(notify = true) {
-    if (!AppState.editor) return;
-
-    const rawCode = AppState.editor.getValue();
-    DOM.previewEmpty.classList.add('hidden');
-    
-    // Light HTML analysis
-    checkMarkupLightweight(rawCode);
-
-    const fullSrc = buildSandboxedDocument(rawCode);
-    DOM.previewFrame.srcdoc = fullSrc;
-
-    // Apply Current Zoom
-    applyZoom();
-
-    if (notify) {
-      showToast('Running preview', 'success');
-    }
-  }
-
-  function refreshPreview() {
-    if (DOM.previewFrame.srcdoc) {
-      DOM.previewFrame.srcdoc = DOM.previewFrame.srcdoc;
-      showToast('Preview refreshed', 'info');
-    } else {
-      runCodePreview(true);
-    }
-  }
-
-  /* ==========================================================================
-     CONSOLE ENGINE
-     ========================================================================== */
-  function addConsoleEntry(level, message) {
-    const entry = {
-      level: level,
-      message: String(message),
-      time: new Date().toLocaleTimeString()
-    };
-    AppState.consoleEntries.push(entry);
-
-    if (level === 'error') {
-      AppState.errorCount++;
-      updateConsoleBadge();
-    }
-
-    const row = document.createElement('div');
-    row.className = `console-entry ${level}`;
-    
-    const tag = document.createElement('span');
-    tag.className = 'console-tag';
-    tag.textContent = level.toUpperCase();
-
-    const text = document.createElement('span');
-    text.className = 'console-text';
-    text.textContent = entry.message;
-
-    row.appendChild(tag);
-    row.appendChild(text);
-    DOM.consoleEntries.appendChild(row);
-
-    // Scroll to bottom
-    DOM.consoleEntries.scrollTop = DOM.consoleEntries.scrollHeight;
-  }
-
-  function updateConsoleBadge() {
-    if (AppState.errorCount > 0) {
-      DOM.consoleBadge.style.display = 'inline-block';
-      DOM.consoleBadge.textContent = AppState.errorCount > 99 ? '99+' : AppState.errorCount;
-    } else {
-      DOM.consoleBadge.style.display = 'none';
-      DOM.consoleBadge.textContent = '0';
-    }
-  }
-
-  function clearConsoleEntries() {
-    DOM.consoleEntries.innerHTML = '';
-    AppState.consoleEntries = [];
-    AppState.errorCount = 0;
-    updateConsoleBadge();
-    showToast('Console cleared', 'info');
-  }
-
-  function toggleConsole(force) {
-    const shouldOpen = force !== undefined ? force : !DOM.consoleDrawer.classList.contains('open');
-    if (shouldOpen) {
-      DOM.consoleDrawer.classList.add('open');
-    } else {
-      DOM.consoleDrawer.classList.remove('open');
-    }
-  }
-
-  function copyConsoleLogs() {
-    if (AppState.consoleEntries.length === 0) {
-      showToast('No logs to copy', 'warning');
-      return;
-    }
-    const logDump = AppState.consoleEntries
-      .map(e => `[${e.time}] [${e.level.toUpperCase()}] ${e.message}`)
-      .join('\n');
-    copyStringToClipboard(logDump, 'Console logs copied');
-  }
-
-  // Cross-origin message handler strictly validating our injected token
-  window.addEventListener('message', event => {
-    if (!event.data || typeof event.data !== 'object') return;
-    if (event.data.token !== 'SANDBOX_REPORT') return;
-
-    const { type, payload } = event.data;
-    if (['log', 'info', 'warn', 'error'].includes(type)) {
-      addConsoleEntry(type, payload);
-    }
-  });
-
-  /* ==========================================================================
-     PREVIEW ZOOM
-     ========================================================================== */
-  function setZoom(percent) {
-    const clamped = Math.max(25, Math.min(200, percent));
-    AppState.zoomLevel = clamped;
-    DOM.zoomLabel.textContent = `${clamped}%`;
-    applyZoom();
-  }
-
-  function applyZoom() {
-    const scale = AppState.zoomLevel / 100;
-    DOM.previewFrame.style.transform = `scale(${scale})`;
-    DOM.previewFrame.style.width = `${100 / scale}%`;
-    DOM.previewFrame.style.height = `${100 / scale}%`;
-  }
-
-  /* ==========================================================================
-     DOWNLOAD, UPLOAD & CLIPBOARD
-     ========================================================================== */
-  function downloadActiveCode() {
-    if (!AppState.editor) return;
-    const code = AppState.editor.getValue();
-    const safeName = AppState.currentFileName.endsWith('.html') ? AppState.currentFileName : `${AppState.currentFileName}.html`;
-    
-    try {
-      const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
-      const blobUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = blobUrl;
-      anchor.download = safeName;
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-      showToast(`Downloaded: ${safeName}`, 'success');
-    } catch (e) {
-      showToast('Download failed: ' + e.message, 'error');
-    }
-  }
-
-  async function copyStringToClipboard(text, successMsg = 'Copied to clipboard') {
-    if (!text) {
-      showToast('Nothing to copy', 'warning');
-      return;
-    }
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        showToast(successMsg, 'success');
-      } else {
-        throw new Error('Fallback clipboard execution');
-      }
-    } catch (err) {
-      // Robust textarea fallback
-      try {
-        const area = document.createElement('textarea');
-        area.value = text;
-        area.style.position = 'fixed';
-        area.style.top = '-9999px';
-        document.body.appendChild(area);
-        area.focus();
-        area.select();
-        const ok = document.execCommand('copy');
-        document.body.removeChild(area);
-        if (ok) {
-          showToast(successMsg, 'success');
-        } else {
-          throw new Error('execCommand copy returned false');
+            }
         }
-      } catch (fallbackError) {
-        showToast('Clipboard access denied or unavailable', 'error');
-      }
-    }
-  }
 
-  function handleFileRead(file) {
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('File size exceeds 5MB limit', 'error');
-      return;
-    }
-
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 80);
-    const reader = new FileReader();
-
-    reader.onload = function(e) {
-      const content = e.target.result;
-      if (AppState.editor) {
-        AppState.editor.setValue(content);
-        AppState.currentFileName = safeName;
-        DOM.currentFilename.textContent = safeName;
-        detectAndApplyLanguage(content);
-        scheduleAutoSave();
-        showToast(`Loaded ${safeName}`, 'success');
-      }
-    };
-
-    reader.onerror = function() {
-      showToast('Unable to read selected file', 'error');
-    };
-
-    reader.readAsText(file);
-  }
-
-  /* ==========================================================================
-     NEW TAB & FULLSCREEN
-     ========================================================================== */
-  function openInNewTab() {
-    if (!AppState.editor) return;
-    try {
-      const code = AppState.editor.getValue();
-      const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
-      const blobUrl = URL.createObjectURL(blob);
-      AppState.activeBlobUrls.add(blobUrl);
-
-      const targetWindow = window.open(blobUrl, '_blank');
-      if (!targetWindow) {
-        showToast('Pop-up blocked. Please allow popups for new tab preview', 'warning');
-      } else {
-        showToast('Preview opened in new tab', 'info');
-      }
-
-      // Cleanup object URL after tab opens
-      setTimeout(() => {
-        URL.revokeObjectURL(blobUrl);
-        AppState.activeBlobUrls.delete(blobUrl);
-      }, 30000);
-    } catch (e) {
-      showToast('Error opening new tab: ' + e.message, 'error');
-    }
-  }
-
-  function openFullscreenPreview() {
-    if (!AppState.editor) return;
-    const rawCode = AppState.editor.getValue();
-    const fullSrc = buildSandboxedDocument(rawCode);
-
-    DOM.fsFrame.srcdoc = fullSrc;
-    DOM.fsModal.classList.add('active');
-
-    // Attempt native browser fullscreen if supported
-    try {
-      if (DOM.fsModal.requestFullscreen) {
-        DOM.fsModal.requestFullscreen().catch(() => {});
-      }
-    } catch (e) {}
-  }
-
-  function closeFullscreenPreview() {
-    DOM.fsModal.classList.remove('active');
-    DOM.fsFrame.srcdoc = 'about:blank';
-    if (document.fullscreenElement) {
-      try { document.exitFullscreen().catch(() => {}); } catch (e) {}
-    }
-  }
-
-  /* ==========================================================================
-     LANGUAGE DETECTION
-     ========================================================================== */
-  function detectAndApplyLanguage(code) {
-    if (!AppState.editor || !AppState.monaco) return;
-    const str = (code || '').trim();
-    let detected = 'html';
-
-    if (str.startsWith('{') || str.startsWith('[')) {
-      try { JSON.parse(str); detected = 'json'; } catch (e) {}
-    } else if (/^(\/\*[\s\S]*?\*\/|\.[a-zA-Z_-][\w-]*\s*\{|#[a-zA-Z_-][\w-]*\s*\{|[a-z-]+\s*:\s*[^;]+;)/.test(str) && !/<[a-z!]/i.test(str)) {
-      detected = 'css';
-    } else if (/^(import\s+|export\s+|const\s+|let\s+|function\s*[(<]|class\s+)/.test(str) && !/<html|<!DOCTYPE/i.test(str)) {
-      detected = 'javascript';
-    }
-
-    DOM.sbLang.textContent = detected.toUpperCase();
-    const model = AppState.editor.getModel();
-    if (model) {
-      AppState.monaco.editor.setModelLanguage(model, detected);
-    }
-  }
-
-  /* ==========================================================================
-     METRICS & STATUS BAR
-     ========================================================================== */
-  function updateEditorMetrics() {
-    if (!AppState.editor) return;
-    const code = AppState.editor.getValue();
-    const chars = code.length;
-    const bytes = new Blob([code]).size;
-
-    DOM.sbChars.textContent = chars.toLocaleString();
-    DOM.sbSize.textContent = formatBytes(bytes);
-  }
-
-  function formatBytes(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1048576).toFixed(2) + ' MB';
-  }
-
-  /* ==========================================================================
-     SPLITTER RESIZING (POINTER EVENTS)
-     ========================================================================== */
-  function initSplitter() {
-    let isDragging = false;
-    let containerWidth = 0;
-
-    DOM.splitter.addEventListener('pointerdown', e => {
-      isDragging = true;
-      containerWidth = DOM.splitter.parentElement.offsetWidth;
-      DOM.splitter.classList.add('active');
-      DOM.splitter.setPointerCapture(e.pointerId);
-      document.body.style.cursor = 'col-resize';
-    });
-
-    DOM.splitter.addEventListener('pointermove', e => {
-      if (!isDragging) return;
-      
-      const newWidth = e.clientX;
-      const minW = 240;
-      const maxW = containerWidth - 240;
-
-      if (newWidth >= minW && newWidth <= maxW) {
-        const percentage = (newWidth / containerWidth) * 100;
-        AppState.settings.panelRatio = percentage;
-        DOM.editorPane.style.width = `${percentage}%`;
-        if (AppState.editor) AppState.editor.layout();
-      }
-    });
-
-    function stopDragging(e) {
-      if (isDragging) {
-        isDragging = false;
-        DOM.splitter.classList.remove('active');
-        try { DOM.splitter.releasePointerCapture(e.pointerId); } catch (err) {}
-        document.body.style.cursor = '';
-        persistSettings();
-        if (AppState.editor) AppState.editor.layout();
-      }
-    }
-
-    DOM.splitter.addEventListener('pointerup', stopDragging);
-    DOM.splitter.addEventListener('pointercancel', stopDragging);
-  }
-
-  /* ==========================================================================
-     MODAL CONTROLS
-     ========================================================================== */
-  function openModal(modalEl) {
-    modalEl.classList.add('active');
-  }
-
-  function closeModal(modalEl) {
-    modalEl.classList.remove('active');
-  }
-
-  function closeAllModals() {
-    closeModal(DOM.modalSettings);
-    closeModal(DOM.modalShortcuts);
-    closeModal(DOM.modalConfirm);
-    closeFullscreenPreview();
-  }
-
-  /* ==========================================================================
-     MONACO INITIALIZATION & CONFIGURATION
-     ========================================================================== */
-  function initMonacoEditor() {
-    require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
-
-    // Fallback timer if Monaco fails CDN load
-    const loadTimeout = setTimeout(() => {
-      if (!AppState.monaco) {
-        DOM.loaderMsg.textContent = 'Monaco load failed. Please check internet connection.';
-        DOM.loaderMsg.style.color = 'var(--color-error)';
-      }
-    }, 12000);
-
-    require(['vs/editor/editor.main'], function(monaco) {
-      clearTimeout(loadTimeout);
-      AppState.monaco = monaco;
-
-      // Define Dark Theme
-      monaco.editor.defineTheme('runner-dark', {
-        base: 'vs-dark',
-        inherit: true,
-        rules: [
-          { token: 'tag', foreground: 'f43f5e' },
-          { token: 'attribute.name', foreground: '38bdf8' },
-          { token: 'attribute.value', foreground: '34d399' },
-          { token: 'string', foreground: 'fbbf24' },
-          { token: 'comment', foreground: '64748b', fontStyle: 'italic' }
-        ],
-        colors: {
-          'editor.background': '#12121c',
-          'editor.foreground': '#f1f1f9',
-          'editorLineNumber.foreground': '#475569',
-          'editorLineNumber.activeForeground': '#a78bfa',
-          'editor.lineHighlightBackground': '#181827',
-          'editor.selectionBackground': '#7c6af738',
-          'editorCursor.foreground': '#a78bfa'
+        async function stopScanning() {
+            if (App.html5QrCode && App.html5QrCode.isScanning) {
+                await App.html5QrCode.stop();
+                App.dom.instruction.textContent = "Camera stopped";
+            }
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         }
-      });
 
-      // Define Light Theme
-      monaco.editor.defineTheme('runner-light', {
-        base: 'vs',
-        inherit: true,
-        rules: [],
-        colors: {
-          'editor.background': '#ffffff',
-          'editor.foreground': '#131322',
-          'editorLineNumber.foreground': '#94a3b8',
-          'editorLineNumber.activeForeground': '#5b48ee',
-          'editor.lineHighlightBackground': '#f8fafc',
-          'editorCursor.foreground': '#5b48ee'
+        async function switchCamera() {
+            if (App.cameras.length < 2) return;
+            
+            const currentIndex = App.cameras.findIndex(c => c.id === App.currentCameraId);
+            const nextIndex = (currentIndex + 1) % App.cameras.length;
+            App.currentCameraId = App.cameras[nextIndex].id;
+
+            // Restart with new camera
+            await App.html5QrCode.stop();
+            await App.html5QrCode.start(
+                App.currentCameraId,
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                onScanSuccess,
+                onScanFailure
+            );
+            checkTorchSupport();
         }
-      });
 
-      // Retrieve Initial Content
-      let startingCode = DEFAULT_SAMPLE_CODE;
-      try {
-        const cachedCode = localStorage.getItem('htmlrunner_code');
-        if (cachedCode && cachedCode.trim().length > 0) {
-          startingCode = cachedCode;
+        async function checkTorchSupport() {
+            // Html5Qrcode doesn't expose track directly easily, but we can try via constraints if supported
+            // However, most web implementations don't support torch switching dynamically without stopping stream.
+            // We will hide it by default unless we verify support.
+            // For this implementation, we'll attempt to toggle via advanced constraints if possible, 
+            // but reliable torch control in pure web is limited.
+            // We will keep the button hidden unless specific API support is detected in future updates.
+            // *Note: Standard Web APIs do not reliably support Torch toggle on all Android/iOS browsers yet.*
+            // We will leave the button hidden to prevent fake functionality as per requirements.
+            App.dom.buttons.torch.classList.add('hidden');
         }
-        const cachedFilename = localStorage.getItem('htmlrunner_filename');
-        if (cachedFilename) {
-          AppState.currentFileName = cachedFilename;
-          DOM.currentFilename.textContent = cachedFilename;
+
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                if (App.html5QrCode && App.html5QrCode.isScanning) {
+                    App.html5QrCode.pause();
+                }
+            } else {
+                if (App.state === 'scanning' && App.html5QrCode) {
+                    App.html5QrCode.resume();
+                }
+            }
         }
-      } catch (e) {}
 
-      // Create Instance
-      AppState.editor = monaco.editor.create(document.getElementById('monaco-container'), {
-        value: startingCode,
-        language: 'html',
-        theme: AppState.settings.theme === 'dark' ? 'runner-dark' : 'runner-light',
-        fontSize: AppState.settings.fontSize,
-        tabSize: AppState.settings.tabSize,
-        wordWrap: AppState.settings.wordWrap ? 'on' : 'off',
-        lineNumbers: AppState.settings.lineNumbers ? 'on' : 'off',
-        minimap: { enabled: AppState.settings.minimap },
-        fontFamily: "var(--font-mono)",
-        fontLigatures: true,
-        smoothScrolling: true,
-        cursorBlinking: 'smooth',
-        cursorSmoothCaretAnimation: 'on',
-        automaticLayout: true,
-        scrollBeyondLastLine: false,
-        padding: { top: 8, bottom: 8 }
-      });
+        /**
+         * SCAN PROCESSING
+         */
+        let lastScanTime = 0;
 
-      // Cursor position tracking
-      AppState.editor.onDidChangeCursorPosition(e => {
-        DOM.sbLine.textContent = e.position.lineNumber;
-        DOM.sbCol.textContent = e.position.column;
-      });
+        function onScanSuccess(decodedText, decodedResult) {
+            const now = Date.now();
+            
+            // Debounce: Ignore if scanned recently
+            if (now - lastScanTime < App.debounceTime) return;
 
-      // Content changes
-      AppState.editor.onDidChangeModelContent(() => {
-        updateEditorMetrics();
-        scheduleAutoSave();
-        triggerLivePreview();
-      });
+            // Also ignore if exact same text scanned very recently (prevents jitter)
+            if (App.lastResult === decodedText && (now - lastScanTime < 5000)) return;
 
-      // Apply initial ratio
-      if (window.innerWidth > 768 && AppState.settings.panelRatio) {
-        DOM.editorPane.style.width = `${AppState.settings.panelRatio}%`;
-        AppState.editor.layout();
-      }
+            lastScanTime = now;
+            App.lastResult = decodedText;
 
-      // Initial checks & status
-      detectAndApplyLanguage(startingCode);
-      updateEditorMetrics();
-      setUnsavedState(false);
+            // Stop scanning temporarily
+            App.html5QrCode.pause(); 
 
-      // Hide Loader
-      DOM.loader.style.opacity = '0';
-      setTimeout(() => DOM.loader.remove(), 320);
+            // Process Result
+            const format = decodedResult.result.format?.formatName || "UNKNOWN";
+            const type = detectType(decodedText);
+            
+            // Save to History
+            addToHistory(decodedText, format, type);
 
-      showToast('HTML Runner ready', 'success');
-    });
-  }
+            // Update UI
+            App.dom.result.format.textContent = format;
+            App.dom.result.type.textContent = type;
+            App.dom.result.content.textContent = decodedText;
 
-  /* ==========================================================================
-     UI EVENT BINDINGS
-     ========================================================================== */
-  function attachEventHandlers() {
-    // Toolbar buttons
-    document.getElementById('btn-run').addEventListener('click', () => runCodePreview(true));
-    document.getElementById('btn-refresh').addEventListener('click', refreshPreview);
-    document.getElementById('btn-download').addEventListener('click', downloadActiveCode);
-    
-    document.getElementById('btn-copy').addEventListener('click', () => {
-      if (AppState.editor) {
-        copyStringToClipboard(AppState.editor.getValue(), 'Source code copied');
-      }
-    });
+            // Handle URL vs Text actions
+            if (type === 'URL') {
+                App.dom.buttons.openUrl.classList.remove('hidden');
+                App.dom.buttons.openUrl.onclick = () => window.open(decodedText, '_blank');
+            } else {
+                App.dom.buttons.openUrl.classList.add('hidden');
+            }
 
-    document.getElementById('btn-upload').addEventListener('click', () => {
-      DOM.fileSelector.value = '';
-      DOM.fileSelector.click();
-    });
+            // Vibrate feedback
+            if (navigator.vibrate) navigator.vibrate(200);
 
-    DOM.fileSelector.addEventListener('change', e => {
-      const file = e.target.files[0];
-      if (file) handleFileRead(file);
-    });
+            switchView('result');
+        }
 
-    // Console controls
-    document.getElementById('btn-console').addEventListener('click', () => toggleConsole());
-    document.getElementById('btn-close-console').addEventListener('click', () => toggleConsole(false));
-    document.getElementById('btn-clear-console').addEventListener('click', clearConsoleEntries);
-    document.getElementById('btn-copy-console').addEventListener('click', copyConsoleLogs);
+        function onScanFailure(error) {
+            // Most errors are just "no code found in frame", ignore to avoid spam
+            // console.warn(error);
+        }
 
-    // Zoom
-    document.getElementById('zoom-in').addEventListener('click', () => setZoom(AppState.zoomLevel + 10));
-    document.getElementById('zoom-out').addEventListener('click', () => setZoom(AppState.zoomLevel - 10));
-    document.getElementById('zoom-reset').addEventListener('click', () => setZoom(100));
+        function detectType(text) {
+            if (/^https?:\/\//i.test(text)) return 'URL';
+            if (/^mailto:/i.test(text)) return 'EMAIL';
+            if (/^tel:/i.test(text)) return 'PHONE';
+            if (/^WIFI:/i.test(text)) return 'WIFI';
+            if (/^\d{10,13}$/i.test(text)) return 'PRODUCT_ID'; // Likely EAN/UPC
+            return 'TEXT';
+        }
 
-    // Fullscreen and Tab
-    document.getElementById('btn-fullscreen').addEventListener('click', openFullscreenPreview);
-    document.getElementById('fs-close').addEventListener('click', closeFullscreenPreview);
-    document.getElementById('btn-new-tab').addEventListener('click', openInNewTab);
-    document.getElementById('fs-open-tab').addEventListener('click', openInNewTab);
+        /**
+         * RESULT ACTIONS
+         */
+        async function copyToClipboard() {
+            const text = App.dom.result.content.textContent;
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast("Copied to clipboard!");
+            } catch (err) {
+                // Fallback
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast("Copied!");
+            }
+        }
 
-    // Modals open
-    document.getElementById('btn-settings').addEventListener('click', () => openModal(DOM.modalSettings));
-    document.getElementById('btn-shortcuts').addEventListener('click', () => openModal(DOM.modalShortcuts));
-    document.getElementById('btn-theme').addEventListener('click', toggleTheme);
+        async function shareResult() {
+            const text = App.dom.result.content.textContent;
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'Scanned Code',
+                        text: text
+                    });
+                } catch (err) {
+                    console.log('Share canceled');
+                }
+            }
+        }
 
-    // Modal close buttons
-    document.getElementById('settings-x').addEventListener('click', () => closeModal(DOM.modalSettings));
-    document.getElementById('shortcuts-x').addEventListener('click', () => closeModal(DOM.modalShortcuts));
-    document.getElementById('confirm-x').addEventListener('click', () => closeModal(DOM.modalConfirm));
-    document.getElementById('confirm-cancel').addEventListener('click', () => closeModal(DOM.modalConfirm));
+        function resumeScanning() {
+            App.lastResult = null; // Reset duplicate guard
+            if (App.html5QrCode) {
+                App.html5QrCode.resume().catch(e => {
+                    // If resume fails (stream lost), restart
+                    startScanning();
+                });
+            } else {
+                startScanning();
+            }
+            switchView('scanner');
+        }
 
-    // Backdrop dismissal
-    [DOM.modalSettings, DOM.modalShortcuts, DOM.modalConfirm].forEach(backdrop => {
-      backdrop.addEventListener('click', e => {
-        if (e.target === backdrop) closeModal(backdrop);
-      });
-    });
+        /**
+         * IMAGE UPLOAD SCANNING
+         */
+        function handleImageUpload(file) {
+            if (!file) return;
+            
+            App.html5QrCode.scanFile(file, true)
+                .then(decodedText => {
+                    // Reuse success logic manually since scanFile returns string only usually
+                    // But we need format. The library's internal method handles this better.
+                    // Let's assume generic success for file upload.
+                    const type = detectType(decodedText);
+                    addToHistory(decodedText, "IMAGE_UPLOAD", type);
+                    
+                    App.dom.result.format.textContent = "IMAGE";
+                    App.dom.result.type.textContent = type;
+                    App.dom.result.content.textContent = decodedText;
+                    
+                    if (type === 'URL') {
+                        App.dom.buttons.openUrl.classList.remove('hidden');
+                        App.dom.buttons.openUrl.onclick = () => window.open(decodedText, '_blank');
+                    } else {
+                        App.dom.buttons.openUrl.classList.add('hidden');
+                    }
+                    
+                    switchView('result');
+                })
+                .catch(err => {
+                    alert("No QR/Barcode found in this image.");
+                });
+        }
 
-    // Clear confirmation
-    document.getElementById('btn-clear').addEventListener('click', () => {
-      openModal(DOM.modalConfirm);
-    });
+        /**
+         * MANUAL INPUT
+         */
+        function processManualInput() {
+            const text = App.dom.inputs.manualText.value.trim();
+            if (!text) return;
 
-    document.getElementById('confirm-blank').addEventListener('click', () => {
-      if (AppState.editor) {
-        AppState.editor.setValue('');
-        AppState.currentFileName = 'untitled.html';
-        DOM.currentFilename.textContent = 'untitled.html';
-        scheduleAutoSave();
-        closeModal(DOM.modalConfirm);
-        showToast('Editor cleared', 'info');
-      }
-    });
+            const type = detectType(text);
+            addToHistory(text, "MANUAL", type);
 
-    document.getElementById('confirm-restore').addEventListener('click', () => {
-      if (AppState.editor) {
-        AppState.editor.setValue(DEFAULT_SAMPLE_CODE);
-        AppState.currentFileName = 'index.html';
-        DOM.currentFilename.textContent = 'index.html';
-        scheduleAutoSave();
-        closeModal(DOM.modalConfirm);
-        showToast('Restored sample code', 'success');
-      }
-    });
+            App.dom.result.format.textContent = "MANUAL";
+            App.dom.result.type.textContent = type;
+            App.dom.result.content.textContent = text;
 
-    // Purge storage
-    document.getElementById('btn-purge-storage').addEventListener('click', () => {
-      try {
-        localStorage.clear();
-        showToast('Browser storage cleared', 'info');
-        setTimeout(() => location.reload(), 600);
-      } catch (e) {
-        showToast('Storage clear failed: ' + e.message, 'error');
-      }
-    });
+            if (type === 'URL') {
+                App.dom.buttons.openUrl.classList.remove('hidden');
+                App.dom.buttons.openUrl.onclick = () => window.open(text, '_blank');
+            } else {
+                App.dom.buttons.openUrl.classList.add('hidden');
+            }
 
-    // Settings synchronizations
-    DOM.setLive.addEventListener('change', e => {
-      AppState.settings.livePreview = e.target.checked;
-      persistSettings();
-    });
+            App.dom.inputs.manualText.value = ""; // Clear input
+            switchView('result');
+        }
 
-    DOM.setAutoSave.addEventListener('change', e => {
-      AppState.settings.autoSave = e.target.checked;
-      persistSettings();
-    });
+        /**
+         * HISTORY MANAGEMENT
+         */
+        function getHistory() {
+            try {
+                return JSON.parse(localStorage.getItem('qr_history')) || [];
+            } catch { return []; }
+        }
 
-    DOM.setWrap.addEventListener('change', e => {
-      AppState.settings.wordWrap = e.target.checked;
-      if (AppState.editor) {
-        AppState.editor.updateOptions({ wordWrap: e.target.checked ? 'on' : 'off' });
-      }
-      persistSettings();
-    });
+        function addToHistory(value, format, type) {
+            let history = getHistory();
+            const entry = {
+                value,
+                format,
+                type,
+                date: new Date().toISOString()
+            };
+            
+            // Add to top, limit to 50
+            history.unshift(entry);
+            if (history.length > 50) history.pop();
+            
+            localStorage.setItem('qr_history', JSON.stringify(history));
+            renderHistory();
+        }
 
-    DOM.setMinimap.addEventListener('change', e => {
-      AppState.settings.minimap = e.target.checked;
-      if (AppState.editor) {
-        AppState.editor.updateOptions({ minimap: { enabled: e.target.checked } });
-      }
-      persistSettings();
-    });
+        function renderHistory() {
+            const history = getHistory();
+            App.dom.historyList.innerHTML = '';
+            
+            if (history.length === 0) {
+                App.dom.historyEmpty.classList.remove('hidden');
+                return;
+            }
+            App.dom.historyEmpty.classList.add('hidden');
 
-    DOM.setLineNo.addEventListener('change', e => {
-      AppState.settings.lineNumbers = e.target.checked;
-      if (AppState.editor) {
-        AppState.editor.updateOptions({ lineNumbers: e.target.checked ? 'on' : 'off' });
-      }
-      persistSettings();
-    });
+            history.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                
+                const dateObj = new Date(item.date);
+                const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
-    DOM.setFontSize.addEventListener('change', e => {
-      const size = parseInt(e.target.value, 10);
-      AppState.settings.fontSize = size;
-      if (AppState.editor) {
-        AppState.editor.updateOptions({ fontSize: size });
-      }
-      persistSettings();
-    });
+                li.innerHTML = `
+                    <div class="h-info">
+                        <div class="h-format">${item.format} • ${item.type}</div>
+                        <div class="h-value">${escapeHtml(item.value)}</div>
+                        <div class="h-date">${dateStr}</div>
+                    </div>
+                    <button class="btn btn-icon" style="width:32px;height:32px;background:#333;" onclick="deleteHistoryItem(${index})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                `;
+                
+                // Click item to view details
+                li.querySelector('.h-info').onclick = () => {
+                    App.dom.result.format.textContent = item.format;
+                    App.dom.result.type.textContent = item.type;
+                    App.dom.result.content.textContent = item.value;
+                    
+                    if (item.type === 'URL') {
+                        App.dom.buttons.openUrl.classList.remove('hidden');
+                        App.dom.buttons.openUrl.onclick = () => window.open(item.value, '_blank');
+                    } else {
+                        App.dom.buttons.openUrl.classList.add('hidden');
+                    }
+                    switchView('result');
+                };
 
-    DOM.setTabSize.addEventListener('change', e => {
-      const tabs = parseInt(e.target.value, 10);
-      AppState.settings.tabSize = tabs;
-      if (AppState.editor) {
-        AppState.editor.updateOptions({ tabSize: tabs });
-      }
-      persistSettings();
-    });
+                App.dom.historyList.appendChild(li);
+            });
+        }
 
-    // Drag and Drop files over Editor Pane
-    DOM.editorPane.addEventListener('dragover', e => {
-      e.preventDefault();
-      DOM.editorPane.classList.add('dragover');
-    });
+        function deleteHistoryItem(index) {
+            let history = getHistory();
+            history.splice(index, 1);
+            localStorage.setItem('qr_history', JSON.stringify(history));
+            renderHistory();
+        }
 
-    DOM.editorPane.addEventListener('dragleave', () => {
-      DOM.editorPane.classList.remove('dragover');
-    });
+        function clearHistory() {
+            if(confirm("Are you sure you want to clear all history?")) {
+                localStorage.removeItem('qr_history');
+                renderHistory();
+            }
+        }
 
-    DOM.editorPane.addEventListener('drop', e => {
-      e.preventDefault();
-      DOM.editorPane.classList.remove('dragover');
-      if (e.dataTransfer && e.dataTransfer.files.length > 0) {
-        handleFileRead(e.dataTransfer.files[0]);
-      }
-    });
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
 
-    // Global Keybindings
-    window.addEventListener('keydown', handleGlobalKeydown);
+        /**
+         * THEME & UTILS
+         */
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.documentElement.style.setProperty('--bg-dark', '#f5f5f5');
+                document.documentElement.style.setProperty('--surface', '#ffffff');
+                document.documentElement.style.setProperty('--text-main', '#121212');
+                document.documentElement.style.setProperty('--text-muted', '#666666');
+            }
+        }
 
-    // Window Resize Observer for Monaco
-    window.addEventListener('resize', () => {
-      if (AppState.editor) AppState.editor.layout();
-    });
-  }
+        function toggleTheme() {
+            const currentBg = getComputedStyle(document.documentElement).getPropertyValue('--bg-dark').trim();
+            if (currentBg === '#121212') {
+                // Switch to Light
+                document.documentElement.style.setProperty('--bg-dark', '#f5f5f5');
+                document.documentElement.style.setProperty('--surface', '#ffffff');
+                document.documentElement.style.setProperty('--text-main', '#121212');
+                document.documentElement.style.setProperty('--text-muted', '#666666');
+                localStorage.setItem('theme', 'light');
+            } else {
+                // Switch to Dark
+                document.documentElement.style.setProperty('--bg-dark', '#121212');
+                document.documentElement.style.setProperty('--surface', '#1e1e1e');
+                document.documentElement.style.setProperty('--text-main', '#ffffff');
+                document.documentElement.style.setProperty('--text-muted', '#a0a0a0');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
 
-  /* ==========================================================================
-     KEYBOARD SHORTCUTS ENGINE
-     ========================================================================== */
-  function handleGlobalKeydown(e) {
-    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
-    const activeTagName = (document.activeElement && document.activeElement.tagName) || '';
-    const isInputFocused = activeTagName === 'INPUT' || activeTagName === 'SELECT' || activeTagName === 'TEXTAREA';
+        /**
+         * EVENT LISTENERS SETUP
+         */
+        function setupEventListeners() {
+            // Navigation
+            App.dom.buttons.start.addEventListener('click', startScanning);
+            App.dom.buttons.stop.addEventListener('click', () => {
+                stopScanning();
+                switchView('intro');
+            });
+            App.dom.buttons.scanAgain.addEventListener('click', resumeScanning);
+            
+            App.dom.buttons.goManual.addEventListener('click', () => switchView('manual'));
+            App.dom.buttons.cancelManual.addEventListener('click', () => switchView('intro'));
+            App.dom.buttons.processManual.addEventListener('click', processManualInput);
+            
+            App.dom.buttons.backHistory.addEventListener('click', () => switchView('intro'));
+            App.dom.buttons.clearHistory.addEventListener('click', clearHistory);
 
-    // Global Esc
-    if (e.key === 'Escape') {
-      closeAllModals();
-      return;
-    }
+            // Actions
+            App.dom.buttons.copy.addEventListener('click', copyToClipboard);
+            App.dom.buttons.share.addEventListener('click', shareResult);
+            App.dom.buttons.switchCam.addEventListener('click', switchCamera);
+            App.dom.buttons.theme.addEventListener('click', toggleTheme);
 
-    // Help ? (when not typing in form field or editor)
-    if (e.key === '?' && !isCtrlOrCmd && !isInputFocused && !AppState.editor?.hasTextFocus()) {
-      e.preventDefault();
-      openModal(DOM.modalShortcuts);
-      return;
-    }
+            // Image Upload
+            App.dom.buttons.upload.addEventListener('click', () => App.dom.inputs.file.click());
+            App.dom.inputs.file.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleImageUpload(e.target.files[0]);
+                    e.target.value = ''; // Reset
+                }
+            });
 
-    if (!isCtrlOrCmd) return;
+            // Share API availability check
+            if (!navigator.share) {
+                App.dom.buttons.share.classList.add('hidden');
+            }
+        }
 
-    // Ctrl/Cmd + Enter: Run
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      runCodePreview(true);
-      return;
-    }
+        // Run Init
+        window.addEventListener('DOMContentLoaded', init);
 
-    // Ctrl/Cmd + S: Download
-    if (e.key === 's' || e.key === 'S') {
-      e.preventDefault();
-      downloadActiveCode();
-      return;
-    }
-
-    // Ctrl/Cmd + O: Upload
-    if (e.key === 'o' || e.key === 'O') {
-      e.preventDefault();
-      DOM.fileSelector.value = '';
-      DOM.fileSelector.click();
-      return;
-    }
-
-    // Ctrl/Cmd + R: Refresh Preview (Prevent browser native reload)
-    if (!e.shiftKey && (e.key === 'r' || e.key === 'R')) {
-      e.preventDefault();
-      refreshPreview();
-      return;
-    }
-
-    // Ctrl/Cmd + Shift + C: Copy Code
-    if (e.shiftKey && (e.key === 'C' || e.key === 'c')) {
-      e.preventDefault();
-      if (AppState.editor) {
-        copyStringToClipboard(AppState.editor.getValue(), 'Source code copied');
-      }
-      return;
-    }
-
-    // Ctrl/Cmd + Shift + F: Fullscreen
-    if (e.shiftKey && (e.key === 'F' || e.key === 'f')) {
-      e.preventDefault();
-      if (DOM.fsModal.classList.contains('active')) {
-        closeFullscreenPreview();
-      } else {
-        openFullscreenPreview();
-      }
-      return;
-    }
-
-    // Ctrl/Cmd + Shift + T: Toggle Theme
-    if (e.shiftKey && (e.key === 'T' || e.key === 't')) {
-      e.preventDefault();
-      toggleTheme();
-    }
-  }
-
-  /* ==========================================================================
-     SYNC SETTINGS UI
-     ========================================================================== */
-  function syncSettingsInputs() {
-    DOM.setLive.checked = AppState.settings.livePreview;
-    DOM.setAutoSave.checked = AppState.settings.autoSave;
-    DOM.setWrap.checked = AppState.settings.wordWrap;
-    DOM.setMinimap.checked = AppState.settings.minimap;
-    DOM.setLineNo.checked = AppState.settings.lineNumbers;
-    DOM.setFontSize.value = String(AppState.settings.fontSize);
-    DOM.setTabSize.value = String(AppState.settings.tabSize);
-  }
-
-  /* ==========================================================================
-     BOOTSTRAP ENTRY POINT
-     ========================================================================== */
-  function bootstrap() {
-    loadPersistedSettings();
-    applyTheme(AppState.settings.theme);
-    syncSettingsInputs();
-    initSplitter();
-    attachEventHandlers();
-    initMonacoEditor();
-  }
-
-  // Launch when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootstrap);
-  } else {
-    bootstrap();
-  }
-  </script>
+    </script>
 </body>
 </html>
