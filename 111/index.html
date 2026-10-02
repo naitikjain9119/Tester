@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Happy Birthday Wishes 🎉</title>
+
+  <!-- Confetti Animation Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&family=Pacifico&display=swap" rel="stylesheet" />
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      position: relative;
+      animation: fadeIn 0.8s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1.title {
+      font-family: 'Pacifico', cursive;
+      color: #e91e63;
+      font-size: 2.4rem;
+      margin-bottom: 10px;
+    }
+
+    p.subtitle {
+      color: #666;
+      font-size: 0.95rem;
+      margin-bottom: 25px;
+    }
+
+    /* Form Styles */
+    .form-group {
+      text-align: left;
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+
+    .form-group label span.required {
+      color: #e91e63;
+    }
+
+    .form-group label span.optional {
+      color: #888;
+      font-weight: normal;
+      font-size: 0.8rem;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #ffd1dc;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      border-color: #e91e63;
+      box-shadow: 0 0 10px rgba(233, 30, 99, 0.15);
+    }
+
+    .btn-create {
+      width: 100%;
+      background: linear-gradient(135deg, #e91e63, #ff4081);
+      color: #fff;
+      border: none;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 8px 18px rgba(233, 30, 99, 0.3);
+    }
+
+    .btn-create:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 22px rgba(233, 30, 99, 0.4);
+    }
+
+    /* Birthday Greeting Card Display */
+    .birthday-card {
+      display: none;
+      animation: zoomIn 0.8s ease;
+    }
+
+    @keyframes zoomIn {
+      from { transform: scale(0.85); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .cake-icon {
+      font-size: 4rem;
+      margin-bottom: 10px;
+      animation: bounce 1.5s infinite alternate;
+    }
+
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to { transform: translateY(-10px); }
+    }
+
+    .recipient-name {
+      font-size: 2.2rem;
+      color: #e91e63;
+      font-weight: 800;
+      margin-bottom: 15px;
+      word-break: break-word;
+    }
+
+    .custom-message {
+      font-size: 1.05rem;
+      color: #444;
+      line-height: 1.6;
+      background: #fff0f5;
+      padding: 16px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      border-left: 4px solid #e91e63;
+      white-space: pre-line;
+    }
+
+    .sender-box {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #777;
+      margin-bottom: 25px;
+    }
+
+    .sender-name {
+      color: #d81b60;
+      font-weight: 700;
+    }
+
+    .btn-new {
+      background: #f1f2f6;
+      color: #333;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 15px;
+    }
+
+    /* Modal / Pop-up Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      z-index: 999;
+    }
+
+    .modal-content {
+      background: #fff;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 20px;
+      padding: 25px;
+      text-align: center;
+      position: relative;
+      animation: popUp 0.3s ease;
+    }
+
+    @keyframes popUp {
+      from { transform: scale(0.7); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 15px;
+      right: 18px;
+      font-size: 1.4rem;
+      color: #888;
+      cursor: pointer;
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 8px;
+    }
+
+    .link-box {
+      display: flex;
+      gap: 8px;
+      margin: 18px 0;
+      background: #f8f9fa;
+      padding: 6px;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+    }
+
+    .link-box input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 8px;
+      font-size: 0.85rem;
+      color: #555;
+      outline: none;
+    }
+
+    .btn-copy {
+      background: #e91e63;
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    /* Share Icons Grid */
+    .share-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .share-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 12px 6px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.2s;
+    }
+
+    .share-btn:hover {
+      transform: translateY(-3px);
+    }
+
+    .share-whatsapp {
+      background: #25d366;
+    }
+
+    .share-instagram {
+      background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
+    }
+
+    .share-all {
+      background: #4a69bd;
+    }
+
+    .share-btn i {
+      font-size: 1.5rem;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      display: none;
+      z-index: 1000;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Card Container -->
+  <div class="container">
+
+    <!-- 1. Form Section (Shown by default to create a card) -->
+    <div id="creatorSection">
+      <h1 class="title">Happy Birthday! 🎂</h1>
+      <p class="subtitle">किसी के लिए सुंदर बर्थडे विश तैयार करें और शेयर करें</p>
+
+      <form id="wishForm" onsubmit="handleFormSubmit(event)">
+        <!-- Field 1: Recipient Name (Required) -->
+        <div class="form-group">
+          <label>किसका Birthday है? <span class="required">* (जरूरी)</span></label>
+          <input type="text" id="recipientInput" placeholder="जैसे: राहुल / प्रिया" required />
+        </div>
+
+        <!-- Field 2: Birthday Message (Optional) -->
+        <div class="form-group">
+          <label>बधाई सन्देश <span class="optional">(वैकल्पिक / Optional)</span></label>
+          <textarea id="messageInput" rows="3" placeholder="आप जो दिल से लिखना चाहें..."></textarea>
+        </div>
+
+        <!-- Field 3: Sender Name (Optional) -->
+        <div class="form-group">
+          <label>भेजने वाले का नाम (आपका नाम) <span class="optional">(वैकल्पिक / Optional)</span></label>
+          <input type="text" id="senderInput" placeholder="जैसे: अमन / आपका दोस्त" />
+        </div>
+
+        <button type="submit" class="btn-create">
+          <i class="fa-solid fa-gift"></i> विश लिंक बनाएं & शेयर करें
+        </button>
+      </form>
+    </div>
+
+    <!-- 2. Greeting Card View (Shown when viewing the generated link) -->
+    <div id="greetingSection" class="birthday-card">
+      <div class="cake-icon">🎂✨🎈</div>
+      <h1 class="title">Happy Birthday!</h1>
+      <div class="recipient-name" id="displayRecipient"></div>
+      <div class="custom-message" id="displayMessage"></div>
+      <div class="sender-box" id="displaySenderBox">
+        शुभकामनाओं सहित: <span class="sender-name" id="displaySender"></span> ❤️
+      </div>
+
+      <div>
+        <button class="btn-create" onclick="openShareModalDirect()">
+          <i class="fa-solid fa-share-nodes"></i> इसे किसी और को शेयर करें
+        </button>
+        <br />
+        <button class="btn-new" onclick="goToCreator()">
+          ➕ अपना खुद का विश कार्ड बनाएं
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Share Pop-up Modal -->
+  <div class="modal-overlay" id="shareModal">
+    <div class="modal-content">
+      <span class="close-modal" onclick="closeShareModal()">&times;</span>
+      <h3 class="modal-title">🎉 बधाई लिंक तैयार है!</h3>
+      <p style="color: #666; font-size: 0.85rem;">नीचे दिए गए माध्यमों से सीधे शेयर करें:</p>
+
+      <!-- Copyable Link Input -->
+      <div class="link-box">
+        <input type="text" id="shareUrlInput" readonly />
+        <button class="btn-copy" onclick="copyLink()">कॉपी करें</button>
+      </div>
+
+      <!-- Sharing Buttons -->
+      <div class="share-grid">
+        <!-- WhatsApp -->
+        <a id="whatsappShareBtn" class="share-btn share-whatsapp" target="_blank">
+          <i class="fa-brands fa-whatsapp"></i>
+          WhatsApp
+        </a>
+
+        <!-- Instagram -->
+        <button class="share-btn share-instagram" onclick="shareOnInstagram()">
+          <i class="fa-brands fa-instagram"></i>
+          Instagram
+        </button>
+
+        <!-- Native Share / All Apps -->
+        <button class="share-btn share-all" onclick="nativeShare()">
+          <i class="fa-solid fa-share-nodes"></i>
+          Share
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toastMsg">लिंक कॉपी हो गया! ✅</div>
+
+  <script>
+    let currentShareUrl = "";
+    let recipientNameForShare = "";
+
+    // Run when page loads to check if opened via a shared link
+    window.addEventListener("DOMContentLoaded", () => {
+      const params = new URLSearchParams(window.location.search);
+      const to = params.get("to");
+      const msg = params.get("msg");
+      const from = params.get("from");
+
+      if (to && to.trim() !== "") {
+        // Shared greeting link opened
+        showGreetingCard(to, msg, from);
+      } else {
+        // Creator mode
+        document.getElementById("creatorSection").style.display = "block";
+        document.getElementById("greetingSection").style.display = "none";
+      }
+    });
+
+    // Handle Form Submit
+    function handleFormSubmit(event) {
+      event.preventDefault();
+
+      const to = document.getElementById("recipientInput").value.trim();
+      const msg = document.getElementById("messageInput").value.trim();
+      const from = document.getElementById("senderInput").value.trim();
+
+      if (!to) {
+        alert("कृपया जिसका जन्मदिन है उसका नाम अवश्य लिखें!");
+        return;
+      }
+
+      recipientNameForShare = to;
+
+      // Create URL with parameters appended to the domain
+      const url = new URL(window.location.origin + window.location.pathname);
+      url.searchParams.set("to", to);
+      if (msg) url.searchParams.set("msg", msg);
+      if (from) url.searchParams.set("from", from);
+
+      currentShareUrl = url.toString();
+
+      // Show share popup modal
+      openShareModal(currentShareUrl);
+    }
+
+    // Display the custom Greeting Card
+    function showGreetingCard(to, msg, from) {
+      document.getElementById("creatorSection").style.display = "none";
+      const greetingSection = document.getElementById("greetingSection");
+      greetingSection.style.display = "block";
+
+      document.getElementById("displayRecipient").textContent = to;
+
+      // Default message if empty
+      const defaultMessage = "भगवान करे आपका आने वाला साल खुशियों, सफलता और अच्छी सेहत से भरा रहे! जन्मदिन की ढेर सारी शुभकामनाएं! 🎂🎉💐";
+      document.getElementById("displayMessage").textContent = msg && msg.trim() !== "" ? msg : defaultMessage;
+
+      // Sender visibility
+      const senderBox = document.getElementById("displaySenderBox");
+      if (from && from.trim() !== "") {
+        document.getElementById("displaySender").textContent = from;
+        senderBox.style.display = "block";
+      } else {
+        senderBox.style.display = "none";
+      }
+
+      currentShareUrl = window.location.href;
+      recipientNameForShare = to;
+
+      // Celebration Confetti explosion!
+      fireConfetti();
+    }
+
+    // Confetti Fireworks Effect
+    function fireConfetti() {
+      const count = 200;
+      const defaults = { origin: { y: 0.7 } };
+
+      function fire(particleRatio, opts) {
+        confetti(Object.assign({}, defaults, opts, {
+          particleCount: Math.floor(count * particleRatio)
+        }));
+      }
+
+      fire(0.25, { spread: 26, startVelocity: 55 });
+      fire(0.2, { spread: 60 });
+      fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+      fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+      fire(0.1, { spread: 120, startVelocity: 45 });
+    }
+
+    // Open Modal
+    function openShareModal(link) {
+      document.getElementById("shareUrlInput").value = link;
+      
+      const shareText = `🎉 *Happy Birthday ${recipientNameForShare}!* 🎂\nआपके लिए एक प्यारा सा सरप्राइज कार्ड है, इसे अभी खोलें:\n👉 ${link}`;
+      
+      // WhatsApp Link
+      const waBtn = document.getElementById("whatsappShareBtn");
+      waBtn.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+
+      document.getElementById("shareModal").style.display = "flex";
+    }
+
+    function openShareModalDirect() {
+      openShareModal(window.location.href);
+    }
+
+    // Close Modal
+    function closeShareModal() {
+      document.getElementById("shareModal").style.display = "none";
+    }
+
+    // Copy Link function
+    function copyLink() {
+      const input = document.getElementById("shareUrlInput");
+      navigator.clipboard.writeText(input.value).then(() => {
+        showToast("लिंक क्लिपबोर्ड पर कॉपी हो गया! 📋");
+      }).catch(() => {
+        input.select();
+        document.execCommand("copy");
+        showToast("लिंक कॉपी हो गया! 📋");
+      });
+    }
+
+    // Instagram Share Handler
+    function shareOnInstagram() {
+      copyLink();
+      showToast("लिंक कॉपी हो गया! इंस्टाग्राम Story या DM में पेस्ट करें 📸");
+      setTimeout(() => {
+        window.open("https://instagram.com", "_blank");
+      }, 1000);
+    }
+
+    // Native Web Share API
+    async function nativeShare() {
+      const shareText = `🎉 Happy Birthday ${recipientNameForShare}! 🎂 आपके लिए एक विशेष कार्ड है:`;
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: "Happy Birthday Wish",
+            text: shareText,
+            url: currentShareUrl
+          });
+        } catch (err) {
+          console.log("Share canceled", err);
+        }
+      } else {
+        copyLink();
+        showToast("शेयर API उपलब्ध नहीं है, लिंक कॉपी कर दिया गया है!");
+      }
+    }
+
+    // Toast message helper
+    function showToast(text) {
+      const toast = document.getElementById("toastMsg");
+      toast.textContent = text;
+      toast.style.display = "block";
+      setTimeout(() => {
+        toast.style.display = "none";
+      }, 2500);
+    }
+
+    // Switch back to creator form
+    function goToCreator() {
+      window.history.pushState({}, document.title, window.location.pathname);
+      document.getElementById("greetingSection").style.display = "none";
+      document.getElementById("creatorSection").style.display = "block";
+      document.getElementById("wishForm").reset();
+    }
+  </script>
+</body>
+</html>
