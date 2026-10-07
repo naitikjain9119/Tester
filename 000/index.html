@@ -1,1063 +1,4288 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>3D AR Avatar Camera</title>
-<style>
-  :root{
-    --bg:#07090d; --glass:rgba(12,15,22,.72); --glass2:rgba(255,255,255,.10);
-    --line:rgba(255,255,255,.18); --text:#fff; --muted:rgba(255,255,255,.68);
-    --accent:#7dd3fc; --accent2:#c084fc; --danger:#ff5e6c; --ok:#55e6a5;
-  }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-  button,input,select{font:inherit}
-  button{border:0;color:inherit;background:none}
-  #app{position:fixed;inset:0;overflow:hidden;background:#000}
-  #cameraVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;background:#111;opacity:0;pointer-events:none}
-  #renderCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
-  .shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.25),transparent 22%,transparent 62%,rgba(0,0,0,.60))}
-  .topbar{position:absolute;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top) + 14px) 14px 8px;display:flex;justify-content:space-between;align-items:center;z-index:12;pointer-events:none}
-  .pill{pointer-events:auto;padding:9px 12px;border:1px solid rgba(255,255,255,.16);background:rgba(0,0,0,.25);backdrop-filter:blur(14px);border-radius:999px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px}
-  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 12px var(--ok)}
-  .dot.off{background:#ffba55;box-shadow:none}
-  .side{position:absolute;top:50%;transform:translateY(-50%);z-index:13;display:flex;flex-direction:column;gap:12px}
-  .side.left{left:12px}.side.right{right:12px}
-  .iconBtn{width:48px;height:48px;border:1px solid rgba(255,255,255,.22);background:rgba(0,0,0,.30);backdrop-filter:blur(16px);border-radius:50%;display:grid;place-items:center;box-shadow:0 7px 24px rgba(0,0,0,.22);transition:transform .16s ease,background .16s ease,border-color .16s ease;cursor:pointer}
-  .iconBtn:active{transform:scale(.90)}
-  .iconBtn svg{width:23px;height:23px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  .bottom{position:absolute;left:0;right:0;bottom:0;z-index:13;padding:0 12px calc(env(safe-area-inset-bottom) + 12px);display:flex;flex-direction:column;gap:10px}
-  .carouselWrap{overflow:hidden}
-  .carousel{display:flex;gap:10px;overflow-x:auto;padding:4px 3px 7px;scroll-snap-type:x proximity;scrollbar-width:none}
-  .carousel::-webkit-scrollbar{display:none}
-  .avatarItem{flex:0 0 66px;height:78px;border:1px solid rgba(255,255,255,.15);background:rgba(0,0,0,.32);backdrop-filter:blur(12px);border-radius:17px;padding:4px;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;position:relative;transition:transform .16s,border-color .16s,background .16s;cursor:pointer}
-  .avatarItem.active{border-color:#fff;background:rgba(255,255,255,.18);transform:translateY(-3px)}
-  .avatarItem canvas{width:58px;height:68px;border-radius:13px}
-  .captureRow{height:78px;display:flex;align-items:center;justify-content:center;position:relative}
-  .recordBtn{width:70px;height:70px;border-radius:50%;border:3px solid #fff;box-shadow:0 5px 24px rgba(0,0,0,.30);position:relative;cursor:pointer;transition:transform .15s ease}
-  .recordBtn:active{transform:scale(.90)}
-  .recordBtn::before{content:"";position:absolute;inset:6px;border-radius:50%;background:#fff;transition:all .18s ease}
-  .recordBtn.recording::before{inset:16px;border-radius:11px;background:var(--danger)}
-  .recordHint{position:absolute;left:12px;right:12px;bottom:2px;text-align:center;font-size:10px;color:var(--muted);pointer-events:none}
-  .recordStatus{position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:11px;white-space:nowrap;color:#fff;opacity:.9}
-  .sizeCtl{position:absolute;left:50%;transform:translateX(-50%);bottom:82px;display:none;align-items:center;gap:8px;padding:9px 13px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.43);backdrop-filter:blur(16px);border-radius:999px}
-  .sizeCtl.show{display:flex}
-  .sizeCtl span{font-size:11px;color:var(--muted)}
-  .sizeCtl input{width:140px;accent-color:#fff}
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#0b0d12" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Avatar Camera Studio</title>
 
-  .panel{position:absolute;z-index:30;top:0;bottom:0;width:min(390px,92vw);background:rgba(9,12,18,.90);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.10);box-shadow:0 0 60px rgba(0,0,0,.35);transition:transform .25s ease;display:flex;flex-direction:column}
-  .panel.leftPanel{left:0;transform:translateX(-105%);border-left:0;border-radius:0 24px 24px 0}
-  .panel.leftPanel.open{transform:translateX(0)}
-  .panel.rightPanel{right:0;transform:translateX(105%);border-right:0;border-radius:24px 0 0 24px}
-  .panel.rightPanel.open{transform:translateX(0)}
-  .panelHead{padding:calc(env(safe-area-inset-top) + 14px) 16px 13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.09)}
-  .panelTitle{font-weight:700;font-size:17px}.panelSub{font-size:11px;color:var(--muted);margin-top:2px}
-  .closeBtn{width:36px;height:36px;border:1px solid rgba(255,255,255,.16);border-radius:12px;display:grid;place-items:center;cursor:pointer}
-  .closeBtn:active{transform:scale(.92)}
-  .tabs{display:flex;gap:7px;padding:12px;overflow-x:auto;scrollbar-width:none}
-  .tabs::-webkit-scrollbar{display:none}
-  .tab{white-space:nowrap;border:1px solid rgba(255,255,255,.12);padding:8px 11px;border-radius:999px;font-size:12px;color:var(--muted);cursor:pointer}
-  .tab.active{color:#fff;border-color:rgba(255,255,255,.48);background:rgba(255,255,255,.12)}
-  .panelBody{padding:0 14px 20px;overflow:auto;flex:1}
-  .section{padding:12px 0 2px}.sectionTitle{font-size:12px;color:var(--muted);margin-bottom:9px;text-transform:uppercase;letter-spacing:.08em}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-  .choice{min-height:66px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.055);border-radius:15px;padding:6px;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;transition:transform .14s,border-color .14s,background .14s}
-  .choice:active{transform:scale(.95)}
-  .choice.active{border-color:#fff;background:rgba(255,255,255,.13);box-shadow:0 0 0 1px rgba(255,255,255,.12) inset}
-  .choiceLabel{position:absolute;left:0;right:0;bottom:4px;text-align:center;font-size:9px;color:var(--muted)}
-  .swatch{width:32px;height:32px;border-radius:50%;border:2px solid rgba(255,255,255,.25);box-shadow:0 4px 16px rgba(0,0,0,.2)}
-  .row{display:flex;gap:8px;align-items:center}.row>label{flex:1}
-  .colorInput{width:46px;height:34px;padding:0;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:transparent}
-  .range{width:100%;accent-color:#fff}
-  .field{width:100%;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;padding:11px 12px;border-radius:12px;outline:none}
-  .actionRow{display:flex;gap:8px;margin-top:10px}
-  .actionBtn{flex:1;padding:11px 12px;border-radius:13px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);cursor:pointer;transition:transform .15s,background .15s}
-  .actionBtn:active{transform:scale(.96)}
-  .actionBtn.primary{background:#fff;color:#111;border-color:#fff}.actionBtn.danger{border-color:rgba(255,94,108,.5);color:#ff98a2}
-  .savedCard{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:15px;padding:10px;margin-bottom:8px}
-  .savedTop{display:flex;align-items:center;justify-content:space-between;gap:8px}.savedName{font-weight:650;font-size:13px}.savedBadge{font-size:9px;color:var(--ok);border:1px solid rgba(85,230,165,.35);padding:3px 6px;border-radius:99px}
-  .miniActions{display:flex;gap:7px;margin-top:8px}.miniActions button{flex:1;padding:8px;border:1px solid rgba(255,255,255,.12);border-radius:10px;font-size:11px;cursor:pointer;background:rgba(255,255,255,.05)}
-  .empty{color:var(--muted);font-size:12px;text-align:center;padding:28px 8px}
-  .footerCredit{padding:14px 0 3px;color:rgba(255,255,255,.45);font-size:10px;text-align:center}
-  .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 132px);transform:translate(-50%,18px);z-index:90;padding:10px 14px;border:1px solid rgba(255,255,255,.17);background:rgba(0,0,0,.62);backdrop-filter:blur(17px);border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:all .22s}
-  .toast.show{opacity:1;transform:translate(-50%,0)}
-  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.40);backdrop-filter:blur(2px);z-index:25;display:none}.scrim.show{display:block}
-  .start{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,#222 0,#07080b 55%,#020303 100%)}
-  .startCard{width:min(90vw,420px);padding:28px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.065);backdrop-filter:blur(18px);border-radius:28px;text-align:center;box-shadow:0 20px 80px rgba(0,0,0,.45)}
-  .logo{width:76px;height:76px;margin:0 auto 14px;border-radius:24px;background:linear-gradient(135deg,#fff,#b7e7ff);display:grid;place-items:center;color:#111;font-weight:900;font-size:26px;box-shadow:0 15px 40px rgba(125,211,252,.18)}
-  .startCard h1{font-size:22px;margin:0 0 8px}.startCard p{font-size:12px;line-height:1.6;color:var(--muted);margin:0 0 18px}
-  .startBtn{width:100%;padding:13px 16px;border-radius:14px;background:#fff;color:#111;font-weight:700;cursor:pointer;transition:transform .15s}.startBtn:active{transform:scale(.97)}
-  .permissionNote{font-size:10px;color:rgba(255,255,255,.45);margin-top:10px}
-  .hidden{display:none!important}
-  @media (min-width:700px){.bottom{padding-left:30px;padding-right:30px}.side.left{left:22px}.side.right{right:22px}.avatarItem{flex-basis:74px;height:86px}.avatarItem canvas{width:66px;height:76px}}
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
 
-  /* === Avatar v2: reference-inspired customization UI === */
-  .panel{width:min(430px,96vw);background:rgba(248,248,250,.97);color:#17181b;backdrop-filter:blur(30px);border:1px solid rgba(0,0,0,.08);box-shadow:0 0 70px rgba(0,0,0,.35)}
-  .panel.leftPanel{border-radius:0 30px 30px 0}
-  .panelHead{padding:calc(env(safe-area-inset-top) + 16px) 18px 12px;border-bottom:1px solid rgba(0,0,0,.07);background:rgba(255,255,255,.86)}
-  .panelTitle{font-size:18px;color:#161719;letter-spacing:-.02em}.panelSub{color:#777b82}
-  .closeBtn{border-color:rgba(0,0,0,.08);color:#555;background:#fff}
-  .tabs{gap:8px;padding:12px 14px 10px;background:#fff;border-bottom:1px solid rgba(0,0,0,.06)}
-  .tab{border:0;background:#f1f2f4;color:#777;padding:9px 13px;border-radius:999px;font-size:12px;font-weight:650}
-  .tab.active{background:#151619;color:#fff;border-color:transparent;box-shadow:0 5px 16px rgba(0,0,0,.12)}
-  .panelBody{padding:4px 14px 24px;background:linear-gradient(#fff,#f6f6f8)}
-  .section{padding:12px 0 4px}.sectionTitle{font-size:12px;color:#777b82;font-weight:750;text-transform:none;letter-spacing:0;margin-bottom:10px}
-  .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-  .choice{min-height:82px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:18px;padding:7px;box-shadow:0 4px 14px rgba(25,28,35,.04)}
-  .choice.active{border-color:#202126;background:#fff;box-shadow:0 0 0 2px rgba(32,33,38,.10),0 8px 20px rgba(25,28,35,.08)}
-  .choiceLabel{bottom:5px;color:#656970;font-size:9px;font-weight:600}
-  .choice canvas{border-radius:14px}
-  .palette{display:flex;gap:10px;overflow-x:auto;padding:2px 1px 7px;scrollbar-width:none}
-  .palette::-webkit-scrollbar{display:none}
-  .palette button{flex:0 0 38px;width:38px;height:38px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.14);cursor:pointer;position:relative}
-  .palette button.active{outline:2px solid #202126;outline-offset:3px}
-  .palette button::after{content:"";position:absolute;inset:5px;border-radius:50%;background:rgba(255,255,255,.10);pointer-events:none}
-  .softCard{background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:20px;padding:12px;box-shadow:0 8px 24px rgba(25,28,35,.05)}
-  .previewStage{height:300px;border-radius:24px;overflow:hidden;position:relative;background:radial-gradient(circle at 50% 25%,#ffffff 0,#eceef2 48%,#dfe2e7 100%);display:grid;place-items:end center}
-  .previewStage canvas{width:100%;height:100%;display:block}
-  .miniPills{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
-  .miniPill{border:1px solid rgba(0,0,0,.08);background:#f5f6f8;color:#646870;padding:7px 10px;border-radius:999px;font-size:10px;font-weight:650}
-  .quickGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
-  .quickBtn{padding:12px;border-radius:16px;border:1px solid rgba(0,0,0,.07);background:#fff;text-align:left;color:#23252a;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.04)}
-  .quickBtn small{display:block;color:#7e828a;font-weight:500;margin-top:3px}
-  .actionBtn{background:#f2f3f5;border-color:rgba(0,0,0,.08);color:#1e2024;font-weight:700}.actionBtn.primary{background:#18191c;color:#fff;border-color:#18191c}
-  .field{background:#fff;border-color:rgba(0,0,0,.10);color:#17181b}
-  .colorInput{background:#fff;border-color:rgba(0,0,0,.10)}
-  .range{accent-color:#18191c}
-  .savedCard{background:#fff;border-color:rgba(0,0,0,.07);box-shadow:0 5px 16px rgba(25,28,35,.04)}
-  .savedName{color:#222428}.savedBadge{color:#1a8a58;border-color:rgba(26,138,88,.28)}
-  .miniActions button{background:#f5f6f7;color:#282a2f;border-color:rgba(0,0,0,.07)}
-  .empty{color:#777b82}
-  .footerCredit{color:#a0a4aa}
-  @media(max-width:699px){
-    .panel{top:auto;bottom:0;width:100%;max-width:none;height:min(76dvh,720px);border-radius:28px 28px 0 0;transform:translateY(105%)}
-    .panel.leftPanel{left:0;border-radius:28px 28px 0 0}
-    .panel.leftPanel.open{transform:translateY(0)}
-    .panelHead{padding-top:15px}
-    .panelHead::before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);width:44px;height:5px;border-radius:99px;background:#d6d8dc}
-    .previewStage{height:250px}
-  }
+  <style>
+    :root{
+      --bg:#07090d;
+      --glass:rgba(19,23,31,.58);
+      --glass-strong:rgba(16,20,27,.78);
+      --line:rgba(255,255,255,.12);
+      --white:#fff;
+      --muted:rgba(255,255,255,.66);
+      --muted2:rgba(255,255,255,.44);
+      --panel:#f6f7f8;
+      --panel2:#ffffff;
+      --ink:#101114;
+      --ink2:#666a74;
+      --shadow:0 18px 60px rgba(0,0,0,.22);
+      --accent:#111216;
+      --danger:#f04444;
+      --success:#22c55e;
+      --safe-top:env(safe-area-inset-top,0px);
+      --safe-bottom:env(safe-area-inset-bottom,0px);
+    }
 
-</style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{
+      margin:0;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      background:var(--bg);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      color:#fff;
+      touch-action:manipulation;
+    }
+    body{user-select:none}
+    button,input,select{font:inherit}
+    button{border:0;background:none;color:inherit;cursor:pointer}
+    canvas,video{display:block}
+
+    .app{
+      position:fixed;
+      inset:0;
+      overflow:hidden;
+      background:#050609;
+      isolation:isolate;
+    }
+
+    .camera-canvas{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      background:#050609;
+    }
+
+    #video{
+      position:absolute;
+      width:1px;
+      height:1px;
+      opacity:0;
+      pointer-events:none;
+    }
+
+    .camera-vignette{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:2;
+      background:
+        linear-gradient(180deg,rgba(0,0,0,.46) 0%,rgba(0,0,0,0) 20%,rgba(0,0,0,0) 62%,rgba(0,0,0,.60) 100%),
+        radial-gradient(circle at center,rgba(255,255,255,0) 45%,rgba(0,0,0,.20) 100%);
+    }
+
+    .startup{
+      position:absolute;
+      inset:0;
+      z-index:50;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:26px;
+      background:
+        radial-gradient(circle at 50% 20%,rgba(87,108,255,.16),transparent 33%),
+        linear-gradient(180deg,#090c12 0%,#05070b 100%);
+      transition:opacity .35s ease,visibility .35s ease;
+    }
+    .startup.hidden{opacity:0;visibility:hidden;pointer-events:none}
+
+    .startup-card{
+      width:min(520px,100%);
+      text-align:center;
+      padding:32px 22px 26px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:30px;
+      background:rgba(15,18,24,.74);
+      backdrop-filter:blur(28px);
+      -webkit-backdrop-filter:blur(28px);
+      box-shadow:0 30px 100px rgba(0,0,0,.42);
+    }
+
+    .brand-mark{
+      width:76px;
+      height:76px;
+      margin:0 auto 18px;
+      border-radius:24px;
+      display:grid;
+      place-items:center;
+      background:
+        linear-gradient(145deg,#fff 0%,#e9ecff 50%,#b9c6ff 100%);
+      color:#111;
+      box-shadow:
+        0 12px 30px rgba(139,155,255,.30),
+        inset 0 1px 0 rgba(255,255,255,.8);
+      font-size:34px;
+      font-weight:900;
+    }
+
+    .startup h1{
+      margin:0;
+      font-size:clamp(30px,7vw,46px);
+      letter-spacing:-.045em;
+      line-height:1.04;
+    }
+
+    .startup p{
+      margin:12px auto 22px;
+      color:var(--muted);
+      line-height:1.55;
+      max-width:420px;
+      font-size:14px;
+    }
+
+    .permission-note{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      text-align:left;
+      padding:13px 14px;
+      margin-bottom:14px;
+      border-radius:16px;
+      background:rgba(255,255,255,.055);
+      border:1px solid rgba(255,255,255,.07);
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+
+    .primary{
+      width:100%;
+      height:56px;
+      border-radius:18px;
+      background:#fff;
+      color:#111;
+      font-size:15px;
+      font-weight:800;
+      box-shadow:0 10px 35px rgba(0,0,0,.26);
+      transition:transform .16s ease,opacity .16s ease;
+    }
+    .primary:active{transform:scale(.985)}
+    .primary:disabled{opacity:.5;cursor:default}
+
+    .start-error{
+      display:none;
+      margin-top:12px;
+      font-size:12px;
+      color:#ffb4b4;
+      line-height:1.4;
+    }
+    .start-error.show{display:block}
+
+    .topbar{
+      position:absolute;
+      top:calc(var(--safe-top) + 12px);
+      left:14px;
+      right:14px;
+      z-index:10;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      pointer-events:none;
+    }
+
+    .status-pill{
+      min-height:42px;
+      padding:9px 13px;
+      display:flex;
+      align-items:center;
+      gap:9px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(9,12,17,.50);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+      box-shadow:0 10px 25px rgba(0,0,0,.16);
+      pointer-events:auto;
+      font-size:12px;
+      font-weight:650;
+    }
+
+    .tracking-dot{
+      width:9px;
+      height:9px;
+      border-radius:999px;
+      background:#8f96a3;
+      box-shadow:0 0 0 4px rgba(255,255,255,.04);
+      flex:none;
+    }
+    .tracking-dot.live{
+      background:#49e58a;
+      box-shadow:0 0 0 4px rgba(73,229,138,.12),0 0 16px rgba(73,229,138,.42);
+    }
+    .tracking-dot.recording{
+      background:#ff4747;
+      box-shadow:0 0 0 4px rgba(255,71,71,.12),0 0 16px rgba(255,71,71,.42);
+    }
+
+    .side-controls{
+      position:absolute;
+      z-index:11;
+      right:14px;
+      top:50%;
+      transform:translateY(-50%);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .glass-btn{
+      width:48px;
+      height:48px;
+      display:grid;
+      place-items:center;
+      border-radius:17px;
+      background:rgba(10,13,18,.52);
+      border:1px solid rgba(255,255,255,.12);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+      box-shadow:0 12px 28px rgba(0,0,0,.18);
+      transition:transform .15s ease,background .15s ease;
+    }
+    .glass-btn:active{transform:scale(.94)}
+    .glass-btn svg{width:21px;height:21px}
+
+    .bottom-ui{
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:12;
+      padding:
+        12px
+        12px
+        calc(var(--safe-bottom) + 16px);
+      display:flex;
+      flex-direction:column;
+      gap:11px;
+    }
+
+    .record-scale-wrap{
+      display:none;
+      align-items:center;
+      gap:12px;
+      width:min(300px,74vw);
+      margin:0 auto;
+      padding:8px 12px;
+      border-radius:17px;
+      background:rgba(7,9,13,.62);
+      border:1px solid rgba(255,255,255,.12);
+      backdrop-filter:blur(18px);
+    }
+    .record-scale-wrap.show{display:flex}
+    .record-scale-wrap span{
+      font-size:11px;
+      font-weight:750;
+      color:rgba(255,255,255,.75);
+      min-width:44px;
+    }
+
+    input[type="range"]{
+      appearance:none;
+      width:100%;
+      height:4px;
+      border-radius:99px;
+      background:rgba(255,255,255,.20);
+      outline:none;
+    }
+    input[type="range"]::-webkit-slider-thumb{
+      appearance:none;
+      width:20px;
+      height:20px;
+      border-radius:50%;
+      background:#fff;
+      border:0;
+      box-shadow:0 2px 8px rgba(0,0,0,.28);
+    }
+    input[type="range"]::-moz-range-thumb{
+      width:20px;
+      height:20px;
+      border:0;
+      border-radius:50%;
+      background:#fff;
+    }
+
+    .carousel-shell{
+      width:100%;
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      gap:10px;
+    }
+
+    .avatar-carousel{
+      min-width:0;
+      flex:1;
+      overflow-x:auto;
+      overscroll-behavior-x:contain;
+      scrollbar-width:none;
+      padding:2px 1px 3px;
+    }
+    .avatar-carousel::-webkit-scrollbar{display:none}
+
+    .carousel-track{
+      display:flex;
+      gap:8px;
+      width:max-content;
+      padding:2px 4px;
+    }
+
+    .avatar-card{
+      width:78px;
+      height:96px;
+      flex:none;
+      position:relative;
+      border-radius:20px;
+      overflow:hidden;
+      background:rgba(13,16,22,.58);
+      border:1px solid rgba(255,255,255,.11);
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+      transition:transform .18s ease,border-color .18s ease;
+    }
+    .avatar-card.active{
+      border-color:#fff;
+      transform:translateY(-3px) scale(1.025);
+    }
+    .avatar-card canvas{
+      width:100%;
+      height:100%;
+    }
+    .avatar-card .card-label{
+      position:absolute;
+      left:5px;
+      right:5px;
+      bottom:5px;
+      text-align:center;
+      padding:4px 5px;
+      border-radius:9px;
+      background:rgba(0,0,0,.42);
+      backdrop-filter:blur(7px);
+      font-size:9px;
+      font-weight:750;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .default-badge{
+      position:absolute;
+      top:4px;
+      left:4px;
+      padding:3px 5px;
+      font-size:7px;
+      font-weight:900;
+      letter-spacing:.05em;
+      border-radius:7px;
+      background:#fff;
+      color:#111;
+    }
+
+    .capture-wrap{
+      width:86px;
+      height:86px;
+      flex:none;
+      position:relative;
+      display:grid;
+      place-items:center;
+      margin:0 2px;
+    }
+
+    .capture{
+      width:76px;
+      height:76px;
+      border-radius:50%;
+      background:#fff;
+      box-shadow:
+        0 10px 35px rgba(0,0,0,.32),
+        0 0 0 4px rgba(255,255,255,.14);
+      display:grid;
+      place-items:center;
+      transition:transform .14s ease,background .18s ease;
+    }
+    .capture:active{transform:scale(.94)}
+    .capture.recording{background:#ff4a4a}
+    .capture-core{
+      width:25px;
+      height:25px;
+      border-radius:50%;
+      background:rgba(255,255,255,.94);
+      transition:all .18s ease;
+    }
+    .capture.recording .capture-core{
+      width:24px;
+      height:24px;
+      border-radius:7px;
+      background:#fff;
+    }
+    .rec-label{
+      position:absolute;
+      bottom:-1px;
+      left:50%;
+      transform:translateX(-50%);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.09em;
+      opacity:0;
+      transition:opacity .18s ease;
+    }
+    .capture.recording .rec-label{opacity:1}
+
+    .looking{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      z-index:8;
+      padding:10px 14px;
+      border-radius:999px;
+      background:rgba(8,10,14,.44);
+      border:1px solid rgba(255,255,255,.10);
+      color:rgba(255,255,255,.82);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      font-size:12px;
+      font-weight:700;
+      pointer-events:none;
+      opacity:0;
+      transition:opacity .2s ease;
+    }
+    .looking.show{opacity:1}
+
+    .toast{
+      position:absolute;
+      left:50%;
+      bottom:calc(var(--safe-bottom) + 120px);
+      z-index:70;
+      transform:translate(-50%,16px);
+      opacity:0;
+      pointer-events:none;
+      padding:11px 15px;
+      min-width:150px;
+      text-align:center;
+      border-radius:999px;
+      background:rgba(12,15,21,.86);
+      border:1px solid rgba(255,255,255,.12);
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+      box-shadow:0 12px 35px rgba(0,0,0,.25);
+      font-size:12px;
+      font-weight:750;
+      transition:opacity .2s ease,transform .2s ease;
+    }
+    .toast.show{
+      opacity:1;
+      transform:translate(-50%,0);
+    }
+
+    .scrim{
+      position:absolute;
+      inset:0;
+      z-index:30;
+      background:rgba(0,0,0,.40);
+      opacity:0;
+      visibility:hidden;
+      transition:opacity .25s ease,visibility .25s ease;
+    }
+    .scrim.show{
+      opacity:1;
+      visibility:visible;
+    }
+
+    .panel{
+      position:absolute;
+      z-index:40;
+      left:0;
+      top:0;
+      bottom:0;
+      width:430px;
+      max-width:96vw;
+      display:flex;
+      flex-direction:column;
+      background:var(--panel);
+      color:var(--ink);
+      border-right:1px solid rgba(0,0,0,.08);
+      border-radius:0 28px 28px 0;
+      box-shadow:var(--shadow);
+      transform:translateX(-105%);
+      transition:transform .32s cubic-bezier(.22,.8,.24,1);
+      overflow:hidden;
+    }
+    .panel.open{transform:translateX(0)}
+
+    .panel-handle{
+      display:none;
+      width:42px;
+      height:5px;
+      border-radius:999px;
+      background:#c9ccd2;
+      margin:9px auto 1px;
+      flex:none;
+    }
+
+    .panel-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:
+        calc(var(--safe-top) + 18px)
+        18px
+        14px;
+      flex:none;
+    }
+
+    .panel-header-title{
+      font-size:17px;
+      font-weight:850;
+      letter-spacing:-.02em;
+    }
+
+    .panel-close{
+      width:36px;
+      height:36px;
+      border-radius:12px;
+      display:grid;
+      place-items:center;
+      background:#ededee;
+      color:#25262a;
+    }
+
+    .panel-tabs{
+      display:flex;
+      gap:5px;
+      padding:0 12px 11px;
+      overflow-x:auto;
+      scrollbar-width:none;
+      flex:none;
+    }
+    .panel-tabs::-webkit-scrollbar{display:none}
+    .tab{
+      flex:none;
+      padding:9px 11px;
+      border-radius:11px;
+      font-size:11px;
+      font-weight:800;
+      color:#767983;
+      background:transparent;
+    }
+    .tab.active{
+      color:#fff;
+      background:#111216;
+      box-shadow:0 4px 10px rgba(0,0,0,.14);
+    }
+
+    .panel-scroll{
+      min-height:0;
+      overflow:auto;
+      flex:1;
+      padding:4px 13px 26px;
+      scrollbar-width:thin;
+      scrollbar-color:#cfd1d4 transparent;
+    }
+
+    .editor-section{
+      margin:9px 0 13px;
+    }
+    .section-head{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+      margin:0 3px 8px;
+    }
+    .section-title{
+      font-size:12px;
+      font-weight:850;
+      letter-spacing:.01em;
+    }
+    .section-sub{
+      color:#858993;
+      font-size:10px;
+    }
+
+    .preview-card{
+      background:#e9ebef;
+      border-radius:23px;
+      padding:8px;
+      min-height:220px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position:relative;
+      overflow:hidden;
+      border:1px solid rgba(0,0,0,.06);
+    }
+    .preview-card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(circle at 28% 18%,rgba(255,255,255,.75),transparent 27%),
+        radial-gradient(circle at 80% 80%,rgba(155,171,255,.20),transparent 32%);
+      pointer-events:none;
+    }
+    .preview-card canvas{
+      width:100%;
+      max-width:250px;
+      height:auto;
+      position:relative;
+      z-index:1;
+    }
+
+    .badge-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-top:9px;
+    }
+    .feature-badge{
+      padding:7px 9px;
+      border-radius:999px;
+      color:#565a63;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.07);
+      font-size:9px;
+      font-weight:750;
+    }
+
+    .quick-grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:8px;
+    }
+
+    .quick-btn{
+      padding:12px 11px;
+      border-radius:16px;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.07);
+      text-align:left;
+      color:#282a2f;
+      box-shadow:0 4px 12px rgba(0,0,0,.03);
+    }
+    .quick-btn strong{
+      display:block;
+      font-size:11px;
+      margin-bottom:4px;
+    }
+    .quick-btn small{
+      color:#8a8d95;
+      font-size:9px;
+      line-height:1.35;
+    }
+
+    .option-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+    }
+    .option-grid.two{grid-template-columns:repeat(2,1fr)}
+    .option-grid.four{grid-template-columns:repeat(4,1fr)}
+
+    .option{
+      min-height:80px;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.07);
+      border-radius:16px;
+      padding:7px;
+      text-align:center;
+      color:#2a2c31;
+      transition:border-color .14s ease,transform .14s ease;
+    }
+    .option.active{
+      border-color:#111216;
+      box-shadow:0 0 0 1px #111216 inset;
+      transform:translateY(-1px);
+    }
+    .option .mini-wrap{
+      height:51px;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+      border-radius:11px;
+      background:#eceef1;
+      margin-bottom:5px;
+    }
+    .option .mini-wrap canvas{
+      width:100%;
+      height:100%;
+    }
+    .option span{
+      display:block;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      font-size:9px;
+      font-weight:800;
+    }
+
+    .swatches{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .swatch{
+      width:31px;
+      height:31px;
+      border-radius:50%;
+      border:2px solid rgba(0,0,0,.08);
+      box-shadow:0 1px 5px rgba(0,0,0,.06);
+      position:relative;
+      overflow:hidden;
+    }
+    .swatch.active::after{
+      content:"";
+      position:absolute;
+      inset:5px;
+      border:2px solid #fff;
+      border-radius:50%;
+      box-shadow:0 0 0 1px rgba(0,0,0,.55);
+    }
+    input.color-input{
+      width:44px;
+      height:32px;
+      border:0;
+      padding:0;
+      border-radius:10px;
+      background:#fff;
+      overflow:hidden;
+      cursor:pointer;
+    }
+
+    .control{
+      background:#fff;
+      border:1px solid rgba(0,0,0,.07);
+      border-radius:16px;
+      padding:11px 12px;
+      margin-top:8px;
+    }
+    .control-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .control label{
+      font-size:10px;
+      font-weight:820;
+      color:#474a51;
+    }
+    .value-badge{
+      min-width:44px;
+      text-align:center;
+      padding:4px 7px;
+      border-radius:8px;
+      background:#f0f1f3;
+      color:#666a73;
+      font-size:9px;
+      font-weight:800;
+    }
+    .light-range{
+      width:100%;
+      background:#d7d9dd !important;
+    }
+    .light-range::-webkit-slider-thumb{
+      width:18px;
+      height:18px;
+      background:#111216;
+    }
+    .light-range::-moz-range-thumb{
+      width:18px;
+      height:18px;
+      background:#111216;
+    }
+
+    .save-bar{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .light-btn{
+      height:42px;
+      border-radius:13px;
+      background:#fff;
+      color:#1e2024;
+      border:1px solid rgba(0,0,0,.08);
+      font-size:10px;
+      font-weight:820;
+    }
+    .dark-btn{
+      background:#111216;
+      color:#fff;
+      border-color:#111216;
+    }
+
+    .saved-card{
+      position:relative;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.07);
+      border-radius:18px;
+      padding:8px;
+      margin-bottom:8px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    .saved-thumb{
+      width:64px;
+      height:72px;
+      flex:none;
+      overflow:hidden;
+      border-radius:13px;
+      background:#eceef1;
+    }
+    .saved-thumb canvas{width:100%;height:100%}
+    .saved-main{
+      min-width:0;
+      flex:1;
+    }
+    .saved-name{
+      font-size:11px;
+      font-weight:850;
+      margin-bottom:4px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .saved-meta{
+      color:#92959d;
+      font-size:9px;
+      margin-bottom:7px;
+    }
+    .saved-actions{
+      display:flex;
+      gap:5px;
+      flex-wrap:wrap;
+    }
+    .mini-btn{
+      padding:6px 8px;
+      border-radius:9px;
+      background:#f0f1f3;
+      color:#575b64;
+      font-size:8px;
+      font-weight:820;
+    }
+    .mini-btn.dark{background:#111216;color:#fff}
+    .mini-btn.danger{background:#fff0f0;color:#d63737}
+
+    .empty{
+      padding:23px 12px;
+      text-align:center;
+      color:#9699a1;
+      font-size:10px;
+      line-height:1.5;
+      background:#fff;
+      border-radius:16px;
+      border:1px dashed #d7d8dc;
+    }
+
+    .desktop-only-note{
+      font-size:9px;
+      color:#8b8e97;
+      line-height:1.45;
+    }
+
+    @media (max-width:720px){
+      .side-controls{
+        right:12px;
+        top:42%;
+      }
+      .panel{
+        top:auto;
+        left:0;
+        right:0;
+        bottom:0;
+        width:auto;
+        max-width:none;
+        height:min(81vh,760px);
+        border-right:0;
+        border-top:1px solid rgba(0,0,0,.08);
+        border-radius:28px 28px 0 0;
+        transform:translateY(105%);
+      }
+      .panel.open{transform:translateY(0)}
+      .panel-handle{display:block}
+      .panel-header{
+        padding:
+          10px
+          16px
+          10px;
+      }
+      .toast{bottom:calc(var(--safe-bottom) + 135px)}
+    }
+
+    @media (max-width:430px){
+      .status-pill{
+        min-height:39px;
+        padding:8px 10px;
+        font-size:10px;
+      }
+      .side-controls{gap:9px}
+      .glass-btn{width:44px;height:44px;border-radius:15px}
+      .avatar-card{width:70px;height:89px}
+      .capture-wrap{width:80px;height:80px}
+      .capture{width:71px;height:71px}
+      .quick-grid{grid-template-columns:1fr 1fr}
+      .option-grid{grid-template-columns:repeat(3,1fr);gap:6px}
+      .option-grid.four{grid-template-columns:repeat(4,1fr);gap:6px}
+      .option{
+        border-radius:14px;
+        min-height:75px;
+        padding:6px;
+      }
+    }
+  </style>
 </head>
 <body>
-<div id="app">
-  <video id="cameraVideo" autoplay muted playsinline></video>
-  <canvas id="renderCanvas"></canvas>
-  <div class="shade"></div>
+<div class="app">
+  <video id="video" playsinline muted autoplay></video>
+  <canvas id="cameraCanvas" class="camera-canvas"></canvas>
+  <div class="camera-vignette"></div>
+
+  <div id="looking" class="looking">Looking for face</div>
+
+  <div id="startup" class="startup">
+    <div class="startup-card">
+      <div class="brand-mark">✦</div>
+      <h1>Avatar Camera</h1>
+      <p>
+        Turn your live selfie into a polished animated avatar that follows
+        your face, expressions, eyes and head movement in real time.
+      </p>
+
+      <div class="permission-note">
+        <div>⌁</div>
+        <div>
+          Camera and microphone access are used locally for live tracking and
+          composited video recording. Camera frames are not uploaded by this app.
+        </div>
+      </div>
+
+      <button id="startBtn" class="primary" type="button">Start Camera</button>
+      <div id="startError" class="start-error"></div>
+    </div>
+  </div>
 
   <div class="topbar">
-    <div class="pill"><span id="trackDot" class="dot off"></span><span id="trackText">Camera ready</span></div>
-    <div class="pill" id="cameraName">Front camera</div>
+    <div class="status-pill">
+      <span id="trackingDot" class="tracking-dot"></span>
+      <span id="trackingText">Camera idle</span>
+    </div>
+    <div class="status-pill">
+      <span id="cameraLabel">Front camera</span>
+    </div>
   </div>
 
-  <div class="side left">
-    <button class="iconBtn" id="customizeBtn" title="Customize avatar" aria-label="Customize avatar">
-      <svg viewBox="0 0 24 24"><path d="M12 2.8l1.4 2.6 2.8.5-.9 2.7 2 2-2 2 .9 2.7-2.8.5L12 21.2l-1.4-2.6-2.8-.5.9-2.7-2-2 2-2-.9-2.7 2.8-.5L12 2.8z"/><circle cx="12" cy="12" r="2.8"/></svg>
+  <div class="side-controls">
+    <button id="customizeBtn" class="glass-btn" type="button" aria-label="Open avatar customization" title="Customize avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+        <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.64 5.64l2.12 2.12M16.24 16.24l2.12 2.12M18.36 5.64l-2.12 2.12M7.76 16.24l-2.12 2.12"/>
+        <circle cx="12" cy="12" r="4"/>
+      </svg>
+    </button>
+
+    <button id="switchCameraBtn" class="glass-btn" type="button" aria-label="Switch camera" title="Switch camera">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M7 7h9.5l-2-2M17 17H7.5l2 2"/>
+        <path d="M16.5 5.2 19 7.7 16.5 10.2M7.5 13.8 5 16.3l2.5 2.5"/>
+      </svg>
     </button>
   </div>
-  <div class="side right">
-    <button class="iconBtn" id="switchCameraBtn" title="Switch camera" aria-label="Switch camera">
-      <svg viewBox="0 0 24 24"><path d="M8 7h10l-2-3m2 3-2 3M16 17H6l2 3m-2-3 2-3"/><path d="M18.5 8.5a7 7 0 010 7M5.5 15.5a7 7 0 010-7"/></svg>
-    </button>
-  </div>
 
-  <div class="bottom">
-    <div class="carouselWrap"><div class="carousel" id="avatarCarousel"></div></div>
-    <div class="captureRow">
-      <div class="sizeCtl" id="sizeCtl"><span>Avatar</span><input id="sizeSlider" type="range" min="0.72" max="1.35" step="0.01" value="1"><span id="sizeLabel">100%</span></div>
-      <button class="recordBtn" id="recordBtn" aria-label="Start video recording"><span class="recordStatus" id="recordStatus"></span></button>
-      <div class="recordHint">Tap to start / stop video</div>
+  <div class="bottom-ui">
+    <div id="recordScaleWrap" class="record-scale-wrap">
+      <span>Avatar</span>
+      <input id="recordScale" class="light-range" type="range" min="72" max="135" value="100" />
+      <span id="recordScaleValue">100%</span>
+    </div>
+
+    <div class="carousel-shell">
+      <div id="avatarCarousel" class="avatar-carousel">
+        <div id="carouselTrack" class="carousel-track"></div>
+      </div>
+
+      <div class="capture-wrap">
+        <button id="captureBtn" class="capture" type="button" aria-label="Start recording" title="Record video">
+          <span class="capture-core"></span>
+          <span class="rec-label">REC</span>
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="scrim" id="scrim"></div>
+  <div id="toast" class="toast"></div>
 
-  <aside class="panel leftPanel" id="customPanel">
-    <div class="panelHead">
-      <div><div class="panelTitle">Customize Avatar</div><div class="panelSub">Change the selected avatar and save it.</div></div>
-      <button class="closeBtn" id="closeCustom">✕</button>
+  <div id="scrim" class="scrim"></div>
+
+  <aside id="panel" class="panel" aria-hidden="true">
+    <div class="panel-handle"></div>
+
+    <div class="panel-header">
+      <div class="panel-header-title">Avatar Studio</div>
+      <button id="closePanelBtn" class="panel-close" type="button" aria-label="Close customization">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m6 6 12 12M18 6 6 18"/>
+        </svg>
+      </button>
     </div>
-    <div class="tabs" id="customTabs">
-      <button class="tab active" data-tab="look">Looks</button>
-      <button class="tab" data-tab="face">Face</button>
-      <button class="tab" data-tab="eyes">Eyes</button>
-      <button class="tab" data-tab="hair">Hair</button>
-      <button class="tab" data-tab="style">Style</button>
-      <button class="tab" data-tab="details">Details</button>
-      <button class="tab" data-tab="saved">Saved</button>
+
+    <div class="panel-tabs">
+      <button class="tab active" data-tab="looks" type="button">Looks</button>
+      <button class="tab" data-tab="face" type="button">Face</button>
+      <button class="tab" data-tab="eyes" type="button">Eyes</button>
+      <button class="tab" data-tab="hair" type="button">Hair</button>
+      <button class="tab" data-tab="style" type="button">Style</button>
+      <button class="tab" data-tab="details" type="button">Details</button>
+      <button class="tab" data-tab="saved" type="button">Saved</button>
     </div>
-    <div class="panelBody" id="customBody"></div>
+
+    <div id="panelScroll" class="panel-scroll"></div>
   </aside>
-
-  <div class="toast" id="toast"></div>
-
-  <div class="start" id="startScreen">
-    <div class="startCard">
-      <div class="logo">AR</div>
-      <h1>Avatar Camera</h1>
-      <p>Turn your face into a soft 3D AR avatar with big expressive eyes, clean cartoon facial proportions, blinking, eye direction, smile and head tilt. Everything stays on this device.</p>
-      <button class="startBtn" id="startBtn">Start Camera</button>
-      <div class="permissionNote">Camera + microphone permission is needed for live video recording.</div>
-    </div>
-  </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js"></script>
 <script>
 (() => {
-  'use strict';
+  "use strict";
 
-  const $ = (s) => document.querySelector(s);
-  const video = $('#cameraVideo');
-  const canvas = $('#renderCanvas');
-  const ctx = canvas.getContext('2d', {alpha:true});
-  const startScreen = $('#startScreen');
-  const startBtn = $('#startBtn');
-  const recordBtn = $('#recordBtn');
-  const recordStatus = $('#recordStatus');
-  const sizeCtl = $('#sizeCtl');
-  const sizeSlider = $('#sizeSlider');
-  const sizeLabel = $('#sizeLabel');
-  const avatarCarousel = $('#avatarCarousel');
-  const customizeBtn = $('#customizeBtn');
-  const closeCustom = $('#closeCustom');
-  const customPanel = $('#customPanel');
-  const scrim = $('#scrim');
-  const customBody = $('#customBody');
-  const customTabs = $('#customTabs');
-  const switchCameraBtn = $('#switchCameraBtn');
-  const trackDot = $('#trackDot');
-  const trackText = $('#trackText');
-  const cameraName = $('#cameraName');
-  const toastEl = $('#toast');
+  /* ============================================================
+     CONSTANTS / ELEMENTS
+     ============================================================ */
+
+  const STORAGE_KEY = "avatarCameraSaved";
+  const DEFAULT_KEY = "avatarCameraDefault";
+
+  const video = document.getElementById("video");
+  const cameraCanvas = document.getElementById("cameraCanvas");
+  const ctx = cameraCanvas.getContext("2d", { alpha: false, desynchronized: true });
+
+  const startup = document.getElementById("startup");
+  const startBtn = document.getElementById("startBtn");
+  const startError = document.getElementById("startError");
+
+  const trackingDot = document.getElementById("trackingDot");
+  const trackingText = document.getElementById("trackingText");
+  const cameraLabel = document.getElementById("cameraLabel");
+  const looking = document.getElementById("looking");
+
+  const customizeBtn = document.getElementById("customizeBtn");
+  const switchCameraBtn = document.getElementById("switchCameraBtn");
+  const captureBtn = document.getElementById("captureBtn");
+
+  const avatarCarousel = document.getElementById("avatarCarousel");
+  const carouselTrack = document.getElementById("carouselTrack");
+
+  const recordScaleWrap = document.getElementById("recordScaleWrap");
+  const recordScale = document.getElementById("recordScale");
+  const recordScaleValue = document.getElementById("recordScaleValue");
+
+  const toastEl = document.getElementById("toast");
+  const scrim = document.getElementById("scrim");
+  const panel = document.getElementById("panel");
+  const closePanelBtn = document.getElementById("closePanelBtn");
+  const panelScroll = document.getElementById("panelScroll");
+  const tabButtons = [...document.querySelectorAll(".tab")];
+
+  /* ============================================================
+     APP STATE
+     ============================================================ */
 
   let stream = null;
-  let audioStream = null;
-  let facingMode = 'user';
-  let faceMesh = null;
-  let processing = false;
-  let latestResults = null;
-  let rafId = 0;
-  let recorder = null;
+  let audioTrack = null;
+  let videoTrack = null;
+  let mediaRecorder = null;
   let recordedChunks = [];
-  let selectedAvatarId = 'classic';
-  let activeCustomTab = 'look';
-  let recording = false;
-  let avatarScale = 1;
-  let currentEditingSavedId = null;
+  let recordingMime = "";
+  let recordingStartedAt = 0;
+
+  let facingMode = "user";
+  let cameraStarted = false;
+  let cameraStarting = false;
+  let isRecording = false;
+
+  let faceMesh = null;
+  let faceMeshReady = false;
+  let detectionBusy = false;
+  let lastDetectionTime = 0;
+  let lastVideoTime = -1;
+  let animationFrameId = 0;
+
+  let lastResults = null;
+  let hasFace = false;
+  let currentTab = "looks";
+
   let toastTimer = 0;
 
-  const defaultAvatars = [
-    {id:'classic', name:'AR Classic', skin:'#F2C8A5', face:'oval', mouth:'smile', beard:'none', moustache:'none', nose:'soft', eyes:'big', brows:'natural', hair:'wave', hairColor:'#70452e', cap:'none', capColor:'#111827', eyeColor:'#5f92ad', glasses:'none', glassesColor:'#2f3137', clothing:'jacket', clothingColor:'#737784', earrings:'none', blush:.10},
-    {id:'soft', name:'Soft', skin:'#E7B58F', face:'round', mouth:'soft', beard:'none', moustache:'none', nose:'small', eyes:'big', brows:'soft', hair:'bob', hairColor:'#6b3f26', cap:'none', capColor:'#2b4f80', eyeColor:'#4d95bb', glasses:'none', glassesColor:'#2f3137', clothing:'tee', clothingColor:'#ffffff', earrings:'none', blush:.20},
-    {id:'sport', name:'Sport', skin:'#C98B62', face:'square', mouth:'grin', beard:'stubble', moustache:'none', nose:'straight', eyes:'sharp', brows:'bold', hair:'sport', hairColor:'#221810', cap:'baseball', capColor:'#2d6cdf', eyeColor:'#4a89a8', glasses:'sport', glassesColor:'#22242b', clothing:'hoodie', clothingColor:'#64748b', earrings:'none', blush:.08},
-    {id:'royal', name:'Royal', skin:'#F4CFB8', face:'heart', mouth:'smile', beard:'goatee', moustache:'thin', nose:'small', eyes:'almond', brows:'arched', hair:'wave', hairColor:'#522f1e', cap:'crown', capColor:'#d5a32e', eyeColor:'#6bb0cc', glasses:'none', glassesColor:'#2f3137', clothing:'jacket', clothingColor:'#e7e7eb', earrings:'stud', blush:.16},
-    {id:'urban', name:'Urban', skin:'#9A6144', face:'oval', mouth:'neutral', beard:'full', moustache:'thick', nose:'wide', eyes:'round', brows:'bold', hair:'curl', hairColor:'#17110d', cap:'beanie', capColor:'#5b3a7d', eyeColor:'#4b8a92', glasses:'square', glassesColor:'#171717', clothing:'hoodie', clothingColor:'#616b78', earrings:'stud', blush:.06},
-    {id:'cute', name:'Cute', skin:'#FFD8BE', face:'round', mouth:'open', beard:'none', moustache:'none', nose:'tiny', eyes:'big', brows:'soft', hair:'fringe', hairColor:'#8e4b28', cap:'bow', capColor:'#e55a88', eyeColor:'#4c9ed0', glasses:'round', glassesColor:'#6e5360', clothing:'sweater', clothingColor:'#f7e6ed', earrings:'stud', blush:.28},
-    {id:'mono', name:'Mono', skin:'#D6A77D', face:'long', mouth:'soft', beard:'chin', moustache:'thin', nose:'straight', eyes:'almond', brows:'natural', hair:'slick', hairColor:'#161616', cap:'visor', capColor:'#ffffff', eyeColor:'#4e707d', glasses:'round', glassesColor:'#272727', clothing:'tee', clothingColor:'#ececef', earrings:'none', blush:.09}
+  let savedAvatars = [];
+  let defaultAvatarId = null;
+  let currentAvatarId = null;
+
+  let runtimeScale = 1.0;
+
+  let smooth = {
+    x: 0.5,
+    y: 0.46,
+    width: 0,
+    height: 0,
+    yaw: 0,
+    pitch: 0,
+    roll: 0,
+    eyeL: 0.98,
+    eyeR: 0.98,
+    mouthOpen: 0,
+    smile: 0,
+    gazeX: 0,
+    gazeY: 0,
+    browL: 0,
+    browR: 0
+  };
+
+  const PRESETS = [
+    {
+      id: "classic",
+      name: "Classic",
+      config: {
+        skin: "#f1c6aa",
+        faceShape: "oval",
+        nose: "soft",
+        mouth: "soft",
+        beard: "none",
+        moustache: "none",
+        eyeShape: "round",
+        eyeColor: "#4b6980",
+        eyebrow: "natural",
+        hair: "short",
+        hairColor: "#4a342b",
+        headwear: "none",
+        headwearColor: "#25364d",
+        glasses: "none",
+        glassesColor: "#222831",
+        earrings: "none",
+        clothing: "tshirt",
+        clothingColor: "#396a9f",
+        cheekFullness: 58,
+        blush: 20,
+        eyeSize: 1,
+        avatarScale: 1,
+        name: "Classic"
+      }
+    },
+    {
+      id: "soft",
+      name: "Soft",
+      config: {
+        skin: "#f7d6c2",
+        faceShape: "heart",
+        nose: "tiny",
+        mouth: "smile",
+        beard: "none",
+        moustache: "none",
+        eyeShape: "big",
+        eyeColor: "#536d90",
+        eyebrow: "soft",
+        hair: "bob",
+        hairColor: "#6a4732",
+        headwear: "none",
+        headwearColor: "#d88c8c",
+        glasses: "none",
+        glassesColor: "#40312c",
+        earrings: "stud",
+        clothing: "sweater",
+        clothingColor: "#e193a4",
+        cheekFullness: 65,
+        blush: 38,
+        eyeSize: 1.18,
+        avatarScale: 1,
+        name: "Soft"
+      }
+    },
+    {
+      id: "sport",
+      name: "Sport",
+      config: {
+        skin: "#c98b67",
+        faceShape: "square",
+        nose: "straight",
+        mouth: "grin",
+        beard: "stubble",
+        moustache: "none",
+        eyeShape: "sharp",
+        eyeColor: "#2d554d",
+        eyebrow: "bold",
+        hair: "sport",
+        hairColor: "#231c17",
+        headwear: "visor",
+        headwearColor: "#e7e9ea",
+        glasses: "sport",
+        glassesColor: "#1e2529",
+        earrings: "none",
+        clothing: "jacket",
+        clothingColor: "#1d4057",
+        cheekFullness: 48,
+        blush: 10,
+        eyeSize: .95,
+        avatarScale: 1,
+        name: "Sport"
+      }
+    },
+    {
+      id: "royal",
+      name: "Royal",
+      config: {
+        skin: "#e6b58f",
+        faceShape: "long",
+        nose: "small",
+        mouth: "soft",
+        beard: "goatee",
+        moustache: "thin",
+        eyeShape: "almond",
+        eyeColor: "#493525",
+        eyebrow: "arched",
+        hair: "slick",
+        hairColor: "#171616",
+        headwear: "crown",
+        headwearColor: "#cfaa47",
+        glasses: "none",
+        glassesColor: "#231f1a",
+        earrings: "stud",
+        clothing: "jacket",
+        clothingColor: "#4a345e",
+        cheekFullness: 44,
+        blush: 8,
+        eyeSize: 1.04,
+        avatarScale: 1,
+        name: "Royal"
+      }
+    },
+    {
+      id: "urban",
+      name: "Urban",
+      config: {
+        skin: "#a66e4e",
+        faceShape: "oval",
+        nose: "wide",
+        mouth: "neutral",
+        beard: "full",
+        moustache: "thick",
+        eyeShape: "round",
+        eyeColor: "#302b28",
+        eyebrow: "bold",
+        hair: "fringe",
+        hairColor: "#0f1012",
+        headwear: "none",
+        headwearColor: "#25292e",
+        glasses: "square",
+        glassesColor: "#16191d",
+        earrings: "stud",
+        clothing: "hoodie",
+        clothingColor: "#293039",
+        cheekFullness: 52,
+        blush: 5,
+        eyeSize: .98,
+        avatarScale: 1,
+        name: "Urban"
+      }
+    },
+    {
+      id: "cute",
+      name: "Cute",
+      config: {
+        skin: "#f2c6b0",
+        faceShape: "round",
+        nose: "tiny",
+        mouth: "grin",
+        beard: "none",
+        moustache: "none",
+        eyeShape: "big",
+        eyeColor: "#435c8c",
+        eyebrow: "soft",
+        hair: "curl",
+        hairColor: "#aa6d42",
+        headwear: "bow",
+        headwearColor: "#d57d9c",
+        glasses: "none",
+        glassesColor: "#383838",
+        earrings: "stud",
+        clothing: "sweater",
+        clothingColor: "#d77d8d",
+        cheekFullness: 74,
+        blush: 48,
+        eyeSize: 1.25,
+        avatarScale: 1,
+        name: "Cute"
+      }
+    },
+    {
+      id: "mono",
+      name: "Mono",
+      config: {
+        skin: "#d5b7a7",
+        faceShape: "heart",
+        nose: "small",
+        mouth: "neutral",
+        beard: "stubble",
+        moustache: "thin",
+        eyeShape: "almond",
+        eyeColor: "#22272d",
+        eyebrow: "natural",
+        hair: "wave",
+        hairColor: "#43464b",
+        headwear: "beanie",
+        headwearColor: "#5d6066",
+        glasses: "round",
+        glassesColor: "#26292e",
+        earrings: "none",
+        clothing: "sweater",
+        clothingColor: "#65686d",
+        cheekFullness: 56,
+        blush: 0,
+        eyeSize: 1,
+        avatarScale: 1,
+        name: "Mono"
+      }
+    }
   ];
 
-  const faceChoices = [
-    ['oval','Oval'],['round','Round'],['square','Square'],['heart','Heart'],['long','Long']
+  const SKIN_PALETTE = [
+    "#8b563e","#a66e4e","#c98b67","#dfaa82",
+    "#efbea0","#f1c6aa","#f7d6c2","#ffe4d1"
   ];
-  const mouthChoices = [['neutral','Neutral'],['soft','Soft'],['smile','Smile'],['grin','Grin'],['open','Open']];
-  const beardChoices = [['none','None'],['stubble','Stubble'],['chin','Chin'],['goatee','Goatee'],['full','Full']];
-  const moustacheChoices = [['none','None'],['thin','Thin'],['thick','Thick']];
-  const noseChoices = [['tiny','Tiny'],['small','Small'],['soft','Soft'],['straight','Straight'],['wide','Wide']];
-  const eyeChoices = [['round','Round'],['big','Big'],['almond','Almond'],['sharp','Sharp']];
-  const browChoices = [['soft','Soft'],['natural','Natural'],['bold','Bold'],['arched','Arched']];
-  const hairChoices = [['none','None'],['short','Short'],['bob','Bob'],['sport','Sport'],['wave','Wave'],['curl','Curl'],['fringe','Fringe'],['slick','Slick']];
-  const capChoices = [['none','None'],['baseball','Baseball'],['beanie','Beanie'],['visor','Visor'],['crown','Crown'],['bow','Bow']];
-  const glassesChoices = [['none','None'],['round','Round'],['square','Square'],['sport','Sport']];
-  const clothingChoices = [['tee','T-Shirt'],['hoodie','Hoodie'],['sweater','Sweater'],['jacket','Jacket']];
-  const earringChoices = [['none','None'],['stud','Stud']];
-  const skinPalette = ['#FBE0CC','#F4CFB8','#E7B58F','#D6A77D','#C98B62','#B97D5B','#9A6144','#7C4A36'];
-  const hairPalette = ['#121212','#2a211d','#3b271c','#522f1e','#6b3f26','#8e4b28','#b86c45','#d79a62'];
-  const eyePalette = ['#4b77a5','#4c9ed0','#55a37d','#6f7a87','#6b5847','#2f343a'];
-  const clothingPalette = ['#ffffff','#ececef','#d6dde7','#aeb7c5','#7c8795','#5b6776','#3a3d45','#15171c'];
 
-  let selected = normalizeAvatar(defaultAvatars[0]);
-  let saved = loadSaved();
-  let defaultSavedId = localStorage.getItem('avatarCameraDefaultSavedId') || '';
+  const EYE_PALETTE = [
+    "#30231c","#4f3a2b","#536d90","#3f675c",
+    "#7a5b3e","#22272d","#5f4c78","#2d4b67"
+  ];
 
-  function deepClone(o){return JSON.parse(JSON.stringify(o));}
-  function normalizeAvatar(av){
-    return Object.assign({baseScale:1,cheek:0,glasses:'none',glassesColor:'#2f3137',clothing:'tee',clothingColor:'#f0f0f2',earrings:'none',blush:.12}, deepClone(av||{}));
-  }
-  function uid(){return 'saved_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)}
-  function loadSaved(){ try { return JSON.parse(localStorage.getItem('avatarCameraSaved') || '[]'); } catch(e){ return []; } }
-  function persistSaved(){ localStorage.setItem('avatarCameraSaved', JSON.stringify(saved)); }
-  function toast(msg){ clearTimeout(toastTimer); toastEl.textContent=msg; toastEl.classList.add('show'); toastTimer=setTimeout(()=>toastEl.classList.remove('show'),1800); }
+  const HAIR_PALETTE = [
+    "#111111","#1e1714","#3a231d","#4a342b",
+    "#6a4732","#8c5b3c","#b27345","#43464b","#c79a3c"
+  ];
 
-  function useSavedDefaultOnStart(){
-    if(!defaultSavedId) return;
-    const found = saved.find(s=>s.id===defaultSavedId);
-    if(found) selected = normalizeAvatar(found.avatar);
-  }
+  const CLOTHING_PALETTE = [
+    "#1e2b37","#29465e","#396a9f","#445f7d",
+    "#6d4b76","#8d6170","#c57585","#74797f",
+    "#20262c","#b28e58"
+  ];
 
-  function buildCarousel(){
-    avatarCarousel.innerHTML='';
-    const all = [...defaultAvatars, ...saved.map(s=>({id:'saved:'+s.id,name:s.name,...s.avatar}))];
-    all.forEach(item=>{
-      const wrap=document.createElement('button'); wrap.className='avatarItem'; wrap.dataset.id=item.id; wrap.title=item.name;
-      const c=document.createElement('canvas'); c.width=150; c.height=170; wrap.appendChild(c);
-      const label=document.createElement('div'); label.style.cssText='position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:8px;color:rgba(255,255,255,.7);pointer-events:none'; label.textContent=item.name; wrap.appendChild(label);
-      drawAvatarThumb(c.getContext('2d'), c.width, c.height, normalizeAvatar(item));
-      wrap.addEventListener('click',()=>{
-        selected=normalizeAvatar(item);
-        selectedAvatarId=item.id.startsWith('saved:') ? item.id.slice(6) : item.id;
-        currentEditingSavedId=item.id.startsWith('saved:') ? item.id.slice(6) : null;
-        updateCarouselActive(); renderCustom();
-        toast(item.name+' selected');
-      });
-      avatarCarousel.appendChild(wrap);
-    });
-    updateCarouselActive();
-  }
-  function updateCarouselActive(){
-    [...avatarCarousel.children].forEach(el=>{el.classList.toggle('active',el.dataset.id===selectedAvatarId || ('saved:'+el.dataset.id)===selectedAvatarId);});
-  }
+  const FACE_SHAPES = ["oval","round","square","heart","long"];
+  const NOSES = ["tiny","small","soft","straight","wide"];
+  const MOUTHS = ["neutral","soft","smile","grin","open"];
+  const BEARDS = ["none","stubble","chin","goatee","full"];
+  const MOUSTACHES = ["none","thin","thick"];
+  const EYES = ["round","big","almond","sharp"];
+  const BROWS = ["soft","natural","bold","arched"];
+  const HAIRS = ["none","short","bob","sport","wave","curl","fringe","slick"];
+  const HEADWEAR = ["none","cap","beanie","visor","crown","bow"];
+  const GLASSES = ["none","round","square","sport"];
+  const EARRINGS = ["none","stud"];
+  const CLOTHES = ["tshirt","hoodie","sweater","jacket"];
 
-  function openPanel(){customPanel.classList.add('open');scrim.classList.add('show');renderCustom();}
-  function closePanel(){customPanel.classList.remove('open');scrim.classList.remove('show');}
-  customizeBtn.addEventListener('click',openPanel); closeCustom.addEventListener('click',closePanel); scrim.addEventListener('click',closePanel);
-  customTabs.addEventListener('click',e=>{const b=e.target.closest('.tab'); if(!b)return; activeCustomTab=b.dataset.tab; [...customTabs.children].forEach(x=>x.classList.toggle('active',x===b)); renderCustom();});
+  const LABELS = {
+    oval:"Oval",round:"Round",square:"Square",heart:"Heart",long:"Long",
+    tiny:"Tiny",small:"Small",soft:"Soft",straight:"Straight",wide:"Wide",
+    neutral:"Neutral",smile:"Smile",grin:"Grin",open:"Open",
+    stubble:"Stubble",chin:"Chin beard",goatee:"Goatee",full:"Full beard",
+    thin:"Thin",thick:"Thick",
+    almond:"Almond",sharp:"Sharp",big:"Big",
+    natural:"Natural",bold:"Bold",arched:"Arched",
+    none:"None",short:"Short",bob:"Bob",sport:"Sport",wave:"Wave",curl:"Curl",fringe:"Fringe",slick:"Slick",
+    cap:"Baseball cap",beanie:"Beanie",visor:"Visor",crown:"Crown",bow:"Bow",
+    square:"Square",tshirt:"T-Shirt",hoodie:"Hoodie",sweater:"Sweater",jacket:"Jacket",
+    stud:"Stud"
+  };
 
-  function renderCustom(){
-    customBody.innerHTML='';
-    if(activeCustomTab==='look') renderLookTab();
-    else if(activeCustomTab==='face') renderFaceTab();
-    else if(activeCustomTab==='eyes') renderEyesTab();
-    else if(activeCustomTab==='hair') renderHairTab();
-    else if(activeCustomTab==='style') renderStyleTab();
-    else if(activeCustomTab==='details') renderDetailsTab();
-    else renderSavedTab();
-    customBody.insertAdjacentHTML('beforeend','<div class="footerCredit">3D AR Avatar Camera • saved locally on this device</div>');
+  const OPTION_ICONS = {
+    oval:"◯", round:"◉", square:"▣", heart:"♥", long:"▯",
+    tiny:"·", small:"•", soft:"⌒", straight:"│", wide:"◖",
+    neutral:"—", smile:"⌣", grin:"◡", open:"◡",
+    stubble:"⋯", chin:"⌃", goatee:"◒", full:"◼",
+    thin:"⌁", thick:"≈",
+    almond:"◇", big:"◉", sharp:"◁",
+    natural:"⌁", bold:"━", arched:"⌒",
+    short:"▰", bob:"▱", wave:"∿", curl:"◌", fringe:"≋", slick:"╱",
+    cap:"⌢", beanie:"◠", visor:"◡", crown:"♛", bow:"✦",
+    tshirt:"▾", hoodie:"⌄", sweater:"≋", jacket:"╋"
+  };
+
+  /* ============================================================
+     AVATAR CONFIG HELPERS
+     ============================================================ */
+
+  function deepClone(obj){
+    return JSON.parse(JSON.stringify(obj));
   }
 
-  function addChoices(title, arr, prop){
-    const sec=document.createElement('div'); sec.className='section';
-    const ttl=document.createElement('div'); ttl.className='sectionTitle'; ttl.textContent=title; sec.appendChild(ttl);
-    const grid=document.createElement('div'); grid.className='grid';
-    arr.forEach(([val,label])=>{
-      const b=document.createElement('button'); b.className='choice'+(selected[prop]===val?' active':'');
-      const tc=document.createElement('canvas'); tc.width=92;tc.height=88;
-      drawOptionPreview(tc.getContext('2d'),92,88,prop,val,selected);
-      b.appendChild(tc);
-      const l=document.createElement('div'); l.className='choiceLabel'; l.textContent=label; b.appendChild(l);
-      b.addEventListener('click',()=>{selected[prop]=val; syncVisualState(); renderCustom();}); grid.appendChild(b);
-    }); sec.appendChild(grid); customBody.appendChild(sec);
+  function clamp(v,min,max){
+    return Math.max(min,Math.min(max,v));
   }
 
-  function paletteField(title, prop, colors){
-    const sec=document.createElement('div');sec.className='section';
-    const t=document.createElement('div');t.className='sectionTitle';t.textContent=title;sec.appendChild(t);
-    const pal=document.createElement('div');pal.className='palette';
-    colors.forEach(col=>{const b=document.createElement('button');b.style.background=col;b.className=selected[prop]===col?'active':'';b.title=col;b.addEventListener('click',()=>{selected[prop]=col;syncVisualState();renderCustom();});pal.appendChild(b);});
-    sec.appendChild(pal); customBody.appendChild(sec);
-    colorField('Custom '+title,prop);
+  function lerp(a,b,t){
+    return a + (b-a)*t;
   }
 
-  function colorField(title, prop){
-    const sec=document.createElement('div');sec.className='section';
-    sec.innerHTML='<div class="sectionTitle">'+title+'</div>';
-    const row=document.createElement('div');row.className='row';
-    const lab=document.createElement('label');lab.textContent='Pick any color';
-    const inp=document.createElement('input');inp.className='colorInput';inp.type='color';inp.value=/^#[0-9a-f]{6}$/i.test(selected[prop]||'')?selected[prop]:'#ffffff';
-    inp.addEventListener('input',()=>{selected[prop]=inp.value;syncVisualState();});
-    row.append(lab,inp);sec.appendChild(row);customBody.appendChild(sec);
-  }
-
-  function sliderField(title, value, onInput, min,max,step){
-    const sec=document.createElement('div');sec.className='section';
-    sec.innerHTML='<div class="sectionTitle">'+title+'</div>';
-    const inp=document.createElement('input');inp.className='range';inp.type='range';inp.min=min;inp.max=max;inp.step=step;inp.value=value;
-    inp.addEventListener('input',()=>onInput(parseFloat(inp.value)));sec.appendChild(inp);customBody.appendChild(sec);
-  }
-
-  function actionBar(){
-    const sec=document.createElement('div');sec.className='section';
-    sec.innerHTML='<div class="sectionTitle">Save this look</div>';
-    const input=document.createElement('input');input.className='field';input.placeholder='Avatar name';input.maxLength=30;input.value=currentEditingSavedId ? (saved.find(s=>s.id===currentEditingSavedId)?.name||'') : '';
-    const row=document.createElement('div');row.className='actionRow';
-    const save=document.createElement('button');save.className='actionBtn primary';save.textContent=currentEditingSavedId?'Update':'Save';
-    const newBtn=document.createElement('button');newBtn.className='actionBtn';newBtn.textContent='Save as new';
-    save.addEventListener('click',()=>{
-      const name=(input.value||'My Avatar').trim();
-      if(currentEditingSavedId){const s=saved.find(x=>x.id===currentEditingSavedId);if(s){s.name=name;s.avatar=deepClone(selected);persistSaved();buildCarousel();renderCustom();toast('Avatar updated');return;}}
-      const id=uid();saved.push({id,name,avatar:deepClone(selected)});persistSaved();currentEditingSavedId=id;defaultSavedId=id;localStorage.setItem('avatarCameraDefaultSavedId',id);selectedAvatarId=id;buildCarousel();renderCustom();toast('Avatar saved and set as default');
-    });
-    newBtn.addEventListener('click',()=>{const name=(input.value||'My Avatar '+(saved.length+1)).trim();const id=uid();saved.push({id,name,avatar:deepClone(selected)});persistSaved();currentEditingSavedId=id;defaultSavedId=id;localStorage.setItem('avatarCameraDefaultSavedId',id);selectedAvatarId=id;buildCarousel();renderCustom();toast('Saved as new default avatar');});
-    row.append(save,newBtn);sec.appendChild(row);customBody.appendChild(sec);
-  }
-
-  function syncVisualState(){drawAll();buildCarousel();updateCarouselActive();}
-  function applyPreset(name){
-    const p={
-      Natural:{skin:'#F2C8A5',face:'oval',eyes:'big',brows:'natural',hair:'wave',hairColor:'#70452e',mouth:'smile',nose:'soft',beard:'none',moustache:'none',glasses:'none',clothing:'jacket',clothingColor:'#737784',blush:.10},
-      Cartoon:{skin:'#FFD8BE',face:'round',eyes:'big',brows:'soft',hair:'fringe',hairColor:'#8e4b28',mouth:'open',nose:'tiny',beard:'none',moustache:'none',glasses:'round',clothing:'sweater',clothingColor:'#f7e6ed',blush:.28},
-      Smart:{skin:'#E7B58F',face:'square',eyes:'round',brows:'bold',hair:'slick',hairColor:'#1d1a18',mouth:'soft',nose:'straight',beard:'stubble',moustache:'thin',glasses:'round',clothing:'jacket',clothingColor:'#ececef',blush:.08},
-      Friendly:{skin:'#F2C8A5',face:'heart',eyes:'round',brows:'arched',hair:'bob',hairColor:'#6b3f26',mouth:'smile',nose:'soft',beard:'none',moustache:'none',glasses:'none',clothing:'tee',clothingColor:'#ffffff',blush:.22}
-    }[name];
-    if(!p)return; Object.assign(selected,p); syncVisualState(); renderCustom(); toast(name+' look applied');
-  }
-
-  function renderLookTab(){
-    const sec=document.createElement('div');sec.className='section';
-    const ttl=document.createElement('div');ttl.className='sectionTitle';ttl.textContent='Choose a complete avatar style';sec.appendChild(ttl);
-    const stage=document.createElement('div');stage.className='softCard';
-    const preview=document.createElement('div');preview.className='previewStage';
-    const c=document.createElement('canvas');c.width=420;c.height=320;drawAvatarThumb(c.getContext('2d'),420,320,selected);preview.appendChild(c);stage.appendChild(preview);
-    const pills=document.createElement('div');pills.className='miniPills';['Face-aware','Blink','Smile','Eye direction','Head tilt'].forEach(t=>{const p=document.createElement('span');p.className='miniPill';p.textContent=t;pills.appendChild(p)});stage.appendChild(pills);sec.appendChild(stage);customBody.appendChild(sec);
-    const q=document.createElement('div');q.className='section';q.innerHTML='<div class="sectionTitle">Quick looks</div><div class="quickGrid"></div>';customBody.appendChild(q);
-    [['Natural','Soft 3D style'],['Cartoon','Big expressive eyes'],['Smart','Glasses + neat hair'],['Friendly','Rounded cheerful look']].forEach(([n,d])=>{const b=document.createElement('button');b.className='quickBtn';b.innerHTML=n+'<small>'+d+'</small>';b.addEventListener('click',()=>applyPreset(n));q.querySelector('.quickGrid').appendChild(b)});
-    actionBar();
-  }
-  function renderFaceTab(){
-    paletteField('Skin tone','skin',skinPalette);
-    addChoices('Face shape',faceChoices,'face');
-    addChoices('Nose',noseChoices,'nose');
-    addChoices('Mouth',mouthChoices,'mouth');
-    addChoices('Beard',beardChoices,'beard');
-    addChoices('Mustache',moustacheChoices,'moustache');
-    sliderField('Cheek fullness',selected.cheek||0,v=>{selected.cheek=v;drawAll()},0,1,.01);
-    actionBar();
-  }
-  function renderEyesTab(){
-    addChoices('Eyes',eyeChoices,'eyes');
-    paletteField('Eye color','eyeColor',eyePalette);
-    addChoices('Eyebrows',browChoices,'brows');
-    addChoices('Glasses',glassesChoices,'glasses');
-    colorField('Glasses color','glassesColor');
-    sliderField('Eye size',selected.eyeSize||1,v=>{selected.eyeSize=v;drawAll()},.82,1.25,.01);
-    actionBar();
-  }
-  function renderHairTab(){
-    addChoices('Hair style',hairChoices,'hair');
-    paletteField('Hair color','hairColor',hairPalette);
-    addChoices('Headwear',capChoices,'cap');
-    colorField('Headwear color','capColor');
-    addChoices('Earrings',earringChoices,'earrings');
-    actionBar();
-  }
-  function renderStyleTab(){
-    addChoices('Clothing',clothingChoices,'clothing');
-    paletteField('Clothing color','clothingColor',clothingPalette);
-    sliderField('Cheek blush',selected.blush||0,v=>{selected.blush=v;drawAll()},0,1,.01);
-    actionBar();
-  }
-  function renderDetailsTab(){
-    sliderField('Default avatar size',selected.baseScale||1,v=>{selected.baseScale=v;drawAll()},0.72,1.35,.01);
-    const sec=document.createElement('div');sec.className='section';sec.innerHTML='<div class="sectionTitle">Live-style preview</div>';
-    const c=document.createElement('canvas');c.width=300;c.height=360;c.style.width='100%';c.style.height='auto';c.style.borderRadius='22px';c.style.background='linear-gradient(180deg,#eef0f4,#dfe3e8)';drawAvatarThumb(c.getContext('2d'),300,360,selected);sec.appendChild(c);customBody.appendChild(sec);actionBar();
-  }
-  function renderSavedTab(){
-    const title=document.createElement('div');title.className='sectionTitle';title.style.marginTop='12px';title.textContent='Saved avatars';customBody.appendChild(title);
-    if(!saved.length){const e=document.createElement('div');e.className='empty';e.textContent='No saved avatars yet. Customize an avatar and save it. Your saved avatars stay on this device.';customBody.appendChild(e);return;}
-    saved.forEach(s=>{
-      const card=document.createElement('div');card.className='savedCard';
-      const top=document.createElement('div');top.className='savedTop';
-      const name=document.createElement('div');name.className='savedName';name.textContent=s.name;
-      if(s.id===defaultSavedId){const badge=document.createElement('div');badge.className='savedBadge';badge.textContent='DEFAULT';top.append(name,badge);}else top.appendChild(name);
-      const acts=document.createElement('div');acts.className='miniActions';
-      const use=document.createElement('button');use.textContent='Use';
-      const edit=document.createElement('button');edit.textContent='Edit';
-      const def=document.createElement('button');def.textContent='Default';
-      const del=document.createElement('button');del.textContent='Delete';del.style.color='#c74958';
-      use.addEventListener('click',()=>{selected=normalizeAvatar(s.avatar);selectedAvatarId=s.id;currentEditingSavedId=s.id;updateCarouselActive();drawAll();toast(s.name+' loaded');});
-      edit.addEventListener('click',()=>{selected=normalizeAvatar(s.avatar);selectedAvatarId=s.id;currentEditingSavedId=s.id;activeCustomTab='look';[...customTabs.children].forEach(x=>x.classList.toggle('active',x.dataset.tab==='look'));renderCustom();});
-      def.addEventListener('click',()=>{defaultSavedId=s.id;localStorage.setItem('avatarCameraDefaultSavedId',s.id);toast(s.name+' is now default');renderCustom();});
-      del.addEventListener('click',()=>{if(!confirm('Delete saved avatar "'+s.name+'"?'))return;saved=saved.filter(x=>x.id!==s.id);if(defaultSavedId===s.id){defaultSavedId='';localStorage.removeItem('avatarCameraDefaultSavedId');}if(currentEditingSavedId===s.id)currentEditingSavedId=null;persistSaved();buildCarousel();renderCustom();toast('Avatar deleted');});
-      acts.append(use,edit,def,del);card.append(top,acts);customBody.appendChild(card);
-    });
-  }
-
-  function drawOptionPreview(c,w,h,prop,val,av){
-    c.clearRect(0,0,w,h);const temp=normalizeAvatar(av);temp[prop]=val;drawAvatarThumb(c,w,h,temp,true);
-  }
-
-  function shadeColor(hex, amt){
-    const safe=/^#[0-9a-f]{6}$/i.test(hex||'')?hex:'#777777';
-    let n=parseInt(safe.slice(1),16); let r=Math.max(0,Math.min(255,(n>>16)+amt)); let g=Math.max(0,Math.min(255,((n>>8)&255)+amt)); let b=Math.max(0,Math.min(255,(n&255)+amt));return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
-  }
-  function roundedRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
-  function ellipseGradient(c,x,y,rx,ry,a,b,stops){const g=c.createRadialGradient(x-rx*.35,y-ry*.45,ry*.08,x,y,Math.max(rx,ry));stops.forEach(([p,col])=>g.addColorStop(p,col));return g;}
-  // -------------------------------------------------------------------------
-  // Soft 3D AR avatar renderer
-  // Designed to resemble the provided reference: rounded cheeks, big friendly
-  // eyes, simplified nose/mouth, smooth skin shading and a clean stylized quiff.
-  // -------------------------------------------------------------------------
-  function drawAvatarThumb(c,w,h,av,small=false){
-    c.clearRect(0,0,w,h);
-    const sc=Math.min(w/170,h/190);
-    c.save();
-    c.translate(w/2,h*.54);
-    drawAvatar(c,normalizeAvatar(av),{
-      scale:sc,
-      mouthOpen:.06,
-      eyeOpen:.98,
-      gazeX:0,
-      gazeY:0,
-      smile:.58,
-      blink:0,
-      tilt:0,
-      yaw:0,
-      pitch:0,
-      body:true
-    });
-    c.restore();
-  }
-
-  function drawAvatar(c,av,m){
-    const a=normalizeAvatar(av);
-    const s=(m.scale||1)*(a.baseScale||1);
-    const yaw=Math.max(-1,Math.min(1,m.yaw||0));
-    const pitch=Math.max(-1,Math.min(1,m.pitch||0));
-    const eyeScale=(a.eyeSize||1);
-    const headRx=59*s;
-    const headRy=73*s;
-
-    c.save();
-    c.rotate(m.tilt||0);
-    c.scale(1-Math.abs(yaw)*.07,1);
-    c.translate(yaw*2.4*s,pitch*3.0*s);
-
-    // Optional shoulders/clothing for editor thumbnails.
-    if(m.body){
-      const shoulderW=79*s;
-      const shoulderY=115*s;
-      const cloth=a.clothingColor||'#d9dde4';
-      const cg=c.createLinearGradient(0,64*s,0,132*s);
-      cg.addColorStop(0,shadeColor(cloth,18));
-      cg.addColorStop(.55,cloth);
-      cg.addColorStop(1,shadeColor(cloth,-20));
-      c.fillStyle=cg;
-      c.beginPath();
-      c.moveTo(-shoulderW,shoulderY);
-      c.quadraticCurveTo(-70*s,76*s,-38*s,61*s);
-      c.quadraticCurveTo(0,77*s,38*s,61*s);
-      c.quadraticCurveTo(70*s,76*s,shoulderW,shoulderY);
-      c.lineTo(shoulderW,135*s);
-      c.lineTo(-shoulderW,135*s);
-      c.closePath();
-      c.fill();
-
-      // Collar / jacket detail inspired by the reference image.
-      c.strokeStyle='rgba(39,44,53,.24)';
-      c.lineWidth=2*s;
-      c.beginPath();
-      c.moveTo(-40*s,68*s);c.quadraticCurveTo(-16*s,95*s,0,104*s);
-      c.quadraticCurveTo(16*s,95*s,40*s,68*s);
-      c.stroke();
-      if(a.clothing==='jacket'){
-        c.strokeStyle='rgba(25,28,34,.24)';
-        c.lineWidth=2.2*s;
-        c.beginPath();c.moveTo(0,97*s);c.lineTo(0,132*s);c.stroke();
-      }
-      if(a.clothing==='hoodie'){
-        c.strokeStyle='rgba(255,255,255,.18)';
-        c.lineWidth=3*s;
-        c.beginPath();c.moveTo(-31*s,78*s);c.quadraticCurveTo(0,92*s,31*s,78*s);c.stroke();
-      }
-    }
-
-    // Neck.
-    const ng=c.createLinearGradient(-20*s,48*s,20*s,96*s);
-    ng.addColorStop(0,shadeColor(a.skin,-2));
-    ng.addColorStop(.65,shadeColor(a.skin,-16));
-    ng.addColorStop(1,shadeColor(a.skin,-28));
-    c.fillStyle=ng;
-    roundedRect(c,-20*s,47*s,40*s,46*s,13*s);
-    c.fill();
-
-    // Ears.
-    c.fillStyle=a.skin;
-    c.beginPath();
-    c.ellipse(-57*s,-7*s,10*s,17*s,0,0,Math.PI*2);
-    c.ellipse(57*s,-7*s,10*s,17*s,0,0,Math.PI*2);
-    c.fill();
-    c.strokeStyle='rgba(104,68,48,.28)';
-    c.lineWidth=1.6*s;
-    c.beginPath();
-    c.arc(-57*s,-7*s,5*s,-1.0,1.05);
-    c.arc(57*s,-7*s,5*s,1.95,4.15);
-    c.stroke();
-
-    // Head silhouette: slightly wider upper face + gentle tapered jaw.
-    const topY=-79*s, cheekY=2*s, chinY=67*s;
-    const fg=c.createLinearGradient(-32*s,-82*s,26*s,70*s);
-    fg.addColorStop(0,shadeColor(a.skin,13));
-    fg.addColorStop(.27,shadeColor(a.skin,6));
-    fg.addColorStop(.58,a.skin);
-    fg.addColorStop(1,shadeColor(a.skin,-14));
-    c.fillStyle=fg;
-    c.beginPath();
-    c.moveTo(0,chinY);
-    c.bezierCurveTo(-26*s,67*s,-49*s,51*s,-56*s,20*s);
-    c.bezierCurveTo(-64*s,-9*s,-61*s,-48*s,-43*s,-67*s);
-    c.bezierCurveTo(-32*s,-81*s,-15*s,topY,0,topY);
-    c.bezierCurveTo(15*s,topY,32*s,-81*s,43*s,-67*s);
-    c.bezierCurveTo(61*s,-48*s,64*s,-9*s,56*s,20*s);
-    c.bezierCurveTo(49*s,51*s,26*s,67*s,0,chinY);
-    c.closePath();
-    c.fill();
-
-    // Soft cheek and jaw depth.
-    const cheekL=c.createRadialGradient(-38*s,10*s,2*s,-38*s,10*s,30*s);
-    cheekL.addColorStop(0,'rgba(255,255,255,.18)');
-    cheekL.addColorStop(1,'rgba(255,255,255,0)');
-    c.fillStyle=cheekL;c.beginPath();c.ellipse(-37*s,11*s,27*s,34*s,0,0,Math.PI*2);c.fill();
-    const cheekR=c.createRadialGradient(38*s,10*s,2*s,38*s,10*s,29*s);
-    cheekR.addColorStop(0,'rgba(255,255,255,.07)');
-    cheekR.addColorStop(1,'rgba(255,255,255,0)');
-    c.fillStyle=cheekR;c.beginPath();c.ellipse(37*s,11*s,26*s,33*s,0,0,Math.PI*2);c.fill();
-    const jaw=c.createRadialGradient(0,58*s,3*s,0,58*s,43*s);
-    jaw.addColorStop(0,'rgba(87,56,43,0)');
-    jaw.addColorStop(1,'rgba(87,56,43,.12)');
-    c.fillStyle=jaw;c.beginPath();c.ellipse(0,53*s,48*s,27*s,0,0,Math.PI*2);c.fill();
-
-    // Hair: reference-inspired voluminous side sweep.
-    drawHairAR(c,a,s);
-    drawCapV2(c,a,s);
-
-    // Eyes.
-    const eyeY=-19*s + pitch*1.5*s;
-    const eyeDX=28*s;
-    const eyeW=(a.eyes==='almond'?18.2:17.1)*s*eyeScale;
-    const eyeH=(a.eyes==='big'?15.3:13.2)*s*eyeScale;
-    const gaze=Math.max(-1,Math.min(1,m.gazeX||0));
-    const yawEye=yaw*1.7*s;
-    drawBrowAR(c,-eyeDX,eyeY-19*s,a.brows,s,m.browRaise||0,-1);
-    drawBrowAR(c, eyeDX,eyeY-19*s,a.brows,s,m.browRaise||0, 1);
-    drawEyeAR(c,-eyeDX+yawEye,eyeY,eyeW,eyeH,a,gaze,m.eyeOpen||1,m.blink||0,-1,s);
-    drawEyeAR(c, eyeDX+yawEye,eyeY,eyeW,eyeH,a,gaze,m.eyeOpen||1,m.blink||0, 1,s);
-
-    // Nose: soft shadow + rounded tip, not a hard line.
-    drawNoseAR(c,a.nose,s,yaw,pitch);
-
-    // Subtle blush.
-    const blush=Math.max(0,Math.min(1,a.blush||.12));
-    const blushAlpha=.035+.18*blush;
-    const b1=c.createRadialGradient(-37*s,17*s,1*s,-37*s,17*s,19*s);
-    b1.addColorStop(0,`rgba(244,101,120,${blushAlpha})`);b1.addColorStop(1,'rgba(244,101,120,0)');
-    c.fillStyle=b1;c.beginPath();c.arc(-37*s,17*s,21*s,0,Math.PI*2);c.fill();
-    const b2=c.createRadialGradient(37*s,17*s,1*s,37*s,17*s,19*s);
-    b2.addColorStop(0,`rgba(244,101,120,${blushAlpha*.9})`);b2.addColorStop(1,'rgba(244,101,120,0)');
-    c.fillStyle=b2;c.beginPath();c.arc(37*s,17*s,21*s,0,Math.PI*2);c.fill();
-
-    // Mouth.
-    drawMouthAR(c,a,s,m.mouthOpen||0,m.smile||0);
-
-    // Optional facial hair and glasses, kept subtle so the face stays clean.
-    drawBeardAR(c,a,s);
-    drawMoustacheAR(c,a,s);
-    drawGlassesAR(c,a,s);
-    drawEarringsV2(c,a,s);
-
-    // Highlights for the soft 3D toy-like finish.
-    c.fillStyle='rgba(255,255,255,.17)';
-    c.beginPath();c.ellipse(-17*s,-49*s,14*s,6.5*s,-.55,0,Math.PI*2);c.fill();
-    c.fillStyle='rgba(255,255,255,.10)';
-    c.beginPath();c.ellipse(11*s,1*s,4*s,10*s,-.2,0,Math.PI*2);c.fill();
-
-    c.restore();
-  }
-
-  function drawEyeAR(c,x,y,w,h,a,gaze,open,blink,side,s){
-    c.save();c.translate(x,y);
-    const openness=Math.max(.06,Math.min(1,open*(1-blink)+.04));
-    const ew=w*(a.eyes==='sharp'?1.04:1);
-    const eh=Math.max(1.5,h*openness);
-
-    // Eye white with subtle warm shadow.
-    const wg=c.createLinearGradient(0,-eh,0,eh);
-    wg.addColorStop(0,'#ffffff');wg.addColorStop(.7,'#f8f7f4');wg.addColorStop(1,'#e9e5df');
-    c.fillStyle=wg;
-    c.beginPath();c.ellipse(0,0,ew,eh,0,0,Math.PI*2);c.fill();
-    c.strokeStyle='rgba(73,57,48,.18)';c.lineWidth=Math.max(1,1.1*s);
-    c.beginPath();c.ellipse(0,0,ew,eh,0,0,Math.PI*2);c.stroke();
-
-    const px=Math.max(-ew*.44,Math.min(ew*.44,(gaze||0)*ew*.42));
-    const py=(1-openness)*h*.32;
-    const ir=Math.min(ew,eh)*.53;
-    const ig=c.createRadialGradient(px-ir*.28,py-ir*.28,ir*.05,px,py,ir);
-    ig.addColorStop(0,'#eef8ff');
-    ig.addColorStop(.14,a.eyeColor||'#5b94b4');
-    ig.addColorStop(.64,shadeColor(a.eyeColor||'#5b94b4',-10));
-    ig.addColorStop(1,'#22303a');
-    c.fillStyle=ig;c.beginPath();c.arc(px,py,ir,0,Math.PI*2);c.fill();
-
-    c.fillStyle='#0d141b';c.beginPath();c.arc(px,py,ir*.46,0,Math.PI*2);c.fill();
-    c.fillStyle='rgba(255,255,255,.96)';c.beginPath();c.arc(px-ir*.27,py-ir*.31,ir*.24,0,Math.PI*2);c.fill();
-    c.fillStyle='rgba(255,255,255,.60)';c.beginPath();c.arc(px+ir*.18,py+ir*.16,ir*.09,0,Math.PI*2);c.fill();
-
-    // Upper eyelid line; closes gracefully during blink.
-    c.strokeStyle='rgba(55,37,31,.42)';
-    c.lineWidth=Math.max(1.2,1.7*s);c.lineCap='round';
-    c.beginPath();
-    c.moveTo(-ew*.86,0);
-    c.quadraticCurveTo(0,-eh*(.92+openness*.12),ew*.86,0);
-    c.stroke();
-    if(openness<.22){
-      c.strokeStyle=shadeColor(a.skin,-30);
-      c.lineWidth=Math.max(1.2,2*s);
-      c.beginPath();c.moveTo(-ew*.82,0);c.quadraticCurveTo(0,-.8*s,ew*.82,0);c.stroke();
-    }
-    c.restore();
-  }
-
-  function drawBrowAR(c,x,y,type,s,raise,side){
-    const lift=(raise||0)*5*s;
-    c.save();c.translate(x,y+lift);
-    c.strokeStyle='#4a2d22';
-    c.lineCap='round';
-    c.lineWidth=(type==='bold'?4.7:type==='soft'?3.0:3.4)*s;
-    c.beginPath();
-    if(type==='soft')c.moveTo(-15*s,2*s),c.quadraticCurveTo(0,-1.5*s,15*s,2*s);
-    else if(type==='arched')c.moveTo(-15*s,3*s),c.quadraticCurveTo(0,-7*s,16*s,1*s);
-    else if(type==='bold')c.moveTo(-16*s,3*s),c.quadraticCurveTo(0,-5*s,16*s,3*s);
-    else c.moveTo(-15*s,3*s),c.quadraticCurveTo(0,-3*s,15*s,3*s);
-    c.stroke();c.restore();
-  }
-
-  function drawNoseAR(c,type,s,yaw,pitch){
-    const shift=(yaw||0)*3*s;
-    const y0=-9*s+(pitch||0)*2*s;
-    c.save();c.translate(shift,0);
-    const ns=type==='tiny'?.85:type==='wide'?1.15:type==='straight'?1.0:.95;
-    // Bridge shadow.
-    const ng=c.createLinearGradient(-6*s,y0,7*s,(y0+24*s));
-    ng.addColorStop(0,'rgba(150,100,73,.06)');
-    ng.addColorStop(.65,'rgba(110,71,53,.12)');
-    ng.addColorStop(1,'rgba(90,59,47,.02)');
-    c.fillStyle=ng;
-    c.restore();
-    // Draw clean nose using simple strokes/fills.
-    c.save();c.translate(shift,0);
-    c.fillStyle='rgba(120,78,56,.10)';
-    c.beginPath();c.ellipse(0,6*s,7*s*ns,13*s,0,0,Math.PI*2);c.fill();
-    c.fillStyle='rgba(255,255,255,.17)';
-    c.beginPath();c.ellipse(2*s,-1*s,2.5*s,8*s,-.2,0,Math.PI*2);c.fill();
-    c.strokeStyle='rgba(116,76,55,.26)';c.lineWidth=1.4*s;c.lineCap='round';
-    c.beginPath();c.arc(-2.2*s,11*s,2.4*s,0.15*Math.PI,0.88*Math.PI);c.stroke();
-    c.beginPath();c.arc(2.2*s,11*s,2.4*s,0.12*Math.PI,0.85*Math.PI);c.stroke();
-    c.restore();
-  }
-
-  function drawMouthAR(c,a,s,open,smile){
-    const y=43*s;
-    const smileAmt=Math.max(0,Math.min(1,(smile||0)*.55+.35));
-    const op=Math.max(0,Math.min(1,open));
-    c.save();
-    // Upper lip / opening.
-    if(a.mouth==='neutral'){
-      c.strokeStyle='#8a4a4a';c.lineWidth=2.3*s;c.lineCap='round';c.beginPath();
-      c.moveTo(-15*s,y);c.quadraticCurveTo(0,y+1*s,15*s,y);c.stroke();
-    }else if(a.mouth==='soft'){
-      c.strokeStyle='#8a4a4a';c.lineWidth=2.4*s;c.lineCap='round';c.beginPath();
-      c.moveTo(-16*s,y);c.quadraticCurveTo(0,y+4.5*s*smileAmt,16*s,y);c.stroke();
-    }else{
-      const width=(a.mouth==='grin'?19:18)*s;
-      const depth=(a.mouth==='open'?15:10)*s*(.7+op*.8);
-      c.fillStyle='#8c3e47';c.beginPath();
-      c.moveTo(-width,y);
-      c.quadraticCurveTo(0,y+5.5*s+7*s*smileAmt,width,y);
-      c.quadraticCurveTo(width*.72,y+depth,-width*.72,y+depth);
-      c.quadraticCurveTo(-width,y+5*s+7*s*smileAmt,-width,y);
-      c.closePath();c.fill();
-      // Teeth.
-      const teeth=Math.max(.2,Math.min(1,op+.38));
-      c.fillStyle=`rgba(255,255,255,${.82*teeth})`;
-      c.beginPath();c.moveTo(-width*.72,y+3.2*s);c.quadraticCurveTo(0,y+5*s,width*.72,y+3.2*s);c.lineTo(width*.58,y+8*s);c.quadraticCurveTo(0,y+9*s,-width*.58,y+8*s);c.closePath();c.fill();
-      c.fillStyle='#c36c79';
-      c.beginPath();c.ellipse(0,y+depth*.83,width*.48,Math.max(2*s,depth*.11),0,0,Math.PI*2);c.fill();
-    }
-    c.restore();
-  }
-
-  function drawBeardAR(c,a,s){
-    if(a.beard==='none')return;
-    c.save();c.fillStyle='rgba(39,28,24,.82)';
-    if(a.beard==='stubble'){c.globalAlpha=.17;c.beginPath();c.ellipse(0,43*s,34*s,23*s,0,0,Math.PI*2);c.fill();}
-    else if(a.beard==='chin'){c.beginPath();c.ellipse(0,58*s,18*s,10*s,0,0,Math.PI*2);c.fill();}
-    else if(a.beard==='goatee'){c.beginPath();c.moveTo(-20*s,41*s);c.quadraticCurveTo(0,57*s,20*s,41*s);c.lineTo(11*s,65*s);c.quadraticCurveTo(0,72*s,-11*s,65*s);c.closePath();c.fill();}
-    else{c.beginPath();c.moveTo(-36*s,35*s);c.quadraticCurveTo(-31*s,66*s,0,73*s);c.quadraticCurveTo(31*s,66*s,36*s,35*s);c.lineTo(26*s,30*s);c.quadraticCurveTo(0,50*s,-26*s,30*s);c.closePath();c.fill();}
-    c.restore();
-  }
-
-  function drawMoustacheAR(c,a,s){
-    if(a.moustache==='none')return;
-    c.save();c.strokeStyle='#2b1c17';c.lineCap='round';c.lineWidth=(a.moustache==='thick'?4.7:2.8)*s;
-    c.beginPath();c.moveTo(0,34*s);c.quadraticCurveTo(-9*s,28*s,-17*s,34*s);c.moveTo(0,34*s);c.quadraticCurveTo(9*s,28*s,17*s,34*s);c.stroke();c.restore();
-  }
-
-  function drawGlassesAR(c,a,s){
-    if(a.glasses==='none')return;
-    c.save();c.strokeStyle=a.glassesColor||'#2a2b30';c.lineWidth=(a.glasses==='sport'?3.2:2.2)*s;c.fillStyle='rgba(255,255,255,.035)';
-    const y=-19*s,dx=28*s,rw=(a.glasses==='square'?19:18)*s,rh=(a.glasses==='sport'?10.5:12.8)*s;
-    const frame=(x)=>{if(a.glasses==='square')roundedRect(c,x-rw,y-rh,rw*2,rh*2,6*s);else{c.beginPath();c.ellipse(x,y,rw,rh,0,0,Math.PI*2);}c.fill();c.stroke();};
-    frame(-dx);frame(dx);c.beginPath();c.moveTo(-dx+rw,y);c.quadraticCurveTo(0,y-2.4*s,dx-rw,y);c.stroke();
-    c.beginPath();c.moveTo(-dx-rw,y);c.lineTo(-dx-rw-5*s,y+1*s);c.moveTo(dx+rw,y);c.lineTo(dx+rw+5*s,y+1*s);c.stroke();c.restore();
-  }
-
-  function drawHairAR(c,a,s){
-    if(a.hair==='none')return;
-    c.save();c.fillStyle=a.hairColor||'#3c281f';
-    if(a.hair==='short' || a.hair==='slick' || a.hair==='wave'){
-      // Large, rounded side-swept quiff like the reference avatar.
-      const p=c.createLinearGradient(-10*s,-92*s,50*s,-35*s);
-      p.addColorStop(0,shadeColor(a.hairColor||'#3c281f',25));
-      p.addColorStop(.48,a.hairColor||'#3c281f');
-      p.addColorStop(1,shadeColor(a.hairColor||'#3c281f',-18));
-      c.fillStyle=p;c.beginPath();
-      c.moveTo(-58*s,-36*s);
-      c.bezierCurveTo(-52*s,-76*s,-21*s,-91*s,10*s,-88*s);
-      c.bezierCurveTo(44*s,-89*s,62*s,-73*s,59*s,-39*s);
-      c.bezierCurveTo(52*s,-31*s,46*s,-30*s,37*s,-35*s);
-      c.bezierCurveTo(23*s,-48*s,2*s,-53*s,-15*s,-47*s);
-      c.bezierCurveTo(-33*s,-41*s,-45*s,-34*s,-58*s,-36*s);
-      c.closePath();c.fill();
-      c.fillStyle=shadeColor(a.hairColor||'#3c281f',-7);
-      c.beginPath();c.moveTo(-51*s,-53*s);c.quadraticCurveTo(-23*s,-76*s,6*s,-73*s);c.quadraticCurveTo(27*s,-74*s,44*s,-56*s);c.quadraticCurveTo(17*s,-82*s,-7*s,-80*s);c.quadraticCurveTo(-32*s,-81*s,-51*s,-53*s);c.closePath();c.fill();
-    }else if(a.hair==='bob'){
-      c.fillStyle=a.hairColor||'#6b3f26';
-      roundedRect(c,-62*s,-69*s,124*s,92*s,32*s);c.fill();
-      c.fillStyle=a.skin;roundedRect(c,-52*s,-46*s,104*s,88*s,40*s);c.fill();
-    }else if(a.hair==='sport'){
-      c.beginPath();c.moveTo(-60*s,-33*s);c.quadraticCurveTo(-48*s,-84*s,-8*s,-87*s);c.quadraticCurveTo(31*s,-96*s,59*s,-54*s);c.lineTo(46*s,-23*s);c.quadraticCurveTo(30*s,-56*s,0,-50*s);c.quadraticCurveTo(-30*s,-58*s,-60*s,-33*s);c.fill();
-    }else if(a.hair==='curl'){
-      for(let i=0;i<18;i++){
-        const ang=-Math.PI*.98+i*(Math.PI*1.96/17);
-        const x=Math.cos(ang)*47*s,y=-48*s+Math.sin(ang)*29*s;
-        c.beginPath();c.arc(x,y,12.5*s,0,Math.PI*2);c.fill();
-      }
-    }else if(a.hair==='fringe'){
-      c.beginPath();c.moveTo(-59*s,-34*s);c.quadraticCurveTo(-46*s,-84*s,0,-86*s);c.quadraticCurveTo(45*s,-84*s,59*s,-34*s);
-      c.lineTo(35*s,-41*s);c.lineTo(21*s,-23*s);c.lineTo(3*s,-45*s);c.lineTo(-13*s,-24*s);c.lineTo(-29*s,-45*s);c.lineTo(-44*s,-34*s);c.closePath();c.fill();
-    }
-    // Soft strand highlights.
-    c.strokeStyle='rgba(255,255,255,.14)';c.lineWidth=1.8*s;c.lineCap='round';
-    for(let i=-2;i<=2;i++){
-      c.beginPath();c.moveTo(i*13*s,-76*s);c.quadraticCurveTo((i*13+5)*s,-59*s,(i*13+2)*s,-47*s);c.stroke();
-    }
-    c.restore();
-  }
-
-  function resize(){
-    const dpr=Math.min(window.devicePixelRatio||1,2); const w=innerWidth*dpr,h=innerHeight*dpr;
-    if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
-  }
-  addEventListener('resize',resize); resize();
-
-  function lmPoint(i){return latestResults?.multiFaceLandmarks?.[0]?.[i]||null;}
-  function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
-  let smoothTrack=null;
-  function lerp(a,b,t){return a+(b-a)*t;}
-  function calcTracking(){
-    const pts=latestResults?.multiFaceLandmarks?.[0]; if(!pts){smoothTrack=null;return null;}
-    const de=(i,j)=>Math.hypot(pts[i].x-pts[j].x,pts[i].y-pts[j].y);
-    const faceL=pts[234], faceR=pts[454], chin=pts[152], forehead=pts[10];
-    const nose=pts[1], leftOuter=pts[33], rightOuter=pts[263], leftInner=pts[133], rightInner=pts[362];
-    const leftTop=pts[159], leftBottom=pts[145], rightTop=pts[386], rightBottom=pts[374];
-    const li=pts[468],ri=pts[473], browL=pts[70],browR=pts[300], mouthTop=pts[13],mouthBottom=pts[14],mouthL=pts[61],mouthR=pts[291];
-    const center={x:(faceL.x+faceR.x)/2,y:(faceL.y+faceR.y)/2};
-    const fw=Math.max(.001,de(234,454)), fh=Math.max(.001,de(10,152));
-    const eyeOpenL=de(159,145)/Math.max(.001,de(33,133)); const eyeOpenR=de(386,374)/Math.max(.001,de(263,362));
-    const rawEyeOpen=Math.max(0,Math.min(1,((eyeOpenL+eyeOpenR)/2-.045)/.20));
-    const rawMouthOpen=Math.max(0,Math.min(1,(de(13,14)/fh-.010)/.048));
-    const eyeLine=Math.atan2(rightOuter.y-leftOuter.y,rightOuter.x-leftOuter.x);
-    const mouthWidth=Math.max(.001,de(61,291));
-    const smile=Math.max(-1,Math.min(1,(((mouthTop.y+mouthBottom.y)/2)-((mouthL.y+mouthR.y)/2))/mouthWidth*9));
-    const gazeL=(li.x-((leftOuter.x+leftInner.x)/2))/Math.max(.001,de(33,133));
-    const gazeR=(ri.x-((rightOuter.x+rightInner.x)/2))/Math.max(.001,de(263,362));
-    const rawGaze=Math.max(-1,Math.min(1,(gazeL+gazeR)*3.2));
-    const browRaise=Math.max(-1,Math.min(1,(((leftTop.y-browL.y)/Math.max(.001,de(33,133))+(rightTop.y-browR.y)/Math.max(.001,de(263,362)))/2-.53)*2.4));
-    const yaw=Math.max(-1,Math.min(1,(nose.x-center.x)/fw*2.7));
-    const pitch=Math.max(-1,Math.min(1,(nose.y-center.y)/fh*4.6));
-    const raw={x:center.x,y:center.y,fw,fh,eyeOpen:rawEyeOpen,mouthOpen:rawMouthOpen,tilt:eyeLine,gazeX:rawGaze,browRaise,yaw,pitch,smile};
-    const alpha=.34;
-    if(!smoothTrack)smoothTrack={...raw}; else Object.keys(raw).forEach(k=>smoothTrack[k]=lerp(smoothTrack[k],raw[k],alpha));
-    return smoothTrack;
-  }
-
-  function getCoverTransform(){
-    const vw=video.videoWidth||1280;
-    const vh=video.videoHeight||720;
-    const W=canvas.width,H=canvas.height;
-    const scale=Math.max(W/vw,H/vh);
-    const drawW=vw*scale, drawH=vh*scale;
-    const ox=(W-drawW)/2, oy=(H-drawH)/2;
-    return {vw,vh,scale,ox,oy,drawW,drawH};
-  }
-
-  function drawVideoFrame(){
-    if(video.readyState<2)return;
-    const t=getCoverTransform();
-    ctx.save();
-    if(facingMode==='user'){
-      ctx.translate(canvas.width,0);ctx.scale(-1,1);
-      // Mirror into the same coordinate space used by the displayed camera.
-      ctx.drawImage(video,t.ox,t.oy,t.drawW,t.drawH);
-    }else{
-      ctx.drawImage(video,t.ox,t.oy,t.drawW,t.drawH);
-    }
-    ctx.restore();
-  }
-
-  function landmarkToCanvasPoint(p,t){
-    let x=t.ox+p.x*t.drawW;
-    const y=t.oy+p.y*t.drawH;
-    if(facingMode==='user') x=canvas.width-x;
-    return {x,y};
-  }
-
-  function drawAll(){
-    resize();
-    const W=canvas.width,H=canvas.height;
-    ctx.clearRect(0,0,W,H);
-    drawVideoFrame();
-
-    const t=calcTracking();
-    if(t){
-      trackDot.classList.remove('off');
-      trackText.textContent=recording?'Recording + tracking':'Face tracking';
-      const cvt=getCoverTransform();
-      const center=landmarkToCanvasPoint({x:t.x,y:t.y},cvt);
-      const faceW=t.fw*cvt.drawW;
-      const faceH=t.fh*cvt.drawH;
-      const base=Math.min(1.35,Math.max(.72,avatarScale));
-      // drawAvatar's default width is ~118 units, so this makes the stylized head
-      // closely match the detected face width while keeping a little overlap.
-      const s=(faceW/114)*base;
-      const headY=center.y+faceH*0.015;
-      ctx.save();
-      ctx.translate(center.x,headY);
-      ctx.rotate(-t.tilt);
-      drawAvatar(ctx,selected,{
-        scale:s,
-        mouthOpen:t.mouthOpen,
-        eyeOpen:t.eyeOpen,
-        gazeX:(facingMode==='user' ? -t.gazeX : t.gazeX),
-        gazeY:0,
-        smile:t.smile,
-        browRaise:t.browRaise,
-        blink:t.eyeOpen<.16?1:0,
-        tilt:0,
-        yaw:(facingMode==='user' ? -t.yaw : t.yaw),
-        pitch:t.pitch,
-        body:false
-      });
-      ctx.restore();
-    }else{
-      trackDot.classList.add('off');
-      trackText.textContent='Looking for face';
-    }
-    recordStatus.textContent=recording?'REC':'';
-  }
-
-  function detectLoop(){
-    cancelAnimationFrame(rafId);
-    const loop=async()=>{
-      if(faceMesh && video.readyState>=2 && !processing){
-        processing=true;
-        try{await faceMesh.send({image:video});}catch(e){}
-        processing=false;
-      }
-      drawAll(); rafId=requestAnimationFrame(loop);
+  function hexToRgb(hex){
+    const h = String(hex || "").replace("#","");
+    if(h.length !== 6) return {r:200,g:200,b:200};
+    return {
+      r:parseInt(h.slice(0,2),16),
+      g:parseInt(h.slice(2,4),16),
+      b:parseInt(h.slice(4,6),16)
     };
-    loop();
+  }
+
+  function rgba(hex,a){
+    const c = hexToRgb(hex);
+    return `rgba(${c.r},${c.g},${c.b},${a})`;
+  }
+
+  function mixColors(c1,c2,t){
+    const a = hexToRgb(c1);
+    const b = hexToRgb(c2);
+    return "#" + [lerp(a.r,b.r,t),lerp(a.g,b.g,t),lerp(a.b,b.b,t)]
+      .map(v => clamp(Math.round(v),0,255).toString(16).padStart(2,"0"))
+      .join("");
+  }
+
+  function normalizeAvatar(config){
+    const base = deepClone(PRESETS[0].config);
+    const merged = Object.assign(base, config || {});
+    merged.name = String(merged.name || "Avatar").slice(0,28);
+    merged.cheekFullness = clamp(Number(merged.cheekFullness ?? 58),0,100);
+    merged.blush = clamp(Number(merged.blush ?? 20),0,100);
+    merged.eyeSize = clamp(Number(merged.eyeSize ?? 1),.82,1.25);
+    merged.avatarScale = clamp(Number(merged.avatarScale ?? 1),.72,1.35);
+    return merged;
+  }
+
+  function makePresetAvatar(id){
+    const preset = PRESETS.find(p => p.id === id) || PRESETS[0];
+    const config = normalizeAvatar(preset.config);
+    config.presetId = preset.id;
+    return config;
+  }
+
+  let avatar = makePresetAvatar("classic");
+
+  /* ============================================================
+     STORAGE
+     ============================================================ */
+
+  function loadSaved(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const defaultId = localStorage.getItem(DEFAULT_KEY);
+
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(Array.isArray(parsed)){
+          savedAvatars = parsed
+            .filter(item => item && item.id && item.config)
+            .map(item => ({
+              id:String(item.id),
+              name:String(item.name || item.config?.name || "Avatar").slice(0,28),
+              config:normalizeAvatar(item.config),
+              createdAt:Number(item.createdAt || Date.now()),
+              updatedAt:Number(item.updatedAt || Date.now())
+            }));
+        }
+      }
+
+      defaultAvatarId = defaultId || null;
+
+      const defaultSaved = savedAvatars.find(a => a.id === defaultAvatarId);
+      if(defaultSaved){
+        avatar = deepClone(defaultSaved.config);
+        avatar.name = defaultSaved.name;
+        currentAvatarId = defaultSaved.id;
+      }else{
+        avatar = makePresetAvatar("classic");
+        currentAvatarId = "classic";
+      }
+    }catch(err){
+      savedAvatars = [];
+      defaultAvatarId = null;
+      currentAvatarId = "classic";
+      avatar = makePresetAvatar("classic");
+    }
+  }
+
+  function persistSaved(){
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(savedAvatars));
+      if(defaultAvatarId){
+        localStorage.setItem(DEFAULT_KEY,defaultAvatarId);
+      }else{
+        localStorage.removeItem(DEFAULT_KEY);
+      }
+    }catch(err){
+      showToast("Unable to save on this device");
+    }
+  }
+
+  loadSaved();
+
+  /* ============================================================
+     CAMERA / CANVAS SIZING
+     ============================================================ */
+
+  function setCanvasSize(){
+    const dpr = Math.min(window.devicePixelRatio || 1,2);
+    const w = Math.max(1,Math.round(window.innerWidth * dpr));
+    const h = Math.max(1,Math.round(window.innerHeight * dpr));
+
+    if(cameraCanvas.width !== w || cameraCanvas.height !== h){
+      cameraCanvas.width = w;
+      cameraCanvas.height = h;
+    }
+
+    cameraCanvas.style.width = window.innerWidth + "px";
+    cameraCanvas.style.height = window.innerHeight + "px";
+  }
+
+  function setupContext(){
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+  }
+
+  setCanvasSize();
+  setupContext();
+  window.addEventListener("resize",()=>{
+    setCanvasSize();
+    renderPanel();
+  });
+
+  /* ============================================================
+     UI HELPERS
+     ============================================================ */
+
+  function showToast(message){
+    clearTimeout(toastTimer);
+    toastEl.textContent = message;
+    toastEl.classList.add("show");
+    toastTimer = setTimeout(()=>toastEl.classList.remove("show"),1900);
+  }
+
+  function setTrackingState(state){
+    trackingDot.classList.remove("live","recording");
+
+    if(state === "recording"){
+      trackingDot.classList.add("recording");
+      trackingText.textContent = "Recording + tracking";
+    }else if(state === "tracking"){
+      trackingDot.classList.add("live");
+      trackingText.textContent = "Face tracking";
+    }else if(state === "looking"){
+      trackingText.textContent = "Looking for face";
+    }else if(state === "ready"){
+      trackingText.textContent = "Camera ready";
+    }else{
+      trackingText.textContent = "Camera idle";
+    }
+  }
+
+  function setLooking(show){
+    looking.classList.toggle("show",show);
+    looking.textContent = hasFace ? "Face tracking" : "Looking for face";
+  }
+
+  function openPanel(){
+    panel.classList.add("open");
+    scrim.classList.add("show");
+    panel.setAttribute("aria-hidden","false");
+    renderPanel();
+  }
+
+  function closePanel(){
+    panel.classList.remove("open");
+    scrim.classList.remove("show");
+    panel.setAttribute("aria-hidden","true");
+  }
+
+  customizeBtn.addEventListener("click",()=>{
+    if(!cameraStarted){
+      showToast("Start the camera first");
+      return;
+    }
+    openPanel();
+  });
+
+  closePanelBtn.addEventListener("click",closePanel);
+  scrim.addEventListener("click",closePanel);
+
+  tabButtons.forEach(tab=>{
+    tab.addEventListener("click",()=>{
+      currentTab = tab.dataset.tab;
+      tabButtons.forEach(t=>t.classList.toggle("active",t === tab));
+      renderPanel();
+    });
+  });
+
+  /* ============================================================
+     CAMERA START
+     ============================================================ */
+
+  async function getCameraStream(){
+    if(!navigator.mediaDevices?.getUserMedia){
+      throw new Error("This browser does not support camera access.");
+    }
+
+    try{
+      return await navigator.mediaDevices.getUserMedia({
+        video:{
+          facingMode:{ideal:facingMode},
+          width:{ideal:1280},
+          height:{ideal:720},
+          frameRate:{ideal:30,max:30}
+        },
+        audio:true
+      });
+    }catch(err){
+      if(err && (err.name === "NotAllowedError" || err.name === "PermissionDeniedError")){
+        try{
+          const videoOnly = await navigator.mediaDevices.getUserMedia({
+            video:{
+              facingMode:{ideal:facingMode},
+              width:{ideal:1280},
+              height:{ideal:720},
+              frameRate:{ideal:30,max:30}
+            },
+            audio:false
+          });
+          showToast("Microphone unavailable — video still works");
+          return videoOnly;
+        }catch(err2){
+          throw err2;
+        }
+      }
+      throw err;
+    }
   }
 
   async function startCamera(){
-    startBtn.disabled=true;startBtn.textContent='Starting…';
+    if(cameraStarting) return;
+
+    cameraStarting = true;
+    startBtn.disabled = true;
+    startError.classList.remove("show");
+    startError.textContent = "";
+
     try{
-      if(stream){stream.getTracks().forEach(t=>t.stop());}
-      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facingMode},width:{ideal:1280},height:{ideal:720}},audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-      video.srcObject=stream; await video.play();
-      latestResults=null; smoothTrack=null;
-      if(facingMode==='user'){cameraName.textContent='Front camera'} else {cameraName.textContent='Back camera'}
-      // separate audio reference for recording
-      audioStream=new MediaStream(stream.getAudioTracks());
+      if(stream){
+        stopStream();
+      }
+
+      stream = await getCameraStream();
+
+      video.srcObject = stream;
+      await video.play();
+
+      videoTrack = stream.getVideoTracks()[0] || null;
+      audioTrack = stream.getAudioTracks()[0] || null;
+
+      cameraStarted = true;
+      startup.classList.add("hidden");
+      cameraLabel.textContent = facingMode === "user" ? "Front camera" : "Back camera";
+
+      setCanvasSize();
+      setTrackingState("ready");
+
       await initFaceMesh();
-      startScreen.classList.add('hidden');trackText.textContent='Looking for face';trackDot.classList.add('off');
-      toast('Camera ready');
-      detectLoop();
+
+      showToast("Camera ready");
     }catch(err){
-      console.error(err);
-      startBtn.disabled=false;startBtn.textContent='Try Again';
-      toast('Camera or microphone permission was blocked');
-      alert('Camera access could not start. Allow camera + microphone permission for this page, then tap Try Again.');
+      cameraStarted = false;
+      const msg = cameraErrorMessage(err);
+      startError.textContent = msg;
+      startError.classList.add("show");
+      startup.classList.remove("hidden");
+      setTrackingState("idle");
+    }finally{
+      cameraStarting = false;
+      startBtn.disabled = false;
     }
   }
 
+  function cameraErrorMessage(err){
+    if(!err) return "Could not start the camera.";
+    switch(err.name){
+      case "NotAllowedError":
+      case "PermissionDeniedError":
+        return "Camera permission was denied. Please allow camera access and try again.";
+      case "NotFoundError":
+      case "DevicesNotFoundError":
+        return "No camera was found on this device.";
+      case "NotReadableError":
+      case "TrackStartError":
+        return "The camera is already being used by another app.";
+      case "OverconstrainedError":
+        return "The requested camera mode is not available.";
+      case "SecurityError":
+        return "Camera access requires a secure page (HTTPS or localhost).";
+      default:
+        return err.message || "Could not start the camera.";
+    }
+  }
+
+  function stopStream(){
+    if(stream){
+      stream.getTracks().forEach(track=>track.stop());
+    }
+    stream = null;
+    videoTrack = null;
+    audioTrack = null;
+    video.srcObject = null;
+  }
+
+  startBtn.addEventListener("click",startCamera);
+
+  /* ============================================================
+     MEDIAPIPE FACE MESH
+     ============================================================ */
+
   async function initFaceMesh(){
-    if(faceMesh)return;
-    if(typeof FaceMesh==='undefined') throw new Error('Face tracking library did not load');
-    faceMesh=new FaceMesh({locateFile:(file)=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${file}`});
-    faceMesh.setOptions({maxNumFaces:1,refineLandmarks:true,minDetectionConfidence:.62,minTrackingConfidence:.62});
-    faceMesh.onResults(r=>{latestResults=r;});
+    if(faceMeshReady && faceMesh) return true;
+
+    if(typeof FaceMesh === "undefined"){
+      showToast("Face tracking library unavailable");
+      return false;
+    }
+
+    try{
+      faceMesh = new FaceMesh({
+        locateFile:file => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+      });
+
+      faceMesh.setOptions({
+        maxNumFaces:1,
+        refineLandmarks:true,
+        minDetectionConfidence:.55,
+        minTrackingConfidence:.55
+      });
+
+      faceMesh.onResults(handleFaceResults);
+
+      faceMeshReady = true;
+      return true;
+    }catch(err){
+      faceMesh = null;
+      faceMeshReady = false;
+      showToast("Could not initialize face tracking");
+      return false;
+    }
   }
 
-  startBtn.addEventListener('click',startCamera);
+  function handleFaceResults(results){
+    lastResults = results;
 
-  switchCameraBtn.addEventListener('click',async()=>{
-    if(!stream){toast('Start the camera first');return;}
-    const wasRecording=recording;
-    if(wasRecording) stopRecording();
-    facingMode=facingMode==='user'?'environment':'user';
-    await startCamera();
-  });
-
-  sizeSlider.addEventListener('input',()=>{avatarScale=parseFloat(sizeSlider.value);sizeLabel.textContent=Math.round(avatarScale*100)+'%';});
-
-  function getSupportedMime(){
-    const list=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'];
-    return list.find(t=>MediaRecorder.isTypeSupported?.(t)) || '';
+    if(results && results.multiFaceLandmarks && results.multiFaceLandmarks.length){
+      const landmarks = results.multiFaceLandmarks[0];
+      hasFace = true;
+      calculateTracking(landmarks);
+      setTrackingState(isRecording ? "recording" : "tracking");
+    }else{
+      hasFace = false;
+      setTrackingState(isRecording ? "recording" : "looking");
+    }
   }
-  function startRecording(){
-    if(!canvas.captureStream || typeof MediaRecorder==='undefined'){alert('This browser does not support canvas video recording. Try a current Chrome/Edge browser.');return;}
-    recordedChunks=[];
-    const videoStream=canvas.captureStream(30);
-    if(audioStream){audioStream.getAudioTracks().forEach(t=>videoStream.addTrack(t));}
-    const mime=getSupportedMime();
-    try{recorder=new MediaRecorder(videoStream,mime?{mimeType:mime,videoBitsPerSecond:6500000}:undefined);}catch(e){recorder=new MediaRecorder(videoStream);}
-    recorder.ondataavailable=e=>{if(e.data&&e.data.size)recordedChunks.push(e.data)};
-    recorder.onstop=()=>{
-      const blob=new Blob(recordedChunks,{type:recorder.mimeType||'video/webm'});
-      const url=URL.createObjectURL(blob);
-      const a=document.createElement('a');a.href=url;a.download='avatar-video-'+new Date().toISOString().replace(/[:.]/g,'-')+'.webm';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2500);
-      toast('Video saved');
+
+  async function detectLoop(now){
+    if(
+      cameraStarted &&
+      faceMeshReady &&
+      faceMesh &&
+      !detectionBusy &&
+      video.readyState >= 2 &&
+      video.currentTime !== lastVideoTime &&
+      now - lastDetectionTime > 25
+    ){
+      detectionBusy = true;
+      lastDetectionTime = now;
+      lastVideoTime = video.currentTime;
+
+      try{
+        await faceMesh.send({image:video});
+      }catch(err){
+        /* Ignore intermittent frame processing errors. */
+      }finally{
+        detectionBusy = false;
+      }
+    }
+  }
+
+  /* ============================================================
+     TRACKING METRICS
+     ============================================================ */
+
+  function point(lm,i){
+    return lm[i] || {x:.5,y:.5,z:0};
+  }
+
+  function dist2D(a,b){
+    return Math.hypot((a.x-b.x),(a.y-b.y));
+  }
+
+  function angleDeg(a,b){
+    return Math.atan2(b.y-a.y,b.x-a.x) * 180/Math.PI;
+  }
+
+  function averagePoint(a,b){
+    return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,z:((a.z||0)+(b.z||0))/2};
+  }
+
+  function normalizedRatio(a,b,c){
+    const d = dist2D(a,b);
+    if(!d) return 0;
+    return dist2D(b,c) / d;
+  }
+
+  function calculateTracking(lm){
+    const leftFace = point(lm,234);
+    const rightFace = point(lm,454);
+    const forehead = point(lm,10);
+    const chin = point(lm,152);
+    const noseTip = point(lm,1);
+
+    const faceCenter = averagePoint(leftFace,rightFace);
+    const faceWidth = dist2D(leftFace,rightFace);
+    const faceHeight = dist2D(forehead,chin);
+
+    const leftEyeTop = point(lm,159);
+    const leftEyeBottom = point(lm,145);
+    const rightEyeTop = point(lm,386);
+    const rightEyeBottom = point(lm,374);
+
+    const leftEyeOuter = point(lm,33);
+    const leftEyeInner = point(lm,133);
+    const rightEyeInner = point(lm,362);
+    const rightEyeOuter = point(lm,263);
+
+    const leftIris = averagePoint(point(lm,468),point(lm,473));
+    const rightIris = averagePoint(point(lm,473),point(lm,478));
+
+    const leftBrow = point(lm,105);
+    const rightBrow = point(lm,334);
+
+    const mouthTop = point(lm,13);
+    const mouthBottom = point(lm,14);
+    const mouthLeft = point(lm,61);
+    const mouthRight = point(lm,291);
+
+    const mouthWidth = dist2D(mouthLeft,mouthRight);
+    const mouthHeight = dist2D(mouthTop,mouthBottom);
+
+    const eyeLWidth = Math.max(.0001,dist2D(leftEyeOuter,leftEyeInner));
+    const eyeRWidth = Math.max(.0001,dist2D(rightEyeInner,rightEyeOuter));
+
+    const eyeLHeight = dist2D(leftEyeTop,leftEyeBottom);
+    const eyeRHeight = dist2D(rightEyeTop,rightEyeBottom);
+
+    const eyeL = clamp(eyeLHeight / Math.max(.0001,eyeLWidth*.32),0,1.2);
+    const eyeR = clamp(eyeRHeight / Math.max(.0001,eyeRWidth*.32),0,1.2);
+
+    const open = clamp(mouthHeight / Math.max(.0001,mouthWidth*.24),0,1);
+    const mouthCornerY = (mouthLeft.y + mouthRight.y)/2;
+    const smileCurve = clamp(
+      ((mouthCornerY - mouthTop.y) / Math.max(.0001,mouthWidth)) * 7,
+      0,1
+    );
+
+    const gazeLX = clamp((leftIris.x - leftEyeInner.x) / eyeLWidth, -1, 1);
+    const gazeRX = clamp((rightIris.x - rightEyeInner.x) / eyeRWidth, -1, 1);
+
+    const gazeX = clamp((gazeLX + gazeRX) * .5, -1, 1);
+
+    const eyeCenterY = (leftEyeTop.y + leftEyeBottom.y + rightEyeTop.y + rightEyeBottom.y)/4;
+    const irisCenterY = (leftIris.y + rightIris.y)/2;
+    const gazeY = clamp((irisCenterY - eyeCenterY) / Math.max(.0001,faceHeight*.055), -1, 1);
+
+    let roll = angleDeg(leftEyeOuter,rightEyeOuter);
+
+    const faceHorizontalOffset =
+      clamp((noseTip.x - faceCenter.x) / Math.max(.0001,faceWidth),-.5,.5);
+
+    const faceVerticalOffset =
+      clamp((noseTip.y - faceCenter.y) / Math.max(.0001,faceHeight),-.5,.5);
+
+    let yaw = clamp(faceHorizontalOffset * 1.8,-1,1);
+    let pitch = clamp(faceVerticalOffset * 2.2,-1,1);
+
+    if(facingMode === "user"){
+      yaw *= -1;
+      roll *= -1;
+    }
+
+    const browLNorm =
+      clamp((leftEyeTop.y - leftBrow.y) / Math.max(.0001,faceHeight*.09),0,1.4);
+    const browRNorm =
+      clamp((rightEyeTop.y - rightBrow.y) / Math.max(.0001,faceHeight*.09),0,1.4);
+
+    const target = {
+      x:faceCenter.x,
+      y:faceCenter.y,
+      width:faceWidth,
+      height:faceHeight,
+      yaw,
+      pitch,
+      roll,
+      eyeL,
+      eyeR,
+      mouthOpen:open,
+      smile:smileCurve,
+      gazeX,
+      gazeY,
+      browL:browLNorm,
+      browR:browRNorm
     };
-    recorder.start(200);
-    recording=true;recordBtn.classList.add('recording');sizeCtl.classList.add('show');toast('Recording started');
-  }
-  function stopRecording(){
-    if(recorder && recorder.state!=='inactive'){recorder.stop();}
-    recording=false;recordBtn.classList.remove('recording');sizeCtl.classList.remove('show');recordStatus.textContent='';
-  }
-  recordBtn.addEventListener('click',()=>{if(!recording)startRecording();else stopRecording();});
 
-  function setSelectedFromDefault(){
-    useSavedDefaultOnStart();
-    selected=normalizeAvatar(selected);
-    currentEditingSavedId=defaultSavedId || null;
-    selectedAvatarId=defaultSavedId || 'classic';
+    const s=.22;
+
+    smooth.x = lerp(smooth.x,target.x,s);
+    smooth.y = lerp(smooth.y,target.y,s);
+    smooth.width = lerp(smooth.width,target.width,s);
+    smooth.height = lerp(smooth.height,target.height,s);
+    smooth.yaw = lerp(smooth.yaw,target.yaw,s);
+    smooth.pitch = lerp(smooth.pitch,target.pitch,s);
+    smooth.roll = lerp(smooth.roll,target.roll,s);
+    smooth.eyeL = lerp(smooth.eyeL,target.eyeL,s);
+    smooth.eyeR = lerp(smooth.eyeR,target.eyeR,s);
+    smooth.mouthOpen = lerp(smooth.mouthOpen,target.mouthOpen,s);
+    smooth.smile = lerp(smooth.smile,target.smile,s);
+    smooth.gazeX = lerp(smooth.gazeX,target.gazeX,s);
+    smooth.gazeY = lerp(smooth.gazeY,target.gazeY,s);
+    smooth.browL = lerp(smooth.browL,target.browL,s);
+    smooth.browR = lerp(smooth.browR,target.browR,s);
   }
-  setSelectedFromDefault();
-  buildCarousel();
-  renderCustom();
-  drawAll();
 
+  /* ============================================================
+     CANVAS CAMERA COMPOSITING
+     ============================================================ */
 
-  addEventListener('beforeunload',()=>{
-    try{ if(stream) stream.getTracks().forEach(t=>t.stop()); }catch(e){}
-    try{ if(recorder && recorder.state!=='inactive') recorder.stop(); }catch(e){}
+  function drawCoverVideo(){
+    const cw = cameraCanvas.width;
+    const ch = cameraCanvas.height;
+
+    ctx.save();
+    ctx.fillStyle = "#050609";
+    ctx.fillRect(0,0,cw,ch);
+
+    if(!video.videoWidth || !video.videoHeight){
+      ctx.restore();
+      return;
+    }
+
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+
+    const scale = Math.max(cw/vw,ch/vh);
+    const dw = vw*scale;
+    const dh = vh*scale;
+    const x = (cw-dw)/2;
+    const y = (ch-dh)/2;
+
+    if(facingMode === "user"){
+      ctx.translate(cw,0);
+      ctx.scale(-1,1);
+      ctx.drawImage(video,-x,y,dw,dh);
+    }else{
+      ctx.drawImage(video,x,y,dw,dh);
+    }
+
+    ctx.restore();
+  }
+
+  function normalizedToCanvas(x,y){
+    return {
+      x:x*cameraCanvas.width,
+      y:y*cameraCanvas.height
+    };
+  }
+
+  function getAvatarPlacement(){
+    if(!hasFace || !smooth.width){
+      return null;
+    }
+
+    const pt = normalizedToCanvas(smooth.x,smooth.y);
+    const faceW = smooth.width * Math.min(cameraCanvas.width,cameraCanvas.height);
+
+    return {
+      x:pt.x,
+      y:pt.y + faceW*.09,
+      faceW,
+      rotation:smooth.roll * Math.PI/180,
+      scale:clamp(faceW/.23,.35,4.2) * runtimeScale * (avatar.avatarScale || 1)
+    };
+  }
+
+  /* ============================================================
+     AVATAR RENDERER
+     ============================================================ */
+
+  function drawRoundedRect(c,x,y,w,h,r){
+    const rr = Math.min(r,Math.abs(w)/2,Math.abs(h)/2);
+    c.beginPath();
+    c.moveTo(x+rr,y);
+    c.arcTo(x+w,y,x+w,y+h,rr);
+    c.arcTo(x+w,y+h,x,y+h,rr);
+    c.arcTo(x,y+h,x,y,rr);
+    c.arcTo(x,y,x+w,y,rr);
+    c.closePath();
+  }
+
+  function drawSoftEllipse(c,x,y,rx,ry,fill,blur=0){
+    c.save();
+    c.filter = blur ? `blur(${blur}px)` : "none";
+    c.fillStyle = fill;
+    c.beginPath();
+    c.ellipse(x,y,rx,ry,0,0,Math.PI*2);
+    c.fill();
+    c.restore();
+  }
+
+  function hairColors(base){
+    return {
+      main:base,
+      dark:mixColors(base,"#111111",.38),
+      light:mixColors(base,"#ffffff",.24),
+      shine:mixColors(base,"#ffffff",.45)
+    };
+  }
+
+  function skinColors(base){
+    return {
+      base,
+      light:mixColors(base,"#fff7ef",.34),
+      shadow:mixColors(base,"#8d5d4a",.24),
+      deep:mixColors(base,"#6e4738",.34),
+      blush:"#ef8d93"
+    };
+  }
+
+  function makeFacePath(c,cfg,w,h){
+    const cheek = (cfg.cheekFullness || 58) / 100;
+    const shape = cfg.faceShape;
+
+    let topY = -h*.48;
+    let bottomY = h*.52;
+    let maxX = w*.47;
+
+    if(shape==="round"){
+      maxX = w*.51;
+      topY = -h*.44;
+      bottomY = h*.48;
+    }else if(shape==="square"){
+      maxX = w*.49;
+      topY = -h*.45;
+      bottomY = h*.50;
+    }else if(shape==="heart"){
+      maxX = w*.48;
+      topY = -h*.49;
+      bottomY = h*.50;
+    }else if(shape==="long"){
+      maxX = w*.41;
+      topY = -h*.50;
+      bottomY = h*.56;
+    }
+
+    const cheekX = maxX * (.90 + cheek*.08);
+
+    c.beginPath();
+
+    if(shape==="square"){
+      c.moveTo(-maxX*.55,topY);
+      c.quadraticCurveTo(-maxX,topY*.95,-maxX,-h*.20);
+      c.quadraticCurveTo(-maxX*1.02,h*.08,-cheekX,h*.27);
+      c.quadraticCurveTo(-w*.35,bottomY*.88,0,bottomY);
+      c.quadraticCurveTo(w*.35,bottomY*.88,cheekX,h*.27);
+      c.quadraticCurveTo(maxX*1.02,h*.08,maxX,-h*.20);
+      c.quadraticCurveTo(maxX,topY*.95,maxX*.55,topY);
+      c.quadraticCurveTo(0,topY*.90,-maxX*.55,topY);
+    }else if(shape==="heart"){
+      c.moveTo(0,topY);
+      c.bezierCurveTo(-maxX*.54,topY*.76,-maxX*.92,topY*.65,-maxX*.98,-h*.18);
+      c.bezierCurveTo(-maxX*.96,h*.03,-maxX*.70,h*.28,-w*.25,h*.36);
+      c.bezierCurveTo(-w*.13,h*.40,-w*.06,bottomY*.72,0,bottomY);
+      c.bezierCurveTo(w*.06,bottomY*.72,w*.13,h*.40,w*.25,h*.36);
+      c.bezierCurveTo(maxX*.70,h*.28,maxX*.96,h*.03,maxX*.98,-h*.18);
+      c.bezierCurveTo(maxX*.92,topY*.65,maxX*.54,topY*.76,0,topY);
+    }else{
+      c.moveTo(0,topY);
+      c.bezierCurveTo(-maxX*.52,topY*.86,-maxX*.92,topY*.78,-maxX,-h*.10);
+      c.bezierCurveTo(-maxX*1.02,h*.10,-maxX*.82,h*.28,-cheekX,h*.38);
+      c.bezierCurveTo(-w*.30,h*.45,-w*.18,bottomY*.84,0,bottomY);
+      c.bezierCurveTo(w*.18,bottomY*.84,w*.30,h*.45,cheekX,h*.38);
+      c.bezierCurveTo(maxX*.82,h*.28,maxX*1.02,h*.10,maxX,-h*.10);
+      c.bezierCurveTo(maxX*.92,topY*.78,maxX*.52,topY*.86,0,topY);
+    }
+
+    c.closePath();
+  }
+
+  function drawBody(c,cfg,w,h){
+    const bodyY = h*.40;
+
+    let clothing = cfg.clothingColor;
+    const clothDark = mixColors(clothing,"#101216",.34);
+    const clothLight = mixColors(clothing,"#ffffff",.18);
+
+    c.save();
+    const g = c.createLinearGradient(0,bodyY,0,bodyY+h*.86);
+    g.addColorStop(0,clothLight);
+    g.addColorStop(.44,clothing);
+    g.addColorStop(1,clothDark);
+    c.fillStyle = g;
+
+    c.beginPath();
+    c.moveTo(-w*.62,bodyY+h*.08);
+    c.quadraticCurveTo(-w*.52,bodyY-h*.02,-w*.31,bodyY-h*.01);
+    c.lineTo(-w*.18,bodyY-h*.18);
+    c.lineTo(w*.18,bodyY-h*.18);
+    c.lineTo(w*.31,bodyY-h*.01);
+    c.quadraticCurveTo(w*.52,bodyY-h*.02,w*.62,bodyY+h*.08);
+    c.quadraticCurveTo(w*.72,bodyY+h*.25,w*.76,bodyY+h*.72);
+    c.lineTo(-w*.76,bodyY+h*.72);
+    c.quadraticCurveTo(-w*.72,bodyY+h*.25,-w*.62,bodyY+h*.08);
+    c.closePath();
+    c.fill();
+
+    if(cfg.clothing==="hoodie"){
+      c.strokeStyle = rgba("#ffffff",.14);
+      c.lineWidth = Math.max(1,w*.012);
+      c.beginPath();
+      c.arc(0,bodyY+h*.01,w*.25,Math.PI,0);
+      c.stroke();
+
+      c.fillStyle = rgba("#ffffff",.05);
+      drawRoundedRect(c,-w*.20,bodyY+h*.17,w*.40,h*.28,w*.06);
+      c.fill();
+    }else if(cfg.clothing==="jacket"){
+      c.strokeStyle = rgba("#ffffff",.20);
+      c.lineWidth = Math.max(1,w*.014);
+      c.beginPath();
+      c.moveTo(0,bodyY);
+      c.lineTo(0,bodyY+h*.70);
+      c.stroke();
+    }else if(cfg.clothing==="sweater"){
+      c.strokeStyle = rgba("#ffffff",.08);
+      c.lineWidth = Math.max(1,w*.009);
+      for(let i=-2;i<=2;i++){
+        c.beginPath();
+        c.moveTo(-w*.55,bodyY+h*(.26+i*.07));
+        c.lineTo(w*.55,bodyY+h*(.26+i*.07));
+        c.stroke();
+      }
+    }else{
+      c.fillStyle = rgba("#ffffff",.07);
+      c.beginPath();
+      c.arc(0,bodyY+h*.08,w*.14,Math.PI,0);
+      c.fill();
+    }
+
+    c.restore();
+  }
+
+  function drawNeck(c,skin,w,h){
+    const skinC = skinColors(skin);
+
+    const g = c.createLinearGradient(0,h*.12,0,h*.55);
+    g.addColorStop(0,skinC.light);
+    g.addColorStop(.56,skinC.base);
+    g.addColorStop(1,skinC.shadow);
+
+    c.fillStyle = g;
+    c.beginPath();
+    c.moveTo(-w*.13,h*.19);
+    c.lineTo(-w*.12,h*.47);
+    c.quadraticCurveTo(0,h*.56,w*.12,h*.47);
+    c.lineTo(w*.13,h*.19);
+    c.closePath();
+    c.fill();
+  }
+
+  function drawEars(c,skin,w,h){
+    const skinC = skinColors(skin);
+    const g = c.createLinearGradient(0,-h*.06,0,h*.26);
+    g.addColorStop(0,skinC.light);
+    g.addColorStop(1,skinC.shadow);
+
+    c.fillStyle = g;
+
+    c.beginPath();
+    c.ellipse(-w*.49,h*.0,w*.10,h*.15,0,0,Math.PI*2);
+    c.fill();
+
+    c.beginPath();
+    c.ellipse(w*.49,h*.0,w*.10,h*.15,0,0,Math.PI*2);
+    c.fill();
+
+    c.strokeStyle = rgba(skinC.deep,.28);
+    c.lineWidth = Math.max(1,w*.018);
+
+    c.beginPath();
+    c.arc(-w*.49,h*.01,w*.045,Math.PI*.18,Math.PI*1.45);
+    c.stroke();
+
+    c.beginPath();
+    c.arc(w*.49,h*.01,w*.045,Math.PI*1.55,Math.PI*.82);
+    c.stroke();
+  }
+
+  function drawFace(c,cfg,w,h){
+    const skinC = skinColors(cfg.skin);
+
+    c.save();
+    makeFacePath(c,cfg,w,h);
+
+    const g = c.createRadialGradient(-w*.16,-h*.25,w*.10,w*.03,-h*.02,w*.70);
+    g.addColorStop(0,skinC.light);
+    g.addColorStop(.42,skinC.base);
+    g.addColorStop(.78,skinC.shadow);
+    g.addColorStop(1,skinC.deep);
+    c.fillStyle = g;
+    c.fill();
+
+    c.save();
+    c.clip();
+
+    drawSoftEllipse(c,-w*.21,h*.05,w*.18,h*.20,rgba("#7c4b42",.07),w*.035);
+    drawSoftEllipse(c,w*.21,h*.05,w*.18,h*.20,rgba("#7c4b42",.07),w*.035);
+
+    const forehead = c.createRadialGradient(-w*.16,-h*.31,0,-w*.10,-h*.30,w*.36);
+    forehead.addColorStop(0,rgba("#ffffff",.15));
+    forehead.addColorStop(1,rgba("#ffffff",0));
+    c.fillStyle = forehead;
+    c.beginPath();
+    c.ellipse(-w*.10,-h*.31,w*.38,h*.24,0,0,Math.PI*2);
+    c.fill();
+
+    c.restore();
+
+    c.restore();
+
+    if(cfg.blush > 0){
+      const strength = cfg.blush/100*.25;
+      drawSoftEllipse(c,-w*.30,h*.18,w*.13,h*.08,rgba("#f28188",strength),w*.06);
+      drawSoftEllipse(c,w*.30,h*.18,w*.13,h*.08,rgba("#f28188",strength),w*.06);
+    }
+  }
+
+  function drawEye(c,x,y,w,h,cfg,openFactor,gazeX,gazeY,side){
+    const scale = cfg.eyeSize;
+    const width = w*.17*scale;
+    const height = h*.085*scale * clamp(.30 + openFactor*.80,.2,1.1);
+
+    c.save();
+    c.translate(x,y);
+
+    const tilt = side === "L" ? -0.025 : 0.025;
+    c.rotate(tilt);
+
+    const sclera = c.createLinearGradient(0,-height,0,height);
+    sclera.addColorStop(0,"#ffffff");
+    sclera.addColorStop(1,"#e5e7ec");
+
+    c.fillStyle = sclera;
+    c.beginPath();
+    c.ellipse(0,0,width,height,0,0,Math.PI*2);
+    c.fill();
+
+    const irisShiftX = clamp(gazeX,-1,1)*width*.20;
+    const irisShiftY = clamp(gazeY,-1,1)*height*.14;
+    const irisR = Math.max(2,w*.049*scale);
+
+    const irisG = c.createRadialGradient(
+      irisShiftX-irisR*.2,
+      irisShiftY-irisR*.25,
+      irisR*.10,
+      irisShiftX,
+      irisShiftY,
+      irisR
+    );
+    irisG.addColorStop(0,mixColors(cfg.eyeColor,"#ffffff",.4));
+    irisG.addColorStop(.40,cfg.eyeColor);
+    irisG.addColorStop(1,mixColors(cfg.eyeColor,"#111111",.56));
+
+    c.fillStyle = irisG;
+    c.beginPath();
+    c.arc(irisShiftX,irisShiftY,irisR,0,Math.PI*2);
+    c.fill();
+
+    c.fillStyle = "#111318";
+    c.beginPath();
+    c.arc(irisShiftX,irisShiftY,irisR*.48,0,Math.PI*2);
+    c.fill();
+
+    c.fillStyle = "#fff";
+    c.beginPath();
+    c.arc(irisShiftX-irisR*.27,irisShiftY-irisR*.31,irisR*.17,0,Math.PI*2);
+    c.fill();
+
+    const lidY = -height*.92;
+
+    c.strokeStyle = rgba("#422d2a",.55);
+    c.lineWidth = Math.max(1,w*.009);
+    c.beginPath();
+    c.moveTo(-width*.82,lidY*.08);
+    c.quadraticCurveTo(0,-height*1.15,width*.82,lidY*.08);
+    c.stroke();
+
+    if(openFactor < .22){
+      c.strokeStyle = rgba("#5d403a",.68);
+      c.lineWidth = Math.max(1.4,w*.012);
+      c.beginPath();
+      c.moveTo(-width*.85,0);
+      c.quadraticCurveTo(0,-height*.18,width*.85,0);
+      c.stroke();
+    }
+
+    c.restore();
+  }
+
+  function drawBrows(c,w,h,cfg){
+    const y = -h*.185;
+
+    let thickness = w*.024;
+    if(cfg.eyebrow === "soft") thickness = w*.017;
+    if(cfg.eyebrow === "bold") thickness = w*.033;
+
+    const liftL = (smooth.browL-.45)*h*.055;
+    const liftR = (smooth.browR-.45)*h*.055;
+
+    c.save();
+    c.strokeStyle = mixColors(cfg.hairColor,"#2f2520",.45);
+    c.lineWidth = thickness;
+    c.lineCap = "round";
+
+    const drawOne = (side,lift)=>{
+      const dir = side === "L" ? -1 : 1;
+      c.beginPath();
+      const x1 = dir < 0 ? -w*.36 : w*.10;
+      const x2 = dir < 0 ? -w*.10 : w*.36;
+      const center = dir < 0 ? -w*.23 : w*.23;
+      const arch = cfg.eyebrow === "arched" ? -h*.025 : 0;
+      c.moveTo(x1,y+lift);
+      c.quadraticCurveTo(center,y+arch+lift-h*.008,x2,y+h*.008+lift);
+      c.stroke();
+    };
+
+    drawOne("L",liftL);
+    drawOne("R",liftR);
+    c.restore();
+  }
+
+  function drawNose(c,w,h,cfg){
+    const y = h*.03;
+    const noseW =
+      cfg.nose==="tiny" ? w*.072 :
+      cfg.nose==="small" ? w*.092 :
+      cfg.nose==="wide" ? w*.145 : w*.112;
+
+    const noseH =
+      cfg.nose==="tiny" ? h*.17 :
+      cfg.nose==="wide" ? h*.20 : h*.22;
+
+    const skinC = skinColors(cfg.skin);
+
+    c.save();
+
+    const shadow = c.createLinearGradient(0,-noseH*.55,0,noseH*.65);
+    shadow.addColorStop(0,rgba("#fff",0));
+    shadow.addColorStop(.72,rgba(skinC.deep,.16));
+    shadow.addColorStop(1,rgba(skinC.deep,.30));
+
+    c.fillStyle = shadow;
+    c.beginPath();
+    c.ellipse(0,y,noseW,noseH,0,0,Math.PI*2);
+    c.fill();
+
+    c.strokeStyle = rgba(skinC.deep,.40);
+    c.lineWidth = Math.max(1,w*.011);
+
+    c.beginPath();
+    c.moveTo(-noseW*.12,y-noseH*.25);
+    c.quadraticCurveTo(-noseW*.25,y+noseH*.22,-noseW*.56,y+noseH*.38);
+    c.stroke();
+
+    c.beginPath();
+    c.moveTo(noseW*.12,y-noseH*.25);
+    c.quadraticCurveTo(noseW*.25,y+noseH*.22,noseW*.56,y+noseH*.38);
+    c.stroke();
+
+    c.fillStyle = rgba("#fff",.24);
+    c.beginPath();
+    c.ellipse(-noseW*.16,y-noseH*.20,noseW*.18,noseH*.42,0,0,Math.PI*2);
+    c.fill();
+
+    c.restore();
+  }
+
+  function drawMouth(c,w,h,cfg){
+    const y = h*.27;
+    const openness = clamp(smooth.mouthOpen,0,1);
+    const smile = clamp(smooth.smile + (cfg.mouth==="smile" ? .28 : cfg.mouth==="grin" ? .40 : 0),0,1);
+
+    let mouthW = w*.20;
+    if(cfg.mouth==="neutral") mouthW = w*.19;
+    if(cfg.mouth==="soft") mouthW = w*.21;
+    if(cfg.mouth==="smile") mouthW = w*.23;
+    if(cfg.mouth==="grin") mouthW = w*.25;
+    if(cfg.mouth==="open") mouthW = w*.24;
+
+    let mouthOpen = 0;
+    if(cfg.mouth==="open") mouthOpen += .12;
+    mouthOpen += openness*.23;
+    mouthOpen = clamp(mouthOpen,0,.34);
+
+    c.save();
+
+    if(mouthOpen > .04){
+      const lipTop = y - h*.015 - smile*h*.02;
+      const lipBottom = y + mouthOpen*h;
+
+      const mouthFill = c.createLinearGradient(0,lipTop,0,lipBottom);
+      mouthFill.addColorStop(0,"#5e2827");
+      mouthFill.addColorStop(.55,"#3b1718");
+      mouthFill.addColorStop(1,"#7c3335");
+
+      c.fillStyle = mouthFill;
+      c.beginPath();
+      c.moveTo(-mouthW,lipTop);
+      c.quadraticCurveTo(0,lipTop+h*.03,mouthW,lipTop);
+      c.quadraticCurveTo(w*.07,lipTop+h*.10,0,lipBottom);
+      c.quadraticCurveTo(-w*.07,lipTop+h*.10,-mouthW,lipTop);
+      c.closePath();
+      c.fill();
+
+      c.fillStyle = "#f7f3ef";
+      c.globalAlpha = clamp(openness*1.3,.15,.94);
+      c.beginPath();
+      c.moveTo(-mouthW*.70,lipTop+h*.025);
+      c.quadraticCurveTo(0,lipTop+h*.035,mouthW*.70,lipTop+h*.025);
+      c.quadraticCurveTo(mouthW*.55,lipTop+h*.09,-mouthW*.55,lipTop+h*.09);
+      c.closePath();
+      c.fill();
+      c.globalAlpha = 1;
+    }
+
+    const lip = c.createLinearGradient(0,y-h*.025,0,y+h*.065);
+    lip.addColorStop(0,"#b76c6b");
+    lip.addColorStop(.45,"#dc8887");
+    lip.addColorStop(1,"#9f5255");
+
+    c.fillStyle = lip;
+    c.beginPath();
+    c.moveTo(-mouthW,y);
+    c.quadraticCurveTo(-mouthW*.44,y-h*.04,0,y-h*.065 - smile*h*.018);
+    c.quadraticCurveTo(mouthW*.44,y-h*.04,mouthW,y);
+    c.quadraticCurveTo(mouthW*.62,y+h*.025,0,y+h*.045);
+    c.quadraticCurveTo(-mouthW*.62,y+h*.025,-mouthW,y);
+    c.fill();
+
+    if(smile > .18){
+      c.strokeStyle = rgba("#683638",.50);
+      c.lineWidth = Math.max(1,w*.009);
+      c.beginPath();
+      c.moveTo(-mouthW*.92,y+h*.005);
+      c.quadraticCurveTo(0,y+h*.13*smile,mouthW*.92,y+h*.005);
+      c.stroke();
+    }
+
+    c.restore();
+  }
+
+  function drawBeard(c,w,h,cfg){
+    if(cfg.beard === "none") return;
+
+    c.save();
+    c.globalAlpha = cfg.beard === "stubble" ? .20 : .40;
+
+    const beardBase = mixColors(cfg.hairColor,"#181818",.22);
+    c.fillStyle = beardBase;
+
+    const y = h*.30;
+    const beardW = w*.37;
+    const beardH = h*.26;
+
+    if(cfg.beard === "full"){
+      c.beginPath();
+      c.moveTo(-beardW,y);
+      c.quadraticCurveTo(-beardW*.94,y+h*.13,-beardW*.60,y+h*.24);
+      c.quadraticCurveTo(-beardW*.25,y+h*.36,0,y+h*.40);
+      c.quadraticCurveTo(beardW*.25,y+h*.36,beardW*.60,y+h*.24);
+      c.quadraticCurveTo(beardW*.94,y+h*.13,beardW,y);
+      c.quadraticCurveTo(beardW*.70,y+h*.12,0,y+h*.18);
+      c.quadraticCurveTo(-beardW*.70,y+h*.12,-beardW,y);
+      c.closePath();
+      c.fill();
+    }else if(cfg.beard === "goatee"){
+      c.beginPath();
+      c.moveTo(-beardW*.38,y+h*.02);
+      c.quadraticCurveTo(-beardW*.26,y+h*.26,0,y+h*.32);
+      c.quadraticCurveTo(beardW*.26,y+h*.26,beardW*.38,y+h*.02);
+      c.quadraticCurveTo(beardW*.15,y+h*.18,0,y+h*.26);
+      c.quadraticCurveTo(-beardW*.15,y+h*.18,-beardW*.38,y+h*.02);
+      c.fill();
+    }else if(cfg.beard === "chin"){
+      c.beginPath();
+      c.moveTo(-beardW*.30,y+h*.10);
+      c.quadraticCurveTo(-beardW*.12,y+h*.27,0,y+h*.33);
+      c.quadraticCurveTo(beardW*.12,y+h*.27,beardW*.30,y+h*.10);
+      c.quadraticCurveTo(beardW*.15,y+h*.23,0,y+h*.27);
+      c.quadraticCurveTo(-beardW*.15,y+h*.23,-beardW*.30,y+h*.10);
+      c.fill();
+    }else{
+      c.beginPath();
+      c.arc(0,y+h*.09,beardW*.78,h*.12,Math.PI*2);
+      c.fill();
+    }
+
+    if(cfg.beard !== "stubble"){
+      c.globalAlpha *= .34;
+      c.fillStyle = "#fff";
+      for(let i=0;i<9;i++){
+        const px = -beardW + (i/8)*(beardW*2);
+        c.beginPath();
+        c.arc(px,y+h*.20+(i%3)*h*.018,w*.008,0,Math.PI*2);
+        c.fill();
+      }
+    }
+
+    c.restore();
+  }
+
+  function drawMoustache(c,w,h,cfg){
+    if(cfg.moustache === "none") return;
+
+    c.save();
+    c.fillStyle = mixColors(cfg.hairColor,"#151515",.25);
+    const y = h*.265;
+    const mw = cfg.moustache === "thin" ? w*.13 : w*.17;
+    const mh = cfg.moustache === "thin" ? h*.028 : h*.042;
+
+    c.beginPath();
+    c.moveTo(0,y);
+    c.quadraticCurveTo(-mw*.35,y-mh*1.1,-mw,y-mh*.12);
+    c.quadraticCurveTo(-mw*.70,y+mh,0,y+mh*.25);
+    c.quadraticCurveTo(mw*.70,y+mh,mw,y-mh*.12);
+    c.quadraticCurveTo(mw*.35,y-mh*1.1,0,y);
+    c.fill();
+    c.restore();
+  }
+
+  function drawHair(c,w,h,cfg,rotationY=0){
+    if(cfg.hair === "none") return;
+
+    const colors = hairColors(cfg.hairColor);
+    c.save();
+
+    const hairTop = -h*.48;
+
+    if(cfg.hair==="short"){
+      c.fillStyle = colors.main;
+      c.beginPath();
+      c.moveTo(-w*.50,-h*.18);
+      c.quadraticCurveTo(-w*.56,-h*.43,-w*.30,hairTop*.95);
+      c.quadraticCurveTo(0,-h*.58,w*.30,hairTop*.95);
+      c.quadraticCurveTo(w*.56,-h*.43,w*.50,-h*.18);
+      c.lineTo(w*.40,-h*.34);
+      c.quadraticCurveTo(0,-h*.46,-w*.40,-h*.34);
+      c.closePath();
+      c.fill();
+    }
+
+    if(cfg.hair==="bob"){
+      c.fillStyle = colors.main;
+      c.beginPath();
+      c.moveTo(-w*.56,-h*.18);
+      c.quadraticCurveTo(-w*.55,-h*.48,-w*.25,-h*.57);
+      c.quadraticCurveTo(0,-h*.65,w*.30,-h*.56);
+      c.quadraticCurveTo(w*.56,-h*.48,w*.56,-h*.05);
+      c.lineTo(w*.40,h*.26);
+      c.lineTo(w*.30,h*.05);
+      c.lineTo(-w*.30,h*.05);
+      c.lineTo(-w*.40,h*.26);
+      c.closePath();
+      c.fill();
+    }
+
+    if(cfg.hair==="sport"){
+      c.fillStyle = colors.main;
+      c.beginPath();
+      c.moveTo(-w*.50,-h*.24);
+      c.quadraticCurveTo(-w*.44,-h*.55,0,-h*.59);
+      c.quadraticCurveTo(w*.36,-h*.56,w*.52,-h*.28);
+      c.lineTo(w*.39,-h*.38);
+      c.quadraticCurveTo(0,-h*.48,-w*.42,-h*.36);
+      c.closePath();
+      c.fill();
+    }
+
+    if(cfg.hair==="wave"){
+      c.fillStyle = colors.main;
+      c.beginPath();
+      c.moveTo(-w*.52,-h*.20);
+      c.bezierCurveTo(-w*.48,-h*.52,-w*.14,-h*.64,w*.06,-h*.57);
+      c.bezierCurveTo(w*.28,-h*.64,w*.52,-h*.40,w*.50,-h*.16);
+      c.lineTo(w*.42,-h*.36);
+      c.bezierCurveTo(w*.15,-h*.28,w*.04,-h*.42,-w*.10,-h*.28);
+      c.bezierCurveTo(-w*.24,-h*.17,-w*.33,-h*.33,-w*.52,-h*.20);
+      c.closePath();
+      c.fill();
+    }
+
+    if(cfg.hair==="curl"){
+      c.fillStyle = colors.main;
+      for(let i=0;i<11;i++){
+        const a = -Math.PI + i*(Math.PI*2/10);
+        const px = Math.cos(a)*w*.42;
+        const py = -h*.38 + Math.sin(a)*h*.10;
+        c.beginPath();
+        c.arc(px,py,w*.10,0,Math.PI*2);
+        c.fill();
+      }
+      c.beginPath();
+      c.ellipse(0,-h*.44,w*.43,h*.16,0,Math.PI,Math.PI*2);
+      c.fill();
+    }
+
+    if(cfg.hair==="fringe"){
+      c.fillStyle = colors.main;
+      c.beginPath();
+      c.moveTo(-w*.52,-h*.16);
+      c.quadraticCurveTo(-w*.47,-h*.51,0,-h*.58);
+      c.quadraticCurveTo(w*.44,-h*.51,w*.52,-h*.15);
+      c.lineTo(w*.36,-h*.15);
+      c.quadraticCurveTo(w*.20,-h*.08,w*.06,-h*.24);
+      c.quadraticCurveTo(-w*.12,-h*.04,-w*.24,-h*.18);
+      c.quadraticCurveTo(-w*.38,-h*.10,-w*.52,-h*.16);
+      c.closePath();
+      c.fill();
+    }
+
+    if(cfg.hair==="slick"){
+      const g = c.createLinearGradient(-w*.32,-h*.53,w*.34,-h*.28);
+      g.addColorStop(0,colors.light);
+      g.addColorStop(.28,colors.main);
+      g.addColorStop(1,colors.dark);
+      c.fillStyle = g;
+      c.beginPath();
+      c.moveTo(-w*.52,-h*.17);
+      c.quadraticCurveTo(-w*.42,-h*.56,w*.16,-h*.58);
+      c.quadraticCurveTo(w*.48,-h*.52,w*.50,-h*.25);
+      c.quadraticCurveTo(w*.24,-h*.39,-w*.04,-h*.34);
+      c.quadraticCurveTo(-w*.28,-h*.29,-w*.52,-h*.17);
+      c.closePath();
+      c.fill();
+    }
+
+    const highlightAlpha = cfg.hair==="slick" ? .22 : .14;
+    c.fillStyle = rgba(colors.shine,highlightAlpha);
+    c.beginPath();
+    c.ellipse(-w*.15,-h*.48,w*.19,h*.035,-.2,0,Math.PI*2);
+    c.fill();
+
+    c.fillStyle = rgba("#fff",.06);
+    c.beginPath();
+    c.ellipse(w*.12,-h*.39,w*.25,h*.025,.12,0,Math.PI*2);
+    c.fill();
+
+    c.restore();
+  }
+
+  function drawGlasses(c,w,h,cfg){
+    if(cfg.glasses==="none") return;
+
+    c.save();
+
+    const color = cfg.glassesColor;
+    const frameW = w*.19;
+    const frameH = h*.095;
+    const y = -h*.085;
+    const gap = w*.03;
+
+    c.strokeStyle = color;
+    c.lineWidth = Math.max(1.5,w*.015);
+    c.fillStyle = rgba("#ffffff",.035);
+
+    if(cfg.glasses==="sport"){
+      c.beginPath();
+      c.moveTo(-w*.39,y);
+      c.quadraticCurveTo(-w*.29,y-frameH,-gap,y-frameH*.10);
+      c.quadraticCurveTo(-w*.02,y,w*0,y+frameH*.04);
+      c.quadraticCurveTo(w*.02,y,w*.39,y);
+      c.quadraticCurveTo(w*.29,y-frameH,gap,y-frameH*.10);
+      c.quadraticCurveTo(w*.02,y,w*0,y+frameH*.04);
+      c.stroke();
+      c.beginPath();
+      c.moveTo(-w*.38,y);
+      c.lineTo(-w*.47,y-h*.012);
+      c.moveTo(w*.38,y);
+      c.lineTo(w*.47,y-h*.012);
+      c.stroke();
+    }else{
+      const rr = cfg.glasses==="round" ? frameH : frameH*.28;
+
+      drawRoundedRect(c,-frameW,y-frameH,frameW*2,frameH*2,rr);
+      c.stroke();
+
+      drawRoundedRect(c,w*.02+gap,y-frameH,frameW*2,frameH*2,rr);
+      c.stroke();
+
+      c.beginPath();
+      c.moveTo(-gap,y);
+      c.lineTo(gap,y);
+      c.stroke();
+
+      c.beginPath();
+      c.moveTo(-frameW*2.05,y-frameH*.16);
+      c.lineTo(-w*.47,y-frameH*.05);
+      c.moveTo(frameW*2.05+w*.02,y-frameH*.16);
+      c.lineTo(w*.47,y-frameH*.05);
+      c.stroke();
+    }
+
+    c.restore();
+  }
+
+  function drawEarrings(c,w,h,cfg){
+    if(cfg.earrings==="none") return;
+
+    c.save();
+    c.fillStyle = "#f4c35c";
+    c.shadowColor = rgba("#000",.14);
+    c.shadowBlur = 5;
+
+    c.beginPath();
+    c.arc(-w*.49,h*.06,w*.024,0,Math.PI*2);
+    c.fill();
+
+    c.beginPath();
+    c.arc(w*.49,h*.06,w*.024,0,Math.PI*2);
+    c.fill();
+
+    c.restore();
+  }
+
+  function drawHeadwear(c,w,h,cfg){
+    if(cfg.headwear==="none") return;
+
+    c.save();
+    const hc = cfg.headwearColor;
+
+    if(cfg.headwear==="cap"){
+      c.fillStyle = hc;
+      c.beginPath();
+      c.ellipse(0,-h*.47,w*.48,h*.17,0,Math.PI,Math.PI*2);
+      c.fill();
+
+      c.beginPath();
+      c.ellipse(w*.10,-h*.31,w*.30,h*.05,.06,0,Math.PI*2);
+      c.fill();
+    }
+
+    if(cfg.headwear==="beanie"){
+      const g = c.createLinearGradient(0,-h*.62,0,-h*.32);
+      g.addColorStop(0,mixColors(hc,"#fff",.15));
+      g.addColorStop(1,mixColors(hc,"#000",.16));
+      c.fillStyle = g;
+      c.beginPath();
+      c.arc(0,-h*.28,w*.49,Math.PI,Math.PI*2);
+      c.closePath();
+      c.fill();
+
+      c.fillStyle = hc;
+      drawRoundedRect(c,-w*.47,-h*.37,w*.94,h*.085,w*.035);
+      c.fill();
+    }
+
+    if(cfg.headwear==="visor"){
+      c.fillStyle = hc;
+      c.beginPath();
+      c.ellipse(0,-h*.44,w*.46,h*.13,Math.PI,0);
+      c.fill();
+
+      c.beginPath();
+      c.moveTo(-w*.42,-h*.35);
+      c.quadraticCurveTo(0,-h*.20,w*.46,-h*.35);
+      c.quadraticCurveTo(0,-h*.25,-w*.42,-h*.35);
+      c.fill();
+    }
+
+    if(cfg.headwear==="crown"){
+      c.fillStyle = hc;
+      c.strokeStyle = rgba("#fff",.22);
+      c.lineWidth = Math.max(1,w*.009);
+
+      c.beginPath();
+      c.moveTo(-w*.30,-h*.50);
+      c.lineTo(-w*.20,-h*.70);
+      c.lineTo(-w*.04,-h*.53);
+      c.lineTo(w*.08,-h*.73);
+      c.lineTo(w*.19,-h*.51);
+      c.lineTo(w*.30,-h*.67);
+      c.lineTo(w*.34,-h*.44);
+      c.lineTo(-w*.34,-h*.44);
+      c.closePath();
+      c.fill();
+      c.stroke();
+    }
+
+    if(cfg.headwear==="bow"){
+      c.fillStyle = hc;
+      c.beginPath();
+      c.ellipse(-w*.16,-h*.51,w*.12,h*.07,-.25,0,Math.PI*2);
+      c.ellipse(w*.16,-h*.51,w*.12,h*.07,.25,0,Math.PI*2);
+      c.fill();
+
+      c.fillStyle = mixColors(hc,"#000",.16);
+      c.beginPath();
+      c.arc(0,-h*.51,w*.055,0,Math.PI*2);
+      c.fill();
+    }
+
+    c.restore();
+  }
+
+  function drawAvatar(c,cfg,w,h,options={}){
+    const tracking = options.tracking !== false;
+    const localSmooth = options.trackingData || smooth;
+
+    const oldSmooth = smooth;
+    if(!tracking && options.previewExpression){
+      smooth = Object.assign({},smooth,{
+        eyeL:.98,
+        eyeR:.98,
+        mouthOpen:.08,
+        smile:.25,
+        gazeX:0,
+        gazeY:0,
+        browL:.55,
+        browR:.55
+      });
+    }else if(!tracking){
+      smooth = Object.assign({},smooth,{
+        eyeL:1,
+        eyeR:1,
+        mouthOpen:0,
+        smile:0,
+        gazeX:0,
+        gazeY:0,
+        browL:.45,
+        browR:.45
+      });
+    }
+
+    c.save();
+    c.translate(0,h*.02);
+
+    drawBody(c,cfg,w,h);
+    drawNeck(c,cfg.skin,w,h);
+    drawEars(c,cfg.skin,w,h);
+    drawFace(c,cfg,w,h);
+
+    makeFacePath(c,cfg,w,h);
+
+    c.save();
+    c.clip();
+    drawHair(c,w,h,cfg);
+    c.restore();
+
+    drawEye(
+      c,-w*.21,-h*.105,w,h*.94?cfg:cfg,
+      cfg, // harmless placeholder replaced below
+      0,
+      0,
+      0,
+      "L"
+    );
+
+    /* Actual eyes */
+    drawEye(c,-w*.21,-h*.095,w,h,cfg,smooth.eyeL,smooth.gazeX,smooth.gazeY,"L");
+    drawEye(c,w*.21,-h*.095,w,h,cfg,smooth.eyeR,smooth.gazeX,smooth.gazeY,"R");
+
+    drawBrows(c,w,h,cfg);
+    drawNose(c,w,h,cfg);
+    drawBeard(c,w,h,cfg);
+    drawMoustache(c,w,h,cfg);
+    drawMouth(c,w,h,cfg);
+    drawGlasses(c,w,h,cfg);
+    drawEarrings(c,w,h,cfg);
+    drawHeadwear(c,w,h,cfg);
+
+    /* tiny face highlights */
+    c.fillStyle = rgba("#fff",.10);
+    c.beginPath();
+    c.ellipse(-w*.19,-h*.11,w*.08,h*.025,-.12,0,Math.PI*2);
+    c.fill();
+
+    c.restore();
+
+    if(!tracking){
+      smooth = oldSmooth;
+    }
+
+    void localSmooth;
+  }
+
+  /*
+   * The first harmless eye call above is removed by this wrapper.
+   * drawAvatarSafe is used by the application.
+   */
+  function drawAvatarSafe(c,cfg,w,h,options={}){
+    const saved = {
+      eyeL:smooth.eyeL,
+      eyeR:smooth.eyeR,
+      mouthOpen:smooth.mouthOpen,
+      smile:smooth.smile,
+      gazeX:smooth.gazeX,
+      gazeY:smooth.gazeY,
+      browL:smooth.browL,
+      browR:smooth.browR
+    };
+
+    if(!options.tracking){
+      smooth.eyeL = options.eyeL ?? 1;
+      smooth.eyeR = options.eyeR ?? 1;
+      smooth.mouthOpen = options.mouthOpen ?? .03;
+      smooth.smile = options.smile ?? .20;
+      smooth.gazeX = options.gazeX ?? 0;
+      smooth.gazeY = options.gazeY ?? 0;
+      smooth.browL = options.browL ?? .50;
+      smooth.browR = options.browR ?? .50;
+    }
+
+    c.save();
+    c.translate(0,h*.02);
+
+    drawBody(c,cfg,w,h);
+    drawNeck(c,cfg.skin,w,h);
+    drawEars(c,cfg.skin,w,h);
+    drawFace(c,cfg,w,h);
+
+    drawHair(c,w,h,cfg);
+    drawEye(c,-w*.21,-h*.095,w,h,cfg,smooth.eyeL,smooth.gazeX,smooth.gazeY,"L");
+    drawEye(c,w*.21,-h*.095,w,h,cfg,smooth.eyeR,smooth.gazeX,smooth.gazeY,"R");
+    drawBrows(c,w,h,cfg);
+    drawNose(c,w,h,cfg);
+    drawBeard(c,w,h,cfg);
+    drawMoustache(c,w,h,cfg);
+    drawMouth(c,w,h,cfg);
+    drawGlasses(c,w,h,cfg);
+    drawEarrings(c,w,h,cfg);
+    drawHeadwear(c,w,h,cfg);
+
+    c.fillStyle = rgba("#fff",.10);
+    c.beginPath();
+    c.ellipse(-w*.19,-h*.11,w*.08,h*.025,-.12,0,Math.PI*2);
+    c.fill();
+
+    c.restore();
+
+    if(!options.tracking){
+      Object.assign(smooth,saved);
+    }
+  }
+
+  function drawLiveAvatar(){
+    const placement = getAvatarPlacement();
+    if(!placement) return;
+
+    const p = placement;
+    const headW = p.faceW*1.80;
+    const headH = p.faceW*2.13;
+
+    ctx.save();
+
+    ctx.translate(p.x,p.y);
+
+    if(facingMode === "user"){
+      ctx.scale(-1,1);
+    }
+
+    ctx.rotate(p.rotation * .55);
+
+    const yawScale = 1 - Math.abs(smooth.yaw)*.055;
+    ctx.scale(yawScale,p.scale);
+
+    drawAvatarSafe(
+      ctx,
+      avatar,
+      headW*.50,
+      headH*.50,
+      {tracking:true}
+    );
+
+    ctx.restore();
+  }
+
+  /* ============================================================
+     MAIN RENDER LOOP
+     ============================================================ */
+
+  function drawAll(){
+    drawCoverVideo();
+
+    if(cameraStarted){
+      if(hasFace){
+        drawLiveAvatar();
+        setLooking(false);
+      }else{
+        setLooking(true);
+      }
+    }else{
+      ctx.fillStyle = "#050609";
+      ctx.fillRect(0,0,cameraCanvas.width,cameraCanvas.height);
+      setLooking(false);
+    }
+  }
+
+  async function renderLoop(now){
+    drawAll();
+    await detectLoop(now);
+    animationFrameId = requestAnimationFrame(renderLoop);
+  }
+
+  animationFrameId = requestAnimationFrame(renderLoop);
+
+  /* ============================================================
+     CAMERA SWITCHING
+     ============================================================ */
+
+  switchCameraBtn.addEventListener("click",async()=>{
+    if(!cameraStarted){
+      showToast("Start the camera first");
+      return;
+    }
+
+    if(isRecording){
+      await stopRecording();
+      showToast("Recording stopped before camera switch");
+    }
+
+    facingMode = facingMode === "user" ? "environment" : "user";
+
+    try{
+      await startCamera();
+      cameraLabel.textContent = facingMode === "user" ? "Front camera" : "Back camera";
+    }catch(err){
+      showToast("Camera switch failed");
+    }
   });
 
-  // Keep the preview responsive even before camera starts.
-  const idleLoop=()=>{if(startScreen.classList.contains('hidden'))return;drawAll();requestAnimationFrame(idleLoop)}; requestAnimationFrame(idleLoop);
+  /* ============================================================
+     RECORDING
+     ============================================================ */
+
+  function pickRecordingMime(){
+    const types = [
+      "video/webm;codecs=vp9,opus",
+      "video/webm;codecs=vp8,opus",
+      "video/webm",
+      "video/mp4"
+    ];
+
+    for(const type of types){
+      try{
+        if(MediaRecorder.isTypeSupported(type)) return type;
+      }catch(err){}
+    }
+    return "";
+  }
+
+  function makeRecordingFilename(mime){
+    const now = new Date();
+    const stamp = [
+      now.getFullYear(),
+      String(now.getMonth()+1).padStart(2,"0"),
+      String(now.getDate()).padStart(2,"0"),
+      "-",
+      String(now.getHours()).padStart(2,"0"),
+      String(now.getMinutes()).padStart(2,"0"),
+      String(now.getSeconds()).padStart(2,"0")
+    ].join("");
+
+    return `avatar-video-${stamp}.${mime.includes("mp4") ? "mp4" : "webm"}`;
+  }
+
+  function startRecording(){
+    if(!cameraStarted){
+      showToast("Start the camera first");
+      return;
+    }
+
+    if(!("MediaRecorder" in window)){
+      showToast("MediaRecorder is not supported here");
+      return;
+    }
+
+    if(!cameraCanvas.captureStream){
+      showToast("Canvas recording is not supported");
+      return;
+    }
+
+    const mime = pickRecordingMime();
+    if(!mime){
+      showToast("No supported recording format found");
+      return;
+    }
+
+    try{
+      const canvasStream = cameraCanvas.captureStream(30);
+      const tracks = [...canvasStream.getVideoTracks()];
+
+      if(stream){
+        const mic = stream.getAudioTracks()[0];
+        if(mic) tracks.push(mic);
+      }
+
+      const combined = new MediaStream(tracks);
+
+      mediaRecorder = new MediaRecorder(combined,{
+        mimeType:mime,
+        videoBitsPerSecond:7000000
+      });
+
+      recordedChunks = [];
+      recordingMime = mime;
+
+      mediaRecorder.ondataavailable = e=>{
+        if(e.data && e.data.size) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onerror = ()=>{
+        isRecording = false;
+        captureBtn.classList.remove("recording");
+        recordScaleWrap.classList.remove("show");
+        setTrackingState(hasFace ? "tracking" : "looking");
+        showToast("Recording failed");
+      };
+
+      mediaRecorder.onstop = handleRecordingStop;
+
+      mediaRecorder.start(200);
+      isRecording = true;
+      recordingStartedAt = Date.now();
+
+      captureBtn.classList.add("recording");
+      captureBtn.setAttribute("aria-label","Stop recording");
+      captureBtn.title = "Stop recording";
+
+      recordScaleWrap.classList.add("show");
+      setTrackingState("recording");
+      showToast("Recording started");
+    }catch(err){
+      showToast("Could not start recording");
+    }
+  }
+
+  async function stopRecording(){
+    if(!mediaRecorder || mediaRecorder.state === "inactive") return;
+
+    await new Promise(resolve=>{
+      const oldHandler = mediaRecorder.onstop;
+
+      mediaRecorder.onstop = ()=>{
+        try{
+          if(oldHandler) oldHandler();
+        }finally{
+          resolve();
+        }
+      };
+
+      try{
+        mediaRecorder.stop();
+      }catch(err){
+        resolve();
+      }
+    });
+  }
+
+  function handleRecordingStop(){
+    const chunks = recordedChunks.slice();
+    const mime = recordingMime || "video/webm";
+
+    isRecording = false;
+    captureBtn.classList.remove("recording");
+    captureBtn.setAttribute("aria-label","Start recording");
+    captureBtn.title = "Record video";
+    recordScaleWrap.classList.remove("show");
+    setTrackingState(hasFace ? "tracking" : "looking");
+
+    if(!chunks.length){
+      showToast("No video data was created");
+      return;
+    }
+
+    const blob = new Blob(chunks,{type:mime});
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = makeRecordingFilename(mime);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(()=>URL.revokeObjectURL(url),2500);
+    showToast("Video saved");
+    mediaRecorder = null;
+    recordedChunks = [];
+  }
+
+  captureBtn.addEventListener("click",()=>{
+    if(isRecording){
+      stopRecording();
+    }else{
+      startRecording();
+    }
+  });
+
+  recordScale.addEventListener("input",()=>{
+    runtimeScale = Number(recordScale.value)/100;
+    recordScaleValue.textContent = `${recordScale.value}%`;
+  });
+
+  /* ============================================================
+     CAROUSEL
+     ============================================================ */
+
+  function allCarouselItems(){
+    const presetItems = PRESETS.map(p=>({
+      id:p.id,
+      name:p.name,
+      config:normalizeAvatar(p.config),
+      saved:false,
+      default:false
+    }));
+
+    const savedItems = savedAvatars.map(item=>({
+      id:item.id,
+      name:item.name,
+      config:normalizeAvatar(item.config),
+      saved:true,
+      default:item.id === defaultAvatarId
+    }));
+
+    return [...presetItems,...savedItems];
+  }
+
+  function createMiniCanvas(config,width=78,height=96){
+    const c=document.createElement("canvas");
+    c.width=width*2;
+    c.height=height*2;
+    const cctx=c.getContext("2d");
+
+    cctx.scale(2,2);
+    cctx.fillStyle="#eceef1";
+    cctx.fillRect(0,0,width,height);
+
+    const bg = cctx.createLinearGradient(0,0,0,height);
+    bg.addColorStop(0,"#edf1f6");
+    bg.addColorStop(1,"#d9dde3");
+    cctx.fillStyle=bg;
+    cctx.fillRect(0,0,width,height);
+
+    cctx.save();
+    cctx.translate(width/2,height*.56);
+
+    const w = width*.55;
+    const h = height*.95;
+    drawAvatarSafe(cctx,normalizeAvatar(config),w,h,{tracking:false,smile:.2});
+    cctx.restore();
+
+    return c;
+  }
+
+  function buildCarousel(){
+    carouselTrack.innerHTML = "";
+
+    const items = allCarouselItems();
+
+    items.forEach(item=>{
+      const card=document.createElement("button");
+      card.type="button";
+      card.className="avatar-card";
+      card.title=item.name;
+      if(currentAvatarId === item.id) card.classList.add("active");
+
+      const thumb=createMiniCanvas(item.config,78,96);
+      card.appendChild(thumb);
+
+      const label=document.createElement("div");
+      label.className="card-label";
+      label.textContent=item.name;
+      card.appendChild(label);
+
+      if(item.saved && item.default){
+        const badge=document.createElement("div");
+        badge.className="default-badge";
+        badge.textContent="DEFAULT";
+        card.appendChild(badge);
+      }
+
+      card.addEventListener("click",()=>{
+        selectAvatar(item.id,item.config,item.saved);
+      });
+
+      carouselTrack.appendChild(card);
+    });
+  }
+
+  function selectAvatar(id,config,isSaved=false){
+    avatar = normalizeAvatar(deepClone(config));
+    currentAvatarId = id;
+    avatar.name = avatar.name || "Avatar";
+
+    if(isSaved){
+      const item=savedAvatars.find(a=>a.id===id);
+      if(item) avatar=normalizeAvatar(deepClone(item.config));
+    }
+
+    runtimeScale = clamp(Number(avatar.avatarScale || 1),.72,1.35);
+    recordScale.value = Math.round(runtimeScale*100);
+    recordScaleValue.textContent = `${recordScale.value}%`;
+
+    buildCarousel();
+    renderPanel();
+    showToast("Avatar selected");
+  }
+
+  function updateCurrentAvatar(mutator){
+    const next = normalizeAvatar(mutator(deepClone(avatar)));
+    avatar = next;
+
+    if(currentAvatarId && currentAvatarId !== "classic" &&
+       currentAvatarId !== "soft" &&
+       currentAvatarId !== "sport" &&
+       currentAvatarId !== "royal" &&
+       currentAvatarId !== "urban" &&
+       currentAvatarId !== "cute" &&
+       currentAvatarId !== "mono"){
+      const index=savedAvatars.findIndex(a=>a.id===currentAvatarId);
+      if(index>=0){
+        savedAvatars[index].config=deepClone(avatar);
+        savedAvatars[index].updatedAt=Date.now();
+        persistSaved();
+      }
+    }
+
+    runtimeScale=clamp(Number(avatar.avatarScale || 1),.72,1.35);
+    recordScale.value=Math.round(runtimeScale*100);
+    recordScaleValue.textContent=`${recordScale.value}%`;
+
+    buildCarousel();
+    renderPanel();
+  }
+
+  buildCarousel();
+
+  /* ============================================================
+     GENERIC OPTION BUILDERS
+     ============================================================ */
+
+  function optionCard(label,value,current,onClick,previewConfig){
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="option" + (value===current ? " active" : "");
+    btn.innerHTML = `
+      <div class="mini-wrap"></div>
+      <span>${escapeHtml(label)}</span>
+    `;
+
+    const mini = createMiniCanvas(normalizeAvatar(previewConfig || avatar),64,52);
+    btn.querySelector(".mini-wrap").appendChild(mini);
+
+    btn.addEventListener("click",onClick);
+    return btn;
+  }
+
+  function swatch(hex,current,onClick){
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="swatch" + (String(hex).toLowerCase()===String(current).toLowerCase() ? " active" : "");
+    btn.style.background=hex;
+    btn.title=hex;
+    btn.setAttribute("aria-label",`Select color ${hex}`);
+    btn.addEventListener("click",onClick);
+    return btn;
+  }
+
+  function escapeHtml(value){
+    return String(value)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
+  }
+
+  function section(title,subtitle=""){
+    const wrap=document.createElement("section");
+    wrap.className="editor-section";
+
+    const head=document.createElement("div");
+    head.className="section-head";
+    head.innerHTML=`
+      <div class="section-title">${escapeHtml(title)}</div>
+      ${subtitle ? `<div class="section-sub">${escapeHtml(subtitle)}</div>` : ""}
+    `;
+
+    wrap.appendChild(head);
+    return wrap;
+  }
+
+  function addSection(container,sec){
+    container.appendChild(sec);
+    return sec;
+  }
+
+  function addColorPicker(sectionEl,label,value,onChange){
+    const box=document.createElement("div");
+    box.className="control";
+    box.innerHTML=`
+      <div class="control-row">
+        <label>${escapeHtml(label)}</label>
+      </div>
+    `;
+
+    const input=document.createElement("input");
+    input.className="color-input";
+    input.type="color";
+    input.value=value;
+
+    box.querySelector(".control-row").appendChild(input);
+
+    input.addEventListener("input",()=>onChange(input.value));
+    sectionEl.appendChild(box);
+  }
+
+  function addRange(sectionEl,label,min,max,value,step,onChange,unit=""){
+    const box=document.createElement("div");
+    box.className="control";
+
+    const row=document.createElement("div");
+    row.className="control-row";
+
+    const labelEl=document.createElement("label");
+    labelEl.textContent=label;
+
+    const val=document.createElement("div");
+    val.className="value-badge";
+    val.textContent=`${value}${unit}`;
+
+    row.appendChild(labelEl);
+    row.appendChild(val);
+
+    const input=document.createElement("input");
+    input.type="range";
+    input.className="light-range";
+    input.min=min;
+    input.max=max;
+    input.step=step;
+    input.value=value;
+
+    input.addEventListener("input",()=>{
+      val.textContent=`${input.value}${unit}`;
+      onChange(Number(input.value));
+    });
+
+    box.appendChild(row);
+    box.appendChild(input);
+    sectionEl.appendChild(box);
+
+    return input;
+  }
+
+  function renderOptionGrid(sec,values,current,mutate,widthClass=""){
+    const grid=document.createElement("div");
+    grid.className="option-grid " + widthClass;
+
+    values.forEach(value=>{
+      const cfg=deepClone(avatar);
+      mutatePreviewConfig(cfg,value);
+
+      const card=optionCard(
+        LABELS[value] || value,
+        value,
+        current,
+        ()=>{
+          updateCurrentAvatar(cfg2=>{
+            mutatePreviewConfig(cfg2,value);
+            return cfg2;
+          });
+        },
+        cfg
+      );
+
+      grid.appendChild(card);
+    });
+
+    sec.appendChild(grid);
+  }
+
+  function mutatePreviewConfig(cfg,value){}
+
+  /* ============================================================
+     TABS
+     ============================================================ */
+
+  function renderPanel(){
+    panelScroll.innerHTML="";
+
+    if(currentTab==="looks") renderLookTab();
+    if(currentTab==="face") renderFaceTab();
+    if(currentTab==="eyes") renderEyesTab();
+    if(currentTab==="hair") renderHairTab();
+    if(currentTab==="style") renderStyleTab();
+    if(currentTab==="details") renderDetailsTab();
+    if(currentTab==="saved") renderSavedTab();
+  }
+
+  function renderLookTab(){
+    const container=panelScroll;
+
+    const previewSec=section("Avatar preview","Live renderer");
+    const preview=document.createElement("div");
+    preview.className="preview-card";
+
+    const c=createMiniCanvas(avatar,250,220);
+    preview.appendChild(c);
+    previewSec.appendChild(preview);
+
+    const badges=document.createElement("div");
+    badges.className="badge-row";
+    ["Face-aware","Blink","Smile","Eye direction","Head tilt"].forEach(text=>{
+      const b=document.createElement("span");
+      b.className="feature-badge";
+      b.textContent=text;
+      badges.appendChild(b);
+    });
+    previewSec.appendChild(badges);
+    addSection(container,previewSec);
+
+    const quickSec=section("Quick looks","One-tap styles");
+    const grid=document.createElement("div");
+    grid.className="quick-grid";
+
+    const quick=[
+      ["Natural","Soft 3D style","classic"],
+      ["Cartoon","Big expressive eyes","cute"],
+      ["Smart","Glasses + neat hair","urban"],
+      ["Friendly","Rounded cheerful look","soft"]
+    ];
+
+    quick.forEach(([name,desc,presetId])=>{
+      const btn=document.createElement("button");
+      btn.type="button";
+      btn.className="quick-btn";
+      btn.innerHTML=`<strong>${name}</strong><small>${desc}</small>`;
+      btn.addEventListener("click",()=>{
+        avatar=makePresetAvatar(presetId);
+        currentAvatarId=presetId;
+        runtimeScale=avatar.avatarScale;
+        buildCarousel();
+        renderPanel();
+        showToast(`${name} look applied`);
+      });
+      grid.appendChild(btn);
+    });
+
+    quickSec.appendChild(grid);
+    addSection(container,quickSec);
+
+    const scaleSec=section("Live size","Runtime overlay");
+    addRange(
+      scaleSec,
+      "Avatar size",
+      72,
+      135,
+      Math.round(runtimeScale*100),
+      1,
+      val=>{
+        runtimeScale=val/100;
+        avatar.avatarScale=runtimeScale;
+        recordScale.value=val;
+        recordScaleValue.textContent=`${val}%`;
+      },
+      "%"
+    );
+    addSection(container,scaleSec);
+  }
+
+  function renderFaceTab(){
+    const container=panelScroll;
+
+    const skinSec=section("Skin tone","Natural palette + custom");
+    const row=document.createElement("div");
+    row.className="swatches";
+
+    SKIN_PALETTE.forEach(color=>{
+      row.appendChild(swatch(color,avatar.skin,color=>{
+        updateCurrentAvatar(cfg=>({...cfg,skin:color}));
+      }));
+    });
+
+    skinSec.appendChild(row);
+
+    const custom=document.createElement("input");
+    custom.type="color";
+    custom.className="color-input";
+    custom.value=avatar.skin;
+    custom.style.marginTop="8px";
+    custom.title="Custom skin tone";
+    custom.addEventListener("input",()=>updateCurrentAvatar(cfg=>({...cfg,skin:custom.value})));
+    skinSec.appendChild(custom);
+
+    addSection(container,skinSec);
+
+    const faceSec=section("Face shape");
+    const grid=document.createElement("div");
+    grid.className="option-grid";
+
+    FACE_SHAPES.forEach(value=>{
+      const cfg=deepClone(avatar);
+      cfg.faceShape=value;
+      grid.appendChild(optionCard(
+        LABELS[value],
+        value,
+        avatar.faceShape,
+        ()=>updateCurrentAvatar(c=>({...c,faceShape:value})),
+        cfg
+      ));
+    });
+
+    faceSec.appendChild(grid);
+    addSection(container,faceSec);
+
+    const noseSec=section("Nose");
+    const noseGrid=document.createElement("div");
+    noseGrid.className="option-grid";
+
+    NOSES.forEach(value=>{
+      const cfg=deepClone(avatar);
+      cfg.nose=value;
+      noseGrid.appendChild(optionCard(
+        LABELS[value],
+        value,
+        avatar.nose,
+        ()=>updateCurrentAvatar(c=>({...c,nose:value})),
+        cfg
+      ));
+    });
+    noseSec.appendChild(noseGrid);
+    addSection(container,noseSec);
+
+    const mouthSec=section("Mouth");
+    const mouthGrid=document.createElement("div");
+    mouthGrid.className="option-grid";
+
+    MOUTHS.forEach(value=>{
+      const cfg=deepClone(avatar);
+      cfg.mouth=value;
+      mouthGrid.appendChild(optionCard(
+        LABELS[value],
+        value,
+        avatar.mouth,
+        ()=>updateCurrentAvatar(c=>({...c,mouth:value})),
+        cfg
+      ));
+    });
+    mouthSec.appendChild(mouthGrid);
+    addSection(container,mouthSec);
+
+    const beardSec=section("Beard");
+    const beardGrid=document.createElement("div");
+    beardGrid.className="option-grid";
+
+    BEARDS.forEach(value=>{
+      const cfg=deepClone(avatar);
+      cfg.beard=value;
+      beardGrid.appendChild(optionCard(
+        LABELS[value],
+        value,
+        avatar.beard,
+        ()=>updateCurrentAvatar(c=>({...c,beard:value})),
+        cfg
+      ));
+    });
+    beardSec.appendChild(beardGrid);
+    addSection(container,beardSec);
+
+    const moustSec=section("Moustache");
+    const moustGrid=document.createElement("div");
+    moustGrid.className="option-grid";
+
+    MOUSTACHES.forEach(value=>{
+      const cfg=deepClone(avatar);
+      cfg.moustache=value;
+      moustGrid.appendChild(optionCard(
+        LABELS[value],
+        value,
+        avatar.moustache,
+        ()=>updateCurrentAvatar(c=>({...c,moustache:value})),
+        cfg
+      ));
+    });
+    moustSec.appendChild(moustGrid);
+    addSection(container,moustSec);
+
+    const cheekSec=section("Cheeks");
+    addRange(
+      cheekSec,
+      "Cheek fullness",
+      0,100,
+      avatar.cheekFullness,
+      1,
+      val=>updateCurrentAvatar(cfg=>({...cfg,cheekFullness:val}))
+    );
+    addSection(container,cheekSec);
+  }
+
+  function renderEyesTab(){
+    const container=panelScroll;
+
+    const eyeSec=section("Eye shape");
+    const grid=document.createElement("div");
+    grid.className="option-grid";
+
+    EYES.forEach(value=>{
+      const cfg=deepClone(avatar);
+      cfg.eyeShape=value;
+
+      grid.appendChild(optionCard(
+        LABELS[value],
+        value,
+        avatar.eyeShape,
+        ()=>updateCurrentAvatar(c=>({...c,eyeShape:value})),
+        cfg
+      ));
+    });
+
+    eyeSec.appendChild(grid);
+    addSection(container,eyeSec);
+
+    const eyeColorSec=section("Eye color");
+    const sw=document.createElement("div");
+    sw.className="swatches";
+    EYE_PALETTE.forEach(color=>{
+      sw.appendChild(swatch(color,avatar.eyeColor,color=>{
+        updateCurrentAvatar(cfg=>({...cfg,eyeColor:color}));
+      }));
+    });
+    eyeColorSec.appendChild(sw);
+
+    const custom=document.createElement("input");
+    custom.type="color";
+    custom.className="color-input";
+    custom.value=avatar.eyeColor;
+    custom.style.marginTop="8px";
+    custom.addEventListener("input",()=>updateCurrentAvatar(cfg=>({...cfg,eyeColor:custom.value})));
+    eyeColorSec.appendChild(custom);
+
+    addSection(container,eyeColorSec);
+
+    const browSec=section("Eyebrows");
+    const browGrid=document.createElement("div");
+    browGrid.className="option-grid";
+
+    BROWS.forEach(value=>{
+      const cfg=deepClone(avatar);
+      cfg.eyebrow=value;
+      browGrid.appendChild(optionCard(
+        LABELS[value],
+        value,
+        avatar.eyebrow,
+        ()=>updateCurrentAvatar(c=>({...c,eyebrow:value})),
+        cfg
+      ));
+    });
+
+    browSec.appendChild(browGrid);
+    addSection(container,browSec);
+
+    const glassesSec=section("Glasses");
+    const gg=document.createElement("div");
+    gg.className="option-grid";
+
+    GLASSES.forEach(value=>{
+      const cfg=deepClone(avatar);
+      cfg.glasses=value;
+      gg.appendChild(optionCard(
+        LABELS[value],
+        value,
+        avatar.glasses,
+        ()=>updateCurrentAvatar(c=>({...c,glasses:value})),
+        cfg
+      ));
+    });
+
+    glassesSec.appendChild(gg);
+
+    const glassColor=document.createElement("input");
+    glassColor.type="color";
+    glassColor.className="color-input";
+    glassColor.value=avatar.glassesColor;
+    glassColor.style.marginTop="8px";
+    glassColor.addEventListener("input",()=>updateCurrentAvatar(cfg=>({...cfg,glassesColor:glassColor.value})));
+    glassesSec.appendChild(glassColor);
+
+    addSection(container,glassesSec);
+
+    const sizeSec=section("Eyes size");
+    addRange(
+      sizeSec,
+      "Eye size",
+      .82,
+      1.25,
+      avatar.eyeSize,
+      .01,
+      val=>updateCurrentAvatar(cfg=>({...cfg,eyeSize:val}))
+    );
+    addSection(container,sizeSec);
+  }
+
+  function renderHairTab(){
+    const container=panelScroll;
+
+    const hairSec=section("Hair");
+    const grid=document.createElement("div");
+    grid.className="option-grid";
+
+    HAIRS.forEach(value=>{
+      const cfg=deepClone(avatar);
+      cfg.hair=value;
+
+      grid.appendChild(optionCard(
+        LABELS[value],
+        value,
+        avatar.hair,
+        ()=>updateCurrentAvatar(c=>({...c,hair:value})),
+        cfg
+      ));
+    });
+
+    hairSec.appendChild(grid);
+    addSection(container,hairSec);
+
+    const colorSec=section("Hair color");
+    const sw=document.createElement("div");
+    sw.className="swatches";
+
+    HAIR_PALETTE.forEach(color=>{
+      sw.appendChild(swatch(color,avatar.hairColor,color=>{
+        updateCurrentAvatar(cfg=>({...cfg,hairColor:color}));
+      }));
+    });
+
+    colorSec.appendChild(sw);
+
+    const custom=document.createElement("input");
+    custom.type="color";
+    custom.className="color-input";
+    custom.value=avatar.hairColor;
+    custom.style.marginTop="8px";
+    custom.addEventListener("input",()=>updateCurrentAvatar(cfg=>({...cfg,hairColor:custom.value})));
+    colorSec.appendChild(custom);
+    addSection(container,colorSec);
+
+    const headSec=section("Headwear");
+    const headGrid=document.createElement("div");
+    headGrid.className="option-grid";
+
+    HEADWEAR.forEach(value=>{
+      const cfg=deepClone(avatar);
+      cfg.headwear=value;
+
+      headGrid.appendChild(optionCard(
+        LABELS[value],
+        value,
+        avatar.headwear,
+        ()=>updateCurrentAvatar(c=>({...c,headwear:value})),
+        cfg
+      ));
+    });
+
+    headSec.appendChild(headGrid);
+
+    const headColor=document.createElement("input");
+    headColor.type="color";
+    headColor.className="color-input";
+    headColor.value=avatar.headwearColor;
+    headColor.style.marginTop="8px";
+    headColor.addEventListener("input",()=>updateCurrentAvatar(cfg=>({...cfg,headwearColor:headColor.value})));
+    headSec.appendChild(headColor);
+    addSection(container,headSec);
+
+    const earSec=section("Earrings");
+    const earGrid=document.createElement("div");
+    earGrid.className="option-grid two";
+
+    EARRINGS.forEach(value=>{
+      const cfg=deepClone(avatar);
+      cfg.earrings=value;
+
+      earGrid.appendChild(optionCard(
+        LABELS[value],
+        value,
+        avatar.earrings,
+        ()=>updateCurrentAvatar(c=>({...c,earrings:value})),
+        cfg
+      ));
+    });
+
+    earSec.appendChild(earGrid);
+    addSection(container,earSec);
+  }
+
+  function renderStyleTab(){
+    const container=panelScroll;
+
+    const clothSec=section("Clothing");
+    const grid=document.createElement("div");
+    grid.className="option-grid";
+
+    CLOTHES.forEach(value=>{
+      const cfg=deepClone(avatar);
+      cfg.clothing=value;
+
+      grid.appendChild(optionCard(
+        LABELS[value],
+        value,
+        avatar.clothing,
+        ()=>updateCurrentAvatar(c=>({...c,clothing:value})),
+        cfg
+      ));
+    });
+
+    clothSec.appendChild(grid);
+    addSection(container,clothSec);
+
+    const colorSec=section("Clothing color");
+    const sw=document.createElement("div");
+    sw.className="swatches";
+
+    CLOTHING_PALETTE.forEach(color=>{
+      sw.appendChild(swatch(color,avatar.clothingColor,color=>{
+        updateCurrentAvatar(cfg=>({...cfg,clothingColor:color}));
+      }));
+    });
+
+    colorSec.appendChild(sw);
+
+    const custom=document.createElement("input");
+    custom.type="color";
+    custom.className="color-input";
+    custom.value=avatar.clothingColor;
+    custom.style.marginTop="8px";
+    custom.addEventListener("input",()=>updateCurrentAvatar(cfg=>({...cfg,clothingColor:custom.value})));
+    colorSec.appendChild(custom);
+
+    addSection(container,colorSec);
+
+    const blushSec=section("Cheek blush");
+    addRange(
+      blushSec,
+      "Blush intensity",
+      0,100,
+      avatar.blush,
+      1,
+      val=>updateCurrentAvatar(cfg=>({...cfg,blush:val}))
+    );
+    addSection(container,blushSec);
+  }
+
+  function renderDetailsTab(){
+    const container=panelScroll;
+
+    const previewSec=section("Large preview","Same avatar renderer as live mode");
+    const preview=document.createElement("div");
+    preview.className="preview-card";
+
+    const c=createMiniCanvas(avatar,300,290);
+    preview.appendChild(c);
+
+    previewSec.appendChild(preview);
+    addSection(container,previewSec);
+
+    const scaleSec=section("Default avatar size","Saved with this avatar");
+    addRange(
+      scaleSec,
+      "Default size",
+      72,135,
+      Math.round((avatar.avatarScale || 1)*100),
+      1,
+      val=>updateCurrentAvatar(cfg=>({...cfg,avatarScale:val/100})),
+      "%"
+    );
+    addSection(container,scaleSec);
+
+    const info=section("Interaction");
+    const p=document.createElement("div");
+    p.className="control";
+    p.innerHTML=`
+      <div class="desktop-only-note">
+        The avatar follows face position, head tilt, yaw, pitch, eye direction,
+        blinking, mouth movement and smiling. Tracking is smoothed to reduce jitter.
+      </div>
+    `;
+    info.appendChild(p);
+    addSection(container,info);
+
+    const saveSec=section("Save","Persist this design locally");
+    const saveBar=document.createElement("div");
+    saveBar.className="save-bar";
+
+    const saveBtn=document.createElement("button");
+    saveBtn.className="light-btn dark-btn";
+    saveBtn.textContent=currentAvatarId && isSavedId(currentAvatarId) ? "Update" : "Save avatar";
+    saveBtn.addEventListener("click",()=>saveCurrentAvatar(false));
+
+    const newBtn=document.createElement("button");
+    newBtn.className="light-btn";
+    newBtn.textContent="Save as new";
+    newBtn.addEventListener("click",()=>saveCurrentAvatar(true));
+
+    saveBar.append(saveBtn,newBtn);
+    saveSec.appendChild(saveBar);
+    addSection(container,saveSec);
+  }
+
+  function renderSavedTab(){
+    const container=panelScroll;
+
+    const actionSec=section("Saved avatars","Stored only on this device");
+    const actionBar=document.createElement("div");
+    actionBar.className="save-bar";
+
+    const currentBtn=document.createElement("button");
+    currentBtn.className="light-btn dark-btn";
+    currentBtn.textContent="Save current";
+
+    currentBtn.addEventListener("click",()=>saveCurrentAvatar(false));
+
+    const asNew=document.createElement("button");
+    asNew.className="light-btn";
+    asNew.textContent="Save as new";
+
+    asNew.addEventListener("click",()=>saveCurrentAvatar(true));
+
+    actionBar.append(currentBtn,asNew);
+    actionSec.appendChild(actionBar);
+    addSection(container,actionSec);
+
+    if(!savedAvatars.length){
+      const empty=document.createElement("div");
+      empty.className="empty";
+      empty.textContent="No saved avatars yet. Create a look and save it here.";
+      container.appendChild(empty);
+      return;
+    }
+
+    const listSec=section("Your avatars");
+
+    savedAvatars.forEach(item=>{
+      const card=document.createElement("div");
+      card.className="saved-card";
+
+      const thumb=document.createElement("div");
+      thumb.className="saved-thumb";
+      thumb.appendChild(createMiniCanvas(item.config,64,72));
+
+      const main=document.createElement("div");
+      main.className="saved-main";
+
+      const name=document.createElement("div");
+      name.className="saved-name";
+      name.textContent=item.name;
+
+      const meta=document.createElement("div");
+      meta.className="saved-meta";
+      meta.textContent=item.id===defaultAvatarId ? "Default avatar" : "Saved avatar";
+
+      const actions=document.createElement("div");
+      actions.className="saved-actions";
+
+      const use=document.createElement("button");
+      use.className="mini-btn dark";
+      use.textContent="Use";
+      use.addEventListener("click",()=>{
+        selectAvatar(item.id,item.config,true);
+        showToast("Avatar selected");
+      });
+
+      const edit=document.createElement("button");
+      edit.className="mini-btn";
+      edit.textContent="Edit";
+      edit.addEventListener("click",()=>{
+        avatar=normalizeAvatar(deepClone(item.config));
+        currentAvatarId=item.id;
+        currentTab="looks";
+        tabButtons.forEach(t=>t.classList.toggle("active",t.dataset.tab==="looks"));
+        renderPanel();
+        showToast("Editing avatar");
+      });
+
+      const def=document.createElement("button");
+      def.className="mini-btn";
+      def.textContent=item.id===defaultAvatarId ? "Default" : "Set default";
+      def.addEventListener("click",()=>{
+        defaultAvatarId=item.id;
+        persistSaved();
+        buildCarousel();
+        renderPanel();
+        showToast("Saved as new default avatar");
+      });
+
+      const del=document.createElement("button");
+      del.className="mini-btn danger";
+      del.textContent="Delete";
+      del.addEventListener("click",()=>{
+        if(!confirm(`Delete "${item.name}"?`)) return;
+
+        savedAvatars=savedAvatars.filter(a=>a.id!==item.id);
+
+        if(defaultAvatarId===item.id){
+          defaultAvatarId=null;
+          persistSaved();
+          showToast("Default avatar deleted");
+        }else{
+          persistSaved();
+          showToast("Avatar deleted");
+        }
+
+        if(currentAvatarId===item.id){
+          currentAvatarId="classic";
+          avatar=makePresetAvatar("classic");
+        }
+
+        buildCarousel();
+        renderPanel();
+      });
+
+      actions.append(use,edit,def,del);
+
+      main.append(name,meta,actions);
+      card.append(thumb,main);
+      listSec.appendChild(card);
+    });
+
+    addSection(container,listSec);
+  }
+
+  /* ============================================================
+     SAVE / UPDATE
+     ============================================================ */
+
+  function isSavedId(id){
+    return savedAvatars.some(item=>item.id===id);
+  }
+
+  function askName(defaultName){
+    const value=prompt("Avatar name:",defaultName || "My Avatar");
+    if(value === null) return null;
+
+    const trimmed=value.trim().slice(0,28);
+    return trimmed || "My Avatar";
+  }
+
+  function saveCurrentAvatar(saveAsNew){
+    const currentlySaved=isSavedId(currentAvatarId);
+
+    let target=null;
+
+    if(currentlySaved && !saveAsNew){
+      target=savedAvatars.find(a=>a.id===currentAvatarId);
+      if(!target) return;
+      const newName=askName(target.name);
+      if(newName===null) return;
+
+      target.name=newName;
+      target.config=normalizeAvatar(deepClone(avatar));
+      target.config.name=newName;
+      target.updatedAt=Date.now();
+
+      persistSaved();
+      buildCarousel();
+      renderPanel();
+      showToast("Avatar updated");
+      return;
+    }
+
+    const name=askName(avatar.name || "My Avatar");
+    if(name===null) return;
+
+    const id=`avatar-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    const config=normalizeAvatar(deepClone(avatar));
+    config.name=name;
+
+    const item={
+      id,
+      name,
+      config,
+      createdAt:Date.now(),
+      updatedAt:Date.now()
+    };
+
+    savedAvatars.unshift(item);
+    currentAvatarId=id;
+    avatar=deepClone(config);
+
+    const makeDefault=confirm("Make this your default avatar?");
+    if(makeDefault){
+      defaultAvatarId=id;
+    }
+
+    persistSaved();
+    buildCarousel();
+    renderPanel();
+
+    showToast(makeDefault ? "Saved as new default avatar" : "Avatar saved");
+  }
+
+  /* ============================================================
+     PANEL EVENTS / INITIALIZATION
+     ============================================================ */
+
+  panel.addEventListener("click",e=>{
+    const target=e.target.closest("[data-action]");
+    if(!target) return;
+  });
+
+  /* ============================================================
+     RESET / VISIBILITY
+     ============================================================ */
+
+  document.addEventListener("visibilitychange",()=>{
+    if(document.hidden && isRecording){
+      stopRecording();
+    }
+  });
+
+  window.addEventListener("beforeunload",()=>{
+    if(stream){
+      stream.getTracks().forEach(track=>track.stop());
+    }
+  });
+
+  /* ============================================================
+     INITIAL PREVIEW / FIRST PANEL
+     ============================================================ */
+
+  renderPanel();
+
 })();
 </script>
 </body>
