@@ -48,7 +48,29 @@
         }
 
         * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',system-ui,sans-serif; user-select:none; }
-        body { background:var(--bg); color:var(--text); overflow:hidden; touch-action:none; transition:background 0.3s, color 0.3s; }
+        body { background:var(--bg); color:var(--text); overflow:hidden; touch-action:manipulation; transition:background 0.3s, color 0.3s; }
+        #canvas-wrapper { touch-action:none; overscroll-behavior:none; }
+        #canvas-wrapper canvas { touch-action:none; }
+        .gesture-indicator { position:fixed; top:76px; left:50%; transform:translate(-50%,-8px); z-index:40; opacity:0; pointer-events:none; background:var(--panel); color:var(--text); border:1px solid var(--border); box-shadow:var(--shadow-sm); backdrop-filter:var(--glass); border-radius:22px; padding:7px 13px; font-size:11px; font-weight:700; transition:opacity .2s, transform .2s; }
+        .gesture-indicator.show { opacity:1; transform:translate(-50%,0); }
+        #gesture-help-modal { display:none; position:fixed; inset:0; z-index:1200; background:rgba(0,0,0,.55); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:18px; }
+        #gesture-help-modal.show { display:flex; }
+        #gesture-help-inner { width:min(430px,94vw); max-height:85vh; overflow:auto; background:var(--panel-solid); border:1px solid var(--border); border-radius:22px; box-shadow:var(--shadow); padding:22px; color:var(--text); }
+        #gesture-help-inner h3 { color:var(--primary); margin-bottom:6px; }
+        #gesture-help-inner .gh-sub { color:var(--text-muted); font-size:12px; margin-bottom:16px; }
+        .gesture-row { display:flex; gap:12px; align-items:center; padding:11px 8px; border-bottom:1px solid var(--border); }
+        .gesture-row:last-child { border-bottom:0; }
+        .gesture-icon { width:42px; height:42px; display:flex; align-items:center; justify-content:center; font-size:23px; border-radius:12px; background:var(--hover); flex:none; }
+        .gesture-row strong { display:block; font-size:13px; }
+        .gesture-row span { display:block; color:var(--text-muted); font-size:11px; margin-top:2px; line-height:1.4; }
+        .gesture-setting { margin-top:14px; padding:11px 12px; border:1px solid var(--border); background:var(--hover); border-radius:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+        .gesture-setting label { font-size:12px; font-weight:700; }
+        .gesture-close { width:100%; margin-top:16px; padding:10px; border:0; border-radius:11px; background:var(--primary); color:#fff; font-weight:700; cursor:pointer; }
+        #laser-color-panel { width:245px; left:50%; transform:translate(-50%,10px); }
+        #laser-color-panel .color-grid { grid-template-columns:repeat(6,1fr); }
+        #laser-color-preview { width:34px; height:34px; border-radius:50%; margin:0 auto 10px; border:2px solid var(--border); box-shadow:0 0 18px var(--laser-color,#ff0040); }
+        #laser-native-color { opacity:0; position:absolute; width:1px; height:1px; }
+        #laser-custom-btn { width:100%; margin-top:9px; padding:8px; border:1px solid var(--border); background:var(--hover); color:var(--text); border-radius:9px; font-weight:700; cursor:pointer; }
 
         #canvas-wrapper { position:absolute; top:0; left:0; width:100vw; height:100vh; z-index:1; }
 
@@ -153,6 +175,10 @@
         .color-swatch { width:28px; height:28px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:transform 0.1s, box-shadow 0.1s; }
         .color-swatch:hover { transform:scale(1.25); box-shadow:0 2px 8px rgba(0,0,0,0.25); }
         .color-swatch.active-swatch { border:2.5px solid var(--text); transform:scale(1.15); }
+        /* Improved selection hit area: the blue selection frame is a move surface, not a resize surface. */
+        .canvas-container .upper-canvas { touch-action:none; }
+        .shape-live-label { position:fixed; pointer-events:none; z-index:9998; padding:5px 9px; border-radius:999px; font-size:11px; font-weight:700; background:rgba(20,24,40,.82); color:#fff; backdrop-filter:blur(8px); opacity:0; transition:opacity .15s; }
+
 
         /* COLOR WHEEL */
         #color-wheel-wrap { display:flex; flex-direction:column; align-items:center; gap:8px; margin:10px 0 4px; }
@@ -177,10 +203,10 @@
             border-radius:10px; box-shadow:var(--shadow); z-index:200; pointer-events:auto;
             visibility:hidden; opacity:0; transition:opacity 0.2s; border:1px solid var(--border);
         }
-        #object-menu button { background:none; border:none; font-size:15px; padding:5px 8px; cursor:pointer; color:var(--text); border-radius:6px; transition:background 0.15s; }
-        #object-menu button:hover { background:var(--hover); }
+        #object-menu button { background:transparent; border:1px solid transparent; font-size:15px; padding:6px 9px; cursor:pointer; color:var(--text); border-radius:6px; transition:background 0.15s; }
+        #object-menu button:hover { background:var(--hover); border-color:var(--border); transform:translateY(-1px); }
         #obj-color-swatch {
-            width:26px; height:26px; border-radius:50%; border:2px solid var(--border);
+            width:30px; height:30px; border-radius:50%; border:2.5px solid var(--border);
             cursor:pointer; flex-shrink:0; align-self:center; margin:0 2px;
         }
 
@@ -277,7 +303,7 @@
         #btn-autosave.active { background:var(--success); color:#fff; border-color:var(--success); }
 
         /* LASER */
-        .laser-point { position:fixed; width:10px; height:10px; background:#ff0040; border-radius:50%; pointer-events:none; transition:opacity 0.4s, transform 0.4s; box-shadow:0 0 14px #ff0040; z-index:9999; }
+        .laser-point { position:fixed; width:10px; height:10px; background:var(--laser-color,#ff0040); border-radius:50%; pointer-events:none; transition:opacity 0.4s, transform 0.4s; box-shadow:0 0 14px var(--laser-color,#ff0040), 0 0 28px var(--laser-color,#ff0040); z-index:9999; }
 
         /* SHAPES SUBMENU */
         #shapes-submenu { left:50%; transform:translate(-50%,10px); min-width:260px; }
@@ -617,6 +643,8 @@
         <div id="object-menu">
             <div id="obj-color-swatch" title="Change color"></div>
             <button id="ctx-open-link" title="Open Link" style="display:none;color:var(--primary);"><i class="fa-solid fa-up-right-from-square"></i></button>
+            <button id="ctx-rotate-left" title="Rotate Left"><i class="fa-solid fa-rotate-left"></i></button>
+            <button id="ctx-rotate-right" title="Rotate Right"><i class="fa-solid fa-rotate-right"></i></button>
             <button id="ctx-mirror-x" title="Flip H"><i class="fa-solid fa-arrows-left-right"></i></button>
             <button id="ctx-mirror-y" title="Flip V"><i class="fa-solid fa-arrows-up-down"></i></button>
             <button id="ctx-copy" title="Copy"><i class="fa-regular fa-copy"></i></button>
@@ -694,6 +722,7 @@
                     <button class="btn" id="btn-shapes"><i class="fa-solid fa-shapes"></i></button>
                 </div>
                 <div class="sep" id="color-sep"></div>
+                <button class="btn" id="btn-gesture-help" title="Gesture Help"><i class="fa-solid fa-hand-pointer"></i></button>
                 <!-- COLOR CIRCLE -->
                 <div id="current-color-box" style="background:#5b6cf9; display:flex;" title="Color / Background">
                     <div class="color-inner" id="color-circle-inner" style="background:#5b6cf9;"></div>
@@ -731,7 +760,13 @@
             <div class="color-grid" style="grid-template-columns:repeat(5,1fr); margin-bottom:10px;">
                 <button class="btn shape-btn" data-shape="rect" title="Rectangle"><i class="fa-regular fa-square"></i></button>
                 <button class="btn shape-btn" data-shape="circle" title="Circle"><i class="fa-regular fa-circle"></i></button>
+                <button class="btn shape-btn" data-shape="ellipse" title="Ellipse"><i class="fa-solid fa-ellipsis"></i></button>
                 <button class="btn shape-btn" data-shape="triangle" title="Triangle"><i class="fa-solid fa-play" style="transform:rotate(-90deg)"></i></button>
+                <button class="btn shape-btn" data-shape="diamond" title="Diamond">◆</button>
+                <button class="btn shape-btn" data-shape="pentagon" title="Pentagon">⬟</button>
+                <button class="btn shape-btn" data-shape="hexagon" title="Hexagon">⬢</button>
+                <button class="btn shape-btn" data-shape="star" title="Star">★</button>
+                <button class="btn shape-btn" data-shape="parallelogram" title="Parallelogram">▱</button>
                 <button class="btn shape-btn" data-shape="line" title="Line"><i class="fa-solid fa-minus"></i></button>
                 <button class="btn shape-btn" data-shape="arrow" title="Arrow"><i class="fa-solid fa-arrow-right"></i></button>
             </div>
@@ -743,6 +778,8 @@
                 <button class="btn shape-btn shape-3d-btn" data-shape="cuboid" title="Cuboid / घनाभ" style="font-size:12px;width:auto;padding:6px;">📦 Cuboid</button>
                 <button class="btn shape-btn shape-3d-btn" data-shape="cylinder" title="Cylinder / बेलन" style="font-size:12px;width:auto;padding:6px;">🔴 Cylinder</button>
                 <button class="btn shape-btn shape-3d-btn" data-shape="cone" title="Cone / शंकु" style="font-size:12px;width:auto;padding:6px;">🔺 Cone</button>
+                <button class="btn shape-btn shape-3d-btn" data-shape="pyramid" title="Pyramid / पिरामिड" style="font-size:12px;width:auto;padding:6px;">🔻 Pyramid</button>
+                <button class="btn shape-btn shape-3d-btn" data-shape="prism" title="Prism / प्रिज्म" style="font-size:12px;width:auto;padding:6px;">🔷 Prism</button>
             </div>
         </div>
 
@@ -769,6 +806,29 @@
                 <button id="btn-set-local-bg">Page BG</button>
                 <button id="btn-set-global-bg">All Pages BG</button>
             </div>
+        </div>
+
+        <!-- Laser color popup -->
+        <div class="popup-menu" id="laser-color-panel">
+            <div class="color-sec">Laser / Red Dot Color</div>
+            <div id="laser-color-preview"></div>
+            <div class="color-grid" id="laser-colors-grid"></div>
+            <button id="laser-custom-btn"><i class="fa-solid fa-palette"></i> Custom Color</button>
+            <input type="color" id="laser-native-color" value="#ff0040">
+        </div>
+    </div>
+
+    <div class="gesture-indicator" id="gesture-indicator">✌ Pan / Pinch Zoom</div>
+
+    <div id="gesture-help-modal">
+        <div id="gesture-help-inner">
+            <h3><i class="fa-solid fa-hand-pointer"></i> Gesture Help</h3>
+            <div class="gh-sub">Fast controls for touch teaching-board use.</div>
+            <div class="gesture-row"><div class="gesture-icon">☝</div><div><strong>One Finger</strong><span>Draw, select, erase, shape or laser according to the active tool.</span></div></div>
+            <div class="gesture-row"><div class="gesture-icon">✌</div><div><strong>Two Fingers</strong><span>Pan the canvas and move both fingers together.</span></div></div>
+            <div class="gesture-row"><div class="gesture-icon">🤏</div><div><strong>Pinch</strong><span>Spread fingers to zoom in; bring them together to zoom out. Zoom stays centered on the gesture midpoint.</span></div></div>
+            <div class="gesture-row"><div class="gesture-icon">✌</div><div><strong>Two-Finger Navigation</strong><span>दो उंगलियों से pan और pinch zoom करें। Two-finger rotation disabled है।</span></div></div>
+            <button class="gesture-close" id="gesture-help-close">Done</button>
         </div>
     </div>
 
@@ -829,7 +889,7 @@ function zoomLevelToScale(level) {
 const App = {
     canvas: null, pages: [], currentPageIndex: 0,
     history: [], historyIndex: -1, isHistoryAction: false,
-    settings: { color: '#5b6cf9', size: 3, tool: 'select', theme: 'light', globalBgColor: null },
+    settings: { color: '#5b6cf9', size: 3, tool: 'select', theme: 'light', globalBgColor: null, laserColor: '#ff0040', gestureRotation: false, gestureHelpSeen: false },
     recentColors: ['#5b6cf9','#ef4444','#10b981','#f59e0b','#1a1d2e','#ffffff'],
     standardColors: ['#000000','#1a1d2e','#374151','#6b7280','#d1d5db','#ffffff',
                      '#fef08a','#ef4444','#f97316','#10b981','#22c55e','#06b6d4',
@@ -860,11 +920,32 @@ let AppData = { files: {}, folders: {} };
 // ============ INIT ============
 function init() {
     const hash = window.location.hash;
-    if (hash.startsWith('#view=')) {
-        const shareId = hash.slice(6);
-        launchViewer(shareId);
-        return;
+
+if (hash.startsWith('#view=')) {
+    const viewData = hash.slice(6);
+
+    // New share URL format:
+    // #view=Folder/Subfolder/Board?sid=SHARE_ID
+
+    let shareId = '';
+
+    if (viewData.includes('?sid=')) {
+        shareId = decodeURIComponent(
+            viewData.split('?sid=')[1]
+        );
     }
+
+    // Backward compatibility:
+    // Old links were:
+    // #view=SHARE_ID
+    if (!shareId) {
+        shareId = viewData;
+    }
+
+    launchViewer(shareId);
+    return;
+}
+    
 
     const wrapper = document.getElementById('canvas-wrapper');
     const el = document.getElementById('board');
@@ -890,7 +971,12 @@ function init() {
             App.canvas.renderAll();
         }
     });
-    restoreState(); setTool('select'); updateColorUI(App.settings.color);
+    restoreState();
+    restoreGesturePreferences();
+    initLaserColorPicker();
+    setTool('select');
+    updateColorUI(App.settings.color);
+    updateLaserColorUI(App.settings.laserColor);
     showHomeView(); renderHome();
     requestAnimationFrame(renderLoop);
     bindSaveConfirmModal(); bindShareModal(); bindPastePanel(); bindSlidePanel();
@@ -958,30 +1044,41 @@ function updateZoomDisplay() {
     display.style.color = lv > 0 ? 'var(--success)' : lv < 0 ? 'var(--danger)' : 'var(--primary)';
 }
 
+function applyUnifiedZoom(nextLevel, focalX, focalY) {
+    if (!App.canvas) return false;
+    const level = Math.max(MIN_ZOOM_LEVEL, Math.min(MAX_ZOOM_LEVEL, nextLevel));
+    const oldScale = App.canvas.getZoom();
+    const newScale = zoomLevelToScale(level);
+    const fx = Number.isFinite(focalX) ? focalX : App.canvas.getWidth() / 2;
+    const fy = Number.isFinite(focalY) ? focalY : App.canvas.getHeight() / 2;
+    if (Math.abs(newScale - oldScale) < 0.000001) return false;
+    App.canvas.zoomToPoint({ x: fx, y: fy }, newScale);
+    App.zoomLevel = level;
+    updateZoomDisplay();
+    updateBoardBgFill();
+    App.canvas.requestRenderAll();
+    return true;
+}
+
 function zoomIn() {
     if (App.zoomLevel >= MAX_ZOOM_LEVEL) { showToast('Maximum zoom reached (+15)'); return; }
-    App.zoomLevel++;
-    const scale = zoomLevelToScale(App.zoomLevel);
-    App.canvas.zoomToPoint({ x: App.canvas.width / 2, y: App.canvas.height / 2 }, scale);
-    updateZoomDisplay();
+    applyUnifiedZoom(App.zoomLevel + 1, App.canvas.width / 2, App.canvas.height / 2);
 }
-
 function zoomOut() {
     if (App.zoomLevel <= MIN_ZOOM_LEVEL) { showToast('Minimum zoom reached (-15)'); return; }
-    App.zoomLevel--;
-    const scale = zoomLevelToScale(App.zoomLevel);
-    App.canvas.zoomToPoint({ x: App.canvas.width / 2, y: App.canvas.height / 2 }, scale);
-    updateZoomDisplay();
-    // Ensure background stays visible
-    updateBoardBgFill();
+    applyUnifiedZoom(App.zoomLevel - 1, App.canvas.width / 2, App.canvas.height / 2);
 }
-
 function resetZoom() {
     App.zoomLevel = 0;
     App.canvas.setViewportTransform([1,0,0,1,0,0]);
     App.canvas.requestRenderAll();
     updateZoomDisplay();
     updateBoardBgFill();
+}
+function wheelZoom(deltaY, cx, cy) {
+    const next = deltaY < 0 ? App.zoomLevel + 1 : App.zoomLevel - 1;
+    if (next > MAX_ZOOM_LEVEL || next < MIN_ZOOM_LEVEL) return;
+    applyUnifiedZoom(next, cx, cy);
 }
 
 // Mouse wheel zoom within -15..+15 levels
@@ -1042,37 +1139,65 @@ function eraseAtPointElement(canvasX, canvasY) {
 
 // Path eraser: erases area within radius for path objects only (not text/image/video/link)
 function eraseAtPointPath(canvasX, canvasY) {
-    const sz = getEraserSize();
-    const objects = App.canvas.getObjects().filter(o => isErasableObject(o));
+    const radius = Math.max(5, getEraserSize() / 2);
     let changed = false;
-    objects.forEach(obj => {
-        if (obj.type === 'path') {
-            const br = obj.getBoundingRect(true, true);
-            const dist = Math.hypot(
-                canvasX - (br.left + br.width/2),
-                canvasY - (br.top + br.height/2)
-            );
-            if (dist < br.width/2 + sz + br.height/2) {
-                const cx2 = br.left + br.width/2, cy2 = br.top + br.height/2;
-                const inRadius = Math.hypot(canvasX - cx2, canvasY - cy2) < sz * 1.2;
-                if (inRadius && br.width < sz * 3 && br.height < sz * 3) {
-                    App.canvas.remove(obj); changed = true;
-                } else {
-                    erasePathSegments(obj, canvasX, canvasY, sz);
-                    changed = true;
-                }
-            }
-        } else {
-            // For non-path drawn shapes, do bounding box erase
-            const br = obj.getBoundingRect(true, true);
-            const half = sz;
-            if (br.left < canvasX + half && br.left + br.width > canvasX - half &&
-                br.top < canvasY + half && br.top + br.height > canvasY - half) {
-                App.canvas.remove(obj); changed = true;
-            }
+    const objects = App.canvas.getObjects().filter(o => o && o.type === 'path' && isErasableObject(o));
+    objects.forEach(obj => { if (erasePathByDistance(obj, canvasX, canvasY, radius)) changed = true; });
+    if (changed) { App.canvas.requestRenderAll(); triggerAutosave(); }
+}
+
+function _pathPointDistance(ax, ay, bx, by, px, py) {
+    const dx = bx - ax, dy = by - ay;
+    if (dx === 0 && dy === 0) return Math.hypot(px - ax, py - ay);
+    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
+function _sampleFabricPath(obj) {
+    const pts = [];
+    const m = obj.calcTransformMatrix();
+    let cur = {x:0,y:0}, subStart = null;
+    const add = (x,y) => { const q = fabric.util.transformPoint({x,y}, m); pts.push({x:q.x,y:q.y}); cur={x,y}; };
+    for (const seg of (obj.path || [])) {
+        const cmd = seg[0];
+        if (cmd === 'M') { add(seg[1],seg[2]); subStart={x:seg[1],y:seg[2]}; }
+        else if (cmd === 'L') {
+            const x=seg[1], y=seg[2], steps=Math.max(2,Math.ceil(Math.hypot(x-cur.x,y-cur.y)/5));
+            for(let i=1;i<=steps;i++) add(cur.x+(x-cur.x)*i/steps,cur.y+(y-cur.y)*i/steps);
+        } else if (cmd === 'C') {
+            const p0={...cur}, p1={x:seg[1],y:seg[2]}, p2={x:seg[3],y:seg[4]}, p3={x:seg[5],y:seg[6]};
+            const len=Math.hypot(p3.x-p0.x,p3.y-p0.y)+Math.hypot(p2.x-p1.x,p2.y-p1.y); const steps=Math.max(6,Math.ceil(len/5));
+            for(let i=1;i<=steps;i++){const t=i/steps,u=1-t; add(u*u*u*p0.x+3*u*u*t*p1.x+3*u*t*t*p2.x+t*t*t*p3.x,u*u*u*p0.y+3*u*u*t*p1.y+3*u*t*t*p2.y+t*t*t*p3.y);}
+        } else if (cmd === 'Q') {
+            const p0={...cur}, p1={x:seg[1],y:seg[2]}, p2={x:seg[3],y:seg[4]}; const steps=Math.max(5,Math.ceil(Math.hypot(p2.x-p0.x,p2.y-p0.y)/5));
+            for(let i=1;i<=steps;i++){const t=i/steps,u=1-t; add(u*u*p0.x+2*u*t*p1.x+t*t*p2.x,u*u*p0.y+2*u*t*p1.y+t*t*p2.y);}
         }
+    }
+    return pts;
+}
+
+function erasePathByDistance(obj, cx, cy, radius) {
+    const pts = _sampleFabricPath(obj);
+    if (pts.length < 2) return false;
+    const hit = new Array(pts.length).fill(false);
+    const strokeHalf = Math.max(1, (obj.strokeWidth || 1) * Math.max(obj.scaleX || 1, obj.scaleY || 1) / 2);
+    const extra = radius + strokeHalf;
+    for (let i=0;i<pts.length;i++) hit[i] = Math.hypot(pts[i].x-cx, pts[i].y-cy) <= extra;
+    for (let i=0;i<pts.length-1;i++) if (_pathPointDistance(pts[i].x,pts[i].y,pts[i+1].x,pts[i+1].y,cx,cy)<=extra) hit[i]=hit[i+1]=true;
+    if (!hit.some(Boolean)) return false;
+    const groups=[]; let g=[];
+    pts.forEach((p,i)=>{ if(!hit[i]) g.push(p); else { if(g.length>=2) groups.push(g); g=[]; }});
+    if(g.length>=2) groups.push(g);
+    const inv=fabric.util.invertTransform(obj.calcTransformMatrix());
+    App.canvas.remove(obj);
+    groups.forEach(points=>{
+        const local=points.map(p=>fabric.util.transformPoint(p,inv));
+        const d='M '+local.map((p,i)=>(i?'L ':'')+p.x.toFixed(2)+' '+p.y.toFixed(2)).join(' ');
+        const n=new fabric.Path(d,{stroke:obj.stroke,strokeWidth:obj.strokeWidth,fill:'transparent',strokeLineCap:obj.strokeLineCap||'round',strokeLineJoin:obj.strokeLineJoin||'round',strokeDashArray:obj.strokeDashArray?obj.strokeDashArray.slice():undefined,opacity:obj.opacity,selectable:true,evented:true});
+        n.set({left:obj.left,top:obj.top,scaleX:obj.scaleX,scaleY:obj.scaleY,angle:obj.angle,flipX:obj.flipX,flipY:obj.flipY,originX:obj.originX,originY:obj.originY});
+        App.canvas.add(n);
     });
-    if (changed) { App.canvas.requestRenderAll(); }
+    return true;
 }
 
 function erasePathSegments(pathObj, cx, cy, radius) {
@@ -1223,7 +1348,7 @@ function _onShapeMouseUp(opt) {
     const ptr = App.canvas.getPointer(opt.e);
     _shapeDrawing = false;
     if (App.shapePreview) { App.canvas.remove(App.shapePreview); App.shapePreview = null; }
-    const is3D = ['sphere','hemisphere','cube','cuboid','cylinder','cone'].includes(App.drawingShape);
+    const is3D = ['sphere','hemisphere','cube','cuboid','cylinder','cone','pyramid','prism'].includes(App.drawingShape);
     if (is3D) _finalizeShape3D(_shapeStart.x, _shapeStart.y, ptr.x, ptr.y);
     else _finalizeShape(_shapeStart.x, _shapeStart.y, ptr.x, ptr.y);
     App.drawingShape = null; _shapeStart = null;
@@ -1232,92 +1357,58 @@ function _onShapeMouseUp(opt) {
     App.canvas.off('mouse:move', _onShapeMouseMove);
     App.canvas.off('mouse:up', _onShapeMouseUp);
     setTool('select');
+    setTimeout(() => { if (App.canvas.getActiveObject()) showObjectMenu(); }, 0);
 }
 
 // FIX: 3D preview now shows outline rectangle while drawing (live preview)
-function _createShapePreview(x1, y1, x2, y2) {
-    const color = App.settings.color, size = App.settings.size;
-    const opts = { fill:'transparent', stroke:color, strokeWidth:Math.max(1,size*0.5), selectable:false, evented:false, opacity:0.7 };
-    const w = Math.abs(x2-x1)||1, h = Math.abs(y2-y1)||1;
-    const lx = Math.min(x1,x2), ty = Math.min(y1,y2);
-    let s;
-    const shape = App.drawingShape;
-    const is3D = ['sphere','hemisphere','cube','cuboid','cylinder','cone'].includes(shape);
-
-    if (is3D) {
-        // For 3D shapes: show a dashed bounding box as preview
-        s = new fabric.Rect({
-            left: lx, top: ty, width: w, height: h,
-            fill: 'rgba(91,108,249,0.08)',
-            stroke: color, strokeWidth: Math.max(1, size * 0.5),
-            strokeDashArray: [8, 5],
-            selectable: false, evented: false, opacity: 0.8
-        });
-    } else if (shape === 'rect') {
-        s = new fabric.Rect({...opts, left:lx, top:ty, width:w, height:h});
-    } else if (shape === 'circle') {
-        const r = Math.min(w,h)/2;
-        s = new fabric.Circle({...opts, left:lx, top:ty, radius:r});
-    } else if (shape === 'triangle') {
-        s = new fabric.Triangle({...opts, left:lx, top:ty, width:w, height:h});
-    } else if (shape === 'line') {
-        s = new fabric.Line([x1,y1,x2,y2], {...opts});
-    } else if (shape === 'arrow') {
-        // FIX: Arrow preview as simple line
-        s = new fabric.Line([x1,y1,x2,y2], {...opts});
-    } else {
-        s = new fabric.Rect({...opts, left:lx, top:ty, width:w, height:h, strokeDashArray:[6,4]});
+function _shapePolygonPoints(cx, cy, rx, ry, sides, rotation=-Math.PI/2) {
+    const pts=[]; for(let i=0;i<sides;i++){const a=rotation+i*Math.PI*2/sides; pts.push({x:cx+rx*Math.cos(a),y:cy+ry*Math.sin(a)});} return pts;
+}
+function _makeArrowPath(x1,y1,x2,y2,size,color) {
+    const dx=x2-x1,dy=y2-y1,len=Math.max(1,Math.hypot(dx,dy)), a=Math.atan2(dy,dx);
+    const head=Math.min(Math.max(12,size*5),Math.max(12,len*.28)), spread=.48;
+    const p1=[x2-head*Math.cos(a-spread),y2-head*Math.sin(a-spread)], p2=[x2-head*Math.cos(a+spread),y2-head*Math.sin(a+spread)];
+    return `M ${x1} ${y1} L ${x2} ${y2} M ${x2} ${y2} L ${p1[0]} ${p1[1]} M ${x2} ${y2} L ${p2[0]} ${p2[1]}`;
+}
+function _make2DShape(shape,x1,y1,x2,y2,preview=false) {
+    const color=App.settings.color,size=Math.max(1,App.settings.size),w=Math.abs(x2-x1),h=Math.abs(y2-y1),lx=Math.min(x1,x2),ty=Math.min(y1,y2),cx=(x1+x2)/2,cy=(y1+y2)/2;
+    const opts={fill:preview?'rgba(91,108,249,.07)':'transparent',stroke:color,strokeWidth:preview?Math.max(1,size*.55):size,selectable:false,evented:false,opacity:preview?.72:1,strokeLineJoin:'round',strokeLineCap:'round'};
+    if(shape==='rect') return new fabric.Rect({...opts,left:lx,top:ty,width:Math.max(2,w),height:Math.max(2,h)});
+    if(shape==='circle') return new fabric.Ellipse({...opts,left:cx-Math.min(w,h)/2,top:cy-Math.min(w,h)/2,rx:Math.max(1,Math.min(w,h)/2),ry:Math.max(1,Math.min(w,h)/2)});
+    if(shape==='ellipse') return new fabric.Ellipse({...opts,left:lx,top:ty,rx:Math.max(1,w/2),ry:Math.max(1,h/2)});
+    if(shape==='triangle') return new fabric.Triangle({...opts,left:lx,top:ty,width:Math.max(2,w),height:Math.max(2,h)});
+    if(shape==='line') return new fabric.Line([x1,y1,x2,y2],opts);
+    if(shape==='arrow') return new fabric.Path(_makeArrowPath(x1,y1,x2,y2,size,color),opts);
+    const sides={diamond:4,pentagon:5,hexagon:6,star:10,parallelogram:4}[shape];
+    if(shape==='parallelogram'){
+        const skew=Math.min(w*.25,Math.max(12,h*.45)); const pts=[{x:lx+skew,y:ty},{x:lx+w,y:ty},{x:lx+w-skew,y:ty+h},{x:lx,y:ty+h}]; return new fabric.Polygon(pts,opts);
     }
-    if (s) { App.shapePreview = s; App.canvas.add(s); App.canvas.requestRenderAll(); }
-}
-
-function _updateShapePreview(x1, y1, x2, y2) {
-    if (App.shapePreview) { App.canvas.remove(App.shapePreview); App.shapePreview = null; }
-    _createShapePreview(x1, y1, x2, y2);
-}
-
-function _finalizeShape(x1, y1, x2, y2) {
-    const color = App.settings.color, size = App.settings.size;
-    const w = Math.abs(x2-x1)||10, h = Math.abs(y2-y1)||10;
-    const lx = Math.min(x1,x2), ty = Math.min(y1,y2);
-    const opts = { fill:'transparent', stroke:color, strokeWidth:size };
-    const shape = App.drawingShape;
-    let s;
-    if (shape === 'rect') {
-        s = new fabric.Rect({...opts, left:lx, top:ty, width:w, height:h});
-    } else if (shape === 'circle') {
-        const r = Math.min(w,h)/2;
-        s = new fabric.Circle({...opts, left:lx, top:ty, radius:r});
-    } else if (shape === 'triangle') {
-        s = new fabric.Triangle({...opts, left:lx, top:ty, width:w, height:h});
-    } else if (shape === 'line') {
-        s = new fabric.Line([x1,y1,x2,y2], opts);
-    } else if (shape === 'arrow') {
-        // FIX: Arrow - create as group of line + arrowhead lines using fabric.Path
-        const dx = x2 - x1, dy = y2 - y1;
-        const len = Math.sqrt(dx*dx + dy*dy) || 1;
-        const hLen = Math.min(20, len * 0.3);
-        const angle = Math.atan2(dy, dx);
-        const a1x = x2 - hLen * Math.cos(angle - 0.45);
-        const a1y = y2 - hLen * Math.sin(angle - 0.45);
-        const a2x = x2 - hLen * Math.cos(angle + 0.45);
-        const a2y = y2 - hLen * Math.sin(angle + 0.45);
-        // Build as single path string
-        const pathStr = `M ${x1} ${y1} L ${x2} ${y2} M ${x2} ${y2} L ${a1x} ${a1y} M ${x2} ${y2} L ${a2x} ${a2y}`;
-        s = new fabric.Path(pathStr, {
-            stroke: color,
-            strokeWidth: size,
-            fill: null,
-            strokeLineCap: 'round',
-            strokeLineJoin: 'round',
-            selectable: true,
-            evented: true
-        });
+    if(shape==='star'){
+        const pts=[]; const outer=Math.min(w,h)/2, inner=outer*.45; for(let i=0;i<10;i++){const r=i%2?inner:outer,a=-Math.PI/2+i*Math.PI/5;pts.push({x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)});} return new fabric.Polygon(pts,opts);
     }
-    if (s) { App.canvas.add(s); App.canvas.setActiveObject(s); saveHistory(); }
+    if(sides) return new fabric.Polygon(_shapePolygonPoints(cx,cy,Math.max(1,w/2),Math.max(1,h/2),sides),opts);
+    return new fabric.Rect({...opts,left:lx,top:ty,width:Math.max(2,w),height:Math.max(2,h)});
+}
+function _createShapePreview(x1,y1,x2,y2){
+    if(App.shapePreview){App.canvas.remove(App.shapePreview);App.shapePreview=null;}
+    const shape=App.drawingShape;
+    if(['sphere','hemisphere','cube','cuboid','cylinder','cone','pyramid','prism'].includes(shape)){
+        const w=Math.max(20,Math.abs(x2-x1)),h=Math.max(20,Math.abs(y2-y1)),lx=Math.min(x1,x2),ty=Math.min(y1,y2);
+        App.shapePreview=new fabric.Rect({left:lx,top:ty,width:w,height:h,fill:'rgba(91,108,249,.06)',stroke:App.settings.color,strokeWidth:Math.max(1,App.settings.size*.55),strokeDashArray:[8,5],selectable:false,evented:false,opacity:.8});
+    } else App.shapePreview=_make2DShape(shape,x1,y1,x2,y2,true);
+    if(App.shapePreview){App.canvas.add(App.shapePreview);App.canvas.requestRenderAll();}
+}
+let _shapePreviewRAF=0, _shapePreviewArgs=null;
+function _updateShapePreview(x1,y1,x2,y2){
+    _shapePreviewArgs={x1,y1,x2,y2};
+    if(_shapePreviewRAF)return;
+    _shapePreviewRAF=requestAnimationFrame(()=>{_shapePreviewRAF=0; const a=_shapePreviewArgs; if(a)_createShapePreview(a.x1,a.y1,a.x2,a.y2);});
+}
+function _finalizeShape(x1,y1,x2,y2){
+    if(Math.hypot(x2-x1,y2-y1)<5)return;
+    const s=_make2DShape(App.drawingShape,x1,y1,x2,y2,false); if(s){s.set({selectable:true,evented:true,hasControls:true,hasBorders:true,borderColor:'#4f7cff',transparentCorners:false});App.canvas.add(s);App.canvas.setActiveObject(s);App.canvas.requestRenderAll();saveHistory();}
 }
 
-// ============ 3D SHAPES via SVG ============
 function _finalizeShape3D(x1, y1, x2, y2) {
     const w = Math.max(60, Math.abs(x2-x1)), h = Math.max(60, Math.abs(y2-y1));
     const lx = Math.min(x1,x2), ty = Math.min(y1,y2);
@@ -1338,13 +1429,17 @@ function _finalizeShape3D(x1, y1, x2, y2) {
         svgStr = _svgCylinder(w, h, color, sw);
     } else if (shape === 'cone') {
         svgStr = _svgCone(w, h, color, sw);
+    } else if (shape === 'pyramid') {
+        svgStr = _svgPyramid(w, h, color, sw);
+    } else if (shape === 'prism') {
+        svgStr = _svgPrism(w, h, color, sw);
     }
     if (!svgStr) return;
     fabric.loadSVGFromString(svgStr, (objects, options) => {
         const group = fabric.util.groupSVGElements(objects, options);
         group.scaleToWidth(w); group.scaleToHeight(h);
-        group.set({ left: lx, top: ty, selectable: true, evented: true });
-        App.canvas.add(group); App.canvas.setActiveObject(group); saveHistory();
+        group.set({ left: lx, top: ty, selectable: true, evented: true, hasControls:true, hasBorders:true, borderColor:'#4f7cff', transparentCorners:false });
+        App.canvas.add(group); App.canvas.setActiveObject(group); App.canvas.requestRenderAll(); saveHistory();
     });
 }
 
@@ -1421,6 +1516,9 @@ function _svgCone(w, h, c, sw) {
     </svg>`;
 }
 
+function _svgPyramid(w,h,c,sw){const cx=w/2, top=sw+4, baseY=h-sw-4, rx=Math.max(18,w/2-sw*2), ry=Math.max(10,h*.16);return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><polygon points="${cx},${top} ${cx-rx},${baseY} ${cx+rx},${baseY}" fill="${c}" fill-opacity=".48" stroke="${c}" stroke-width="${sw}"/><ellipse cx="${cx}" cy="${baseY}" rx="${rx}" ry="${ry}" fill="${c}" fill-opacity=".28" stroke="${c}" stroke-width="${sw}"/><line x1="${cx}" y1="${top}" x2="${cx}" y2="${baseY}" stroke="${c}" stroke-width="${Math.max(1,sw*.65)}" opacity=".55"/></svg>`;}
+function _svgPrism(w,h,c,sw){const d=Math.min(w,h)*.22,p=sw+2,fy=d+p,by=p,rx=w-p*2,bot=h-p;return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><polygon points="${p},${fy} ${p+d},${by} ${w-p},${by} ${w-p-d},${fy}" fill="${c}" fill-opacity=".78" stroke="${c}" stroke-width="${sw}"/><polygon points="${p},${fy} ${w-p-d},${fy} ${w-p-d},${bot} ${p},${bot}" fill="${c}" fill-opacity=".46" stroke="${c}" stroke-width="${sw}"/><polygon points="${w-p-d},${fy} ${w-p},${by} ${w-p},${bot} ${w-p-d},${bot}" fill="${c}" fill-opacity=".62" stroke="${c}" stroke-width="${sw}"/></svg>`;}
+
 // ============ LASSO SELECT ============
 let _lassoPoints = [], _lassoActive = false;
 
@@ -1439,14 +1537,19 @@ function updateLasso(e) {
 }
 
 function finishLasso() {
-    if (!_lassoActive || _lassoPoints.length < 3) {
-        _lassoActive = false;
-        App.lassoCtx.clearRect(0, 0, App.lassoCanvas.width, App.lassoCanvas.height);
-        return;
-    }
+    if (!_lassoActive) return;
+
     _lassoActive = false;
-    selectObjectsInLasso();
+    const didSelect = _lassoPoints.length >= 3 && selectObjectsInLasso();
     App.lassoCtx.clearRect(0, 0, App.lassoCanvas.width, App.lassoCanvas.height);
+    _lassoPoints = [];
+
+    // Once the lasso selects an object, switch to the normal transform tool.
+    // This prevents the next drag from starting another lasso instead of moving the object.
+    if (didSelect) {
+        setTool('select');
+        showObjectMenu();
+    }
 }
 
 function getCanvasPoint(e) {
@@ -1474,7 +1577,7 @@ function drawLassoOverlay() {
 }
 
 function selectObjectsInLasso() {
-    if (_lassoPoints.length < 3) return;
+    if (_lassoPoints.length < 3) return false;
     const vpt = App.canvas.viewportTransform;
     const zoom = App.canvas.getZoom();
 
@@ -1496,7 +1599,7 @@ function selectObjectsInLasso() {
         }
     });
 
-    if (selected.length === 0) return;
+    if (selected.length === 0) return false;
     if (selected.length === 1) {
         App.canvas.setActiveObject(selected[0]);
     } else {
@@ -1504,6 +1607,7 @@ function selectObjectsInLasso() {
         App.canvas.setActiveObject(sel);
     }
     App.canvas.requestRenderAll();
+    return true;
 }
 
 function pointInPolygon(point, polygon) {
@@ -1520,6 +1624,9 @@ function pointInPolygon(point, polygon) {
 
 // ============ TOOLS ============
 function setTool(tool) {
+    // Avoid a stale pan state carrying over when changing tools.
+    App.isPanning = false;
+
     if (App.drawingShape && tool !== '_shape') {
         App.drawingShape = null;
         if (App.shapePreview) { App.canvas.remove(App.shapePreview); App.shapePreview = null; }
@@ -1551,11 +1658,26 @@ function setTool(tool) {
         }
     }
 
-    // FIX: Selection behavior - select tool should allow moving without pen marks
+    // Selection mode: move by dragging the object's bounding box and resize with corners.
     if (tool === 'select') {
-        App.canvas.selection = false; // click-only select, no box
+        App.isPanning = false;
+        App.canvas.selection = false; // no empty-canvas marquee; object hit-testing still works
         App.canvas.isDrawingMode = false;
-        App.canvas.getObjects().forEach(o => { o.selectable = true; o.evented = true; });
+        App.canvas.targetFindTolerance = 14;
+        App.canvas.getObjects().forEach(o => {
+            o.set({
+                selectable: true,
+                evented: true,
+                hasControls: true,
+                hasBorders: true,
+                borderColor: '#4f7cff',
+                cornerColor: '#4f7cff',
+                cornerStrokeColor: '#ffffff',
+                cornerSize: 18,
+                transparentCorners: false
+            });
+            o.setCoords();
+        });
     } else if (tool === 'lasso') {
         App.canvas.selection = false;
         App.canvas.isDrawingMode = false;
@@ -1590,6 +1712,8 @@ function setTool(tool) {
     document.getElementById('current-color-box').style.display = 'flex';
     document.getElementById('thickness-row').style.display = !['select','lasso','view','laser','eraser'].includes(tool) ? 'flex' : 'none';
     updateThicknessDisplay();
+    const colorBox = document.getElementById('current-color-box');
+    if (colorBox) { const activeColor = tool === 'laser' ? App.settings.laserColor : App.settings.color; colorBox.style.background = activeColor; document.getElementById('color-circle-inner').style.background = activeColor; }
     if (App.canvas.isDrawingMode) updateBrush();
     closeAllPopups();
 }
@@ -1640,7 +1764,7 @@ function applyBoardMode(mode) {
     document.getElementById('mb-view').classList.toggle('active', mode === 'view');
     document.getElementById('mb-edit').classList.toggle('active', mode === 'edit');
     App.canvas.isDrawingMode = false;
-    setTool(isEdit ? (App.settings.tool || 'select') : 'select');
+    setTool(App.settings.tool || 'select');
 }
 function switchBoardMode(mode) { applyBoardMode(mode); }
 
@@ -1701,18 +1825,91 @@ function openShareModal() {
 }
 function updateShareUI() {
     if (!App.currentFileId) return;
-    const file = AppData.files[App.currentFileId]; if (!file) return;
-    const enabled = !!file.shareEnabled;
-    const baseUrl = window.location.href.split('#')[0].split('?')[0];
-    const link = baseUrl + '#view=' + (file.shareId || '');
-    document.getElementById('share-link-input').value = link;
-    document.getElementById('share-status-text').innerText = enabled ? 'Link काम करेगी ✓' : 'Link काम नहीं करेगी';
-    document.getElementById('share-disabled-notice').style.display = enabled ? 'none' : 'block';
-    const qrDiv = document.getElementById('share-qr-div'); qrDiv.innerHTML = '';
-    if (_shareQrInstance) { _shareQrInstance = null; }
-    try { _shareQrInstance = new QRCode(qrDiv, { text: link, width: 160, height: 160, colorDark: enabled ? '#5b6cf9' : '#9ca3af', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M }); } catch(e) {}
-}
 
+    const file = AppData.files[App.currentFileId];
+    if (!file) return;
+
+    const enabled = !!file.shareEnabled;
+
+    // ------------------------------------------------------------
+    // BUILD COMPLETE FOLDER PATH
+    // Home
+    //   Folder
+    //      Subfolder
+    //          Board
+    // ------------------------------------------------------------
+    function getFolderPath(folderId) {
+        const path = [];
+        let currentId = folderId;
+
+        while (currentId) {
+            const folder = AppData.folders[currentId];
+            if (!folder) break;
+
+            path.unshift(folder.name);
+            currentId = folder.parentId;
+        }
+
+        return path;
+    }
+
+    const folderPath = getFolderPath(file.folderId);
+
+    // URL-safe path segments
+    const pathParts = [...folderPath, file.name]
+        .map(name => encodeURIComponent(String(name).trim()))
+        .filter(Boolean);
+
+    /*
+        Examples:
+
+        Board only:
+        #view=My%20Board?sid=id_xxx
+
+        One folder:
+        #view=Science/My%20Board?sid=id_xxx
+
+        Nested folder:
+        #view=Science/Physics/My%20Board?sid=id_xxx
+    */
+
+    const displayPath = pathParts.join('/');
+    const baseUrl = window.location.href.split('#')[0].split('?')[0];
+
+    const link =
+        baseUrl +
+        '#view=' +
+        displayPath +
+        '?sid=' +
+        encodeURIComponent(file.shareId || '');
+
+    document.getElementById('share-link-input').value = link;
+
+    document.getElementById('share-status-text').innerText =
+        enabled ? 'Link काम करेगी ✓' : 'Link काम नहीं करेगी';
+
+    document.getElementById('share-disabled-notice').style.display =
+        enabled ? 'none' : 'block';
+
+    // QR Code
+    const qrDiv = document.getElementById('share-qr-div');
+    qrDiv.innerHTML = '';
+
+    if (_shareQrInstance) {
+        _shareQrInstance = null;
+    }
+
+    try {
+        _shareQrInstance = new QRCode(qrDiv, {
+            text: link,
+            width: 160,
+            height: 160,
+            colorDark: enabled ? '#5b6cf9' : '#9ca3af',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    } catch(e) {}
+}
 // ============ PASTE PANEL ============
 function bindPastePanel() {
     document.getElementById('btn-paste-panel').onclick = e => {
@@ -1943,11 +2140,16 @@ function renderRecentColors() {
 }
 
 function selectColor(hex) {
-    App.settings.color = hex; updateColorUI(hex);
+    hex = normalizeHex(hex, App.settings.tool === 'laser' ? (App.settings.laserColor || '#ff0040') : (App.settings.color || '#5b6cf9'));
+    if (App.settings.tool === 'laser') {
+        setLaserColor(hex);
+    } else {
+        App.settings.color = hex; updateColorUI(hex); updateBrush(); updateThicknessDisplay();
+        if (App.settings.tool === 'select') applyColorToSelected(hex);
+    }
     if (!App.recentColors.includes(hex)) { App.recentColors.unshift(hex); if (App.recentColors.length > 6) App.recentColors.pop(); renderRecentColors(); }
-    updateBrush(); updateThicknessDisplay();
-    document.getElementById('hex-input').value = hex;
-    if (App.settings.tool === 'select') applyColorToSelected(hex);
+    const hi=document.getElementById('hex-input'); if(hi) hi.value=hex;
+    const ci=document.getElementById('color-circle-inner'); if(ci) ci.style.background=hex;
 }
 
 function updateColorUI(hex) {
@@ -1957,7 +2159,7 @@ function updateColorUI(hex) {
 }
 
 function closeAllPopups() {
-    ['shapes-submenu','color-picker-panel','url-input-panel','card-context-menu'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('show'); });
+    ['shapes-submenu','color-picker-panel','laser-color-panel','url-input-panel','card-context-menu'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('show'); });
     const om = document.getElementById('object-menu');
     om.style.visibility = 'hidden'; om.style.opacity = '0';
     document.getElementById('paste-panel').classList.remove('show');
@@ -2081,55 +2283,192 @@ let touchStartDist = 0, initialZoom = 1, pinchInProgress = false;
 function bindCanvasGestures() {
     const wrapper = document.getElementById('canvas-wrapper');
     const drawingTools = ['pen','dashed','magic','brush','highlighter'];
-    const isActiveEditBoard = () => document.getElementById('board-view').style.display !== 'none' && App.boardMode === 'edit';
-    const restoreDrawingMode = () => {
-        if (isActiveEditBoard() && drawingTools.includes(App.settings.tool)) {
+    const isActiveEditBoard = () => document.getElementById('board-view').style.display !== 'none';
+    const isCanvasTarget = e => {
+        const t = e.target;
+        return t === wrapper || t === App.canvas?.lowerCanvasEl || t === App.canvas?.upperCanvasEl ||
+               (t && t.tagName === 'CANVAS' && t.closest('#canvas-wrapper'));
+    };
+    const indicator = document.getElementById('gesture-indicator');
+
+    const gesture = {
+        mode: 'none',
+        pointers: new Map(),
+        startDistance: 0,
+        startAngle: 0,
+        startMid: {x:0,y:0},
+        startScale: 1,
+        startLevel: 0,
+        startVpt: [1,0,0,1,0,0],
+        rotationEnabled: false,
+        suppressUntilFreshPointer: false,
+        raf: 0,
+        pending: null
+    };
+    App.gesture = gesture;
+
+    const localPoint = p => {
+        const r = wrapper.getBoundingClientRect();
+        return { x: p.clientX - r.left, y: p.clientY - r.top };
+    };
+    const midpoint = (a,b) => ({x:(a.x+b.x)/2, y:(a.y+b.y)/2});
+    const distance = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);
+    const angle = (a,b) => Math.atan2(b.y-a.y,b.x-a.x);
+
+    function showGestureHint(text) {
+        indicator.textContent = text;
+        indicator.classList.add('show');
+        clearTimeout(App._gestureHintTimer);
+        App._gestureHintTimer = setTimeout(() => indicator.classList.remove('show'), 900);
+    }
+    function stopFabricDrawingSafely() {
+        if (!App.canvas) return;
+        App.canvas.isDrawingMode = false;
+        App.canvas.discardActiveObject();
+        App.canvas.requestRenderAll();
+        if (App.canvas.freeDrawingBrush) App.canvas.freeDrawingBrush._points = [];
+    }
+    function restoreToolAfterGesture() {
+        if (!isActiveEditBoard()) return;
+        if (drawingTools.includes(App.settings.tool)) {
             App.canvas.isDrawingMode = true;
             updateBrush();
         }
-    };
+    }
+    function snapshotGesture() {
+        const pts = Array.from(gesture.pointers.values());
+        if (pts.length !== 2) return false;
+        const a = localPoint(pts[0]), b = localPoint(pts[1]);
+        const mid = midpoint(a,b);
+        gesture.startDistance = Math.max(1, distance(a,b));
+        gesture.startAngle = angle(a,b);
+        gesture.startMid = mid;
+        gesture.startScale = App.canvas.getZoom();
+        gesture.startLevel = App.zoomLevel;
+        gesture.startVpt = App.canvas.viewportTransform.slice();
+        gesture.rotationEnabled = false;
+        return true;
+    }
+    function applyTwoFingerTransform() {
+        if (gesture.mode !== 'two' || gesture.pointers.size < 2) return;
+        const pts=Array.from(gesture.pointers.values());
+        const a=localPoint(pts[0]), b=localPoint(pts[1]), mid=midpoint(a,b);
+        const dist=Math.max(1,distance(a,b));
+        const ratio=dist/gesture.startDistance;
+        const targetScale=gesture.startScale*ratio;
+        let nextLevel=Math.round(Math.log(targetScale)/Math.log(1.15));
+        nextLevel=Math.max(MIN_ZOOM_LEVEL,Math.min(MAX_ZOOM_LEVEL,nextLevel));
+        const newScale=zoomLevelToScale(nextLevel), scaleRatio=newScale/gesture.startScale, base=gesture.startVpt;
+        const tx=gesture.startMid.x-(gesture.startMid.x-base[4])*scaleRatio+(mid.x-gesture.startMid.x);
+        const ty=gesture.startMid.y-(gesture.startMid.y-base[5])*scaleRatio+(mid.y-gesture.startMid.y);
+        App.canvas.setViewportTransform([newScale,0,0,newScale,tx,ty]);
+        App.zoomLevel=nextLevel; updateZoomDisplay(); updateBoardBgFill(); App.canvas.requestRenderAll();
+    }
+    function scheduleTwoFingerTransform() {
+        if (gesture.raf) return;
+        gesture.raf = requestAnimationFrame(() => { gesture.raf = 0; applyTwoFingerTransform(); });
+    }
+    function beginTwoFingerMode() {
+        stopFabricDrawingSafely();
+        gesture.mode = 'two';
+        gesture.suppressUntilFreshPointer = true;
+        snapshotGesture();
+        showGestureHint('✌ Pan / Pinch Zoom');
+    }
+    function endTwoFingerMode() {
+        gesture.mode = 'none';
+        gesture.startDistance = 0;
+        gesture.pointers.clear();
+        if (gesture.raf) { cancelAnimationFrame(gesture.raf); gesture.raf = 0; }
+        restoreToolAfterGesture();
+    }
 
+    // Pointer Events: primary path for modern touch/stylus/mouse browsers.
+    wrapper.addEventListener('pointerdown', e => {
+        if (!isActiveEditBoard() || !isCanvasTarget(e)) return;
+        if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1) return;
+        try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch (_) {}
+        gesture.pointers.set(e.pointerId, {clientX:e.clientX, clientY:e.clientY, pointerType:e.pointerType});
+        if (gesture.pointers.size >= 2 && (e.pointerType === 'touch' || Array.from(gesture.pointers.values()).some(p => p.pointerType === 'touch'))) {
+            beginTwoFingerMode();
+            e.preventDefault();
+            e.stopPropagation();
+        } else if (gesture.pointers.size === 1 && gesture.suppressUntilFreshPointer) {
+            // The first post-gesture touch is deliberately treated as a fresh gesture.
+            // Let Fabric receive this new pointerdown so drawing/selecting can restart normally.
+            gesture.suppressUntilFreshPointer = false;
+            gesture.mode = 'none';
+        }
+    }, {capture:true, passive:false});
+
+    wrapper.addEventListener('pointermove', e => {
+        const p = gesture.pointers.get(e.pointerId);
+        if (!p) return;
+        p.clientX = e.clientX; p.clientY = e.clientY;
+        if (gesture.mode === 'two') {
+            e.preventDefault();
+            e.stopPropagation();
+            scheduleTwoFingerTransform();
+        }
+    }, {capture:true, passive:false});
+
+    const pointerEnd = e => {
+        if (!gesture.pointers.has(e.pointerId)) return;
+        gesture.pointers.delete(e.pointerId);
+        try { wrapper.releasePointerCapture?.(e.pointerId); } catch (_) {}
+        if (gesture.mode === 'two') {
+            e.preventDefault();
+            e.stopPropagation();
+            if (gesture.pointers.size >= 2) {
+                snapshotGesture();
+            } else {
+                gesture.mode = 'none';
+                gesture.startDistance = 0;
+                gesture.suppressUntilFreshPointer = true;
+                restoreToolAfterGesture();
+            }
+        } else if (gesture.pointers.size === 0) {
+            gesture.mode = 'none';
+        }
+    };
+    wrapper.addEventListener('pointerup', pointerEnd, {capture:true, passive:false});
+    wrapper.addEventListener('pointercancel', pointerEnd, {capture:true, passive:false});
+    wrapper.addEventListener('pointerleave', e => {
+        if (e.pointerType === 'mouse' && gesture.pointers.has(e.pointerId)) pointerEnd(e);
+    }, {capture:true, passive:false});
+
+    // Touch fallback for older Safari/WebViews. Pointer events are suppressed when two fingers are active.
     wrapper.addEventListener('touchstart', e => {
-        if (!isActiveEditBoard()) return;
-        if (e.touches.length === 2) {
-            // Stop Fabric from turning the first finger of a pinch into a path.
-            pinchInProgress = true;
-            App.canvas.isDrawingMode = false;
-            App.canvas.isPanning = false;
-            touchStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-            initialZoom = App.canvas.getZoom();
-            e.stopPropagation();
-            e.preventDefault();
-        }
-    }, { passive: false, capture: true });
+        if (!isActiveEditBoard() || e.touches.length < 2) return;
+        beginTwoFingerMode();
+        e.preventDefault(); e.stopPropagation();
+    }, {capture:true, passive:false});
     wrapper.addEventListener('touchmove', e => {
-        if (isActiveEditBoard() && e.touches.length === 2 && touchStartDist > 0) {
-            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-            const newLevel = Math.round(Math.log(dist / touchStartDist * zoomLevelToScale(App.zoomLevel)) / Math.log(1.15));
-            const clampedLevel = Math.max(MIN_ZOOM_LEVEL, Math.min(MAX_ZOOM_LEVEL, newLevel));
-            App.zoomLevel = clampedLevel;
-            App.canvas.zoomToPoint({
-                x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-                y: (e.touches[0].clientY + e.touches[1].clientY) / 2
-            }, zoomLevelToScale(clampedLevel));
-            updateZoomDisplay(); updateBoardBgFill();
-            e.stopPropagation();
-            e.preventDefault();
+        if (isActiveEditBoard() && e.touches.length >= 2) {
+            if (gesture.pointers.size < 2) {
+                gesture.pointers.clear();
+                Array.from(e.touches).slice(0,2).forEach(t => gesture.pointers.set(t.identifier,{clientX:t.clientX,clientY:t.clientY,pointerType:'touch'}));
+                snapshotGesture();
+            } else {
+                Array.from(e.touches).slice(0,2).forEach(t => {
+                    const p=gesture.pointers.get(t.identifier);
+                    if (p) { p.clientX=t.clientX; p.clientY=t.clientY; }
+                });
+            }
+            applyTwoFingerTransform();
+            e.preventDefault(); e.stopPropagation();
         }
-    }, { passive: false, capture: true });
+    }, {capture:true, passive:false});
     wrapper.addEventListener('touchend', e => {
-        if (pinchInProgress && e.touches.length < 2) {
-            pinchInProgress = false;
-            touchStartDist = 0;
-            restoreDrawingMode();
-            e.preventDefault();
+        if (e.touches.length < 2 && gesture.mode === 'two') {
+            gesture.mode='none'; gesture.pointers.clear(); gesture.suppressUntilFreshPointer=true; restoreToolAfterGesture();
+            e.preventDefault(); e.stopPropagation();
         }
-    }, { passive: false, capture: true });
-    wrapper.addEventListener('touchcancel', () => {
-        pinchInProgress = false;
-        touchStartDist = 0;
-        restoreDrawingMode();
-    }, { passive: true, capture: true });
+    }, {capture:true, passive:false});
+    wrapper.addEventListener('touchcancel', e => {
+        gesture.mode='none'; gesture.pointers.clear(); gesture.suppressUntilFreshPointer=true; restoreToolAfterGesture();
+        e.preventDefault(); e.stopPropagation();
+    }, {capture:true, passive:false});
 
     // Eraser cursor tracking
     document.addEventListener('mousemove', e => {
@@ -2143,11 +2482,10 @@ function bindCanvasGestures() {
                 else eraseAtPointPath(pt.x, pt.y);
             }
         }
-        // Lasso
         if (App.settings.tool === 'lasso' && _lassoActive) updateLasso(e);
     });
 
-    // Lasso mouse events on canvas wrapper
+    // Existing lasso mouse/touch behavior is preserved.
     wrapper.addEventListener('mousedown', e => {
         if (App.settings.tool === 'lasso') { startLasso(e); return; }
     });
@@ -2155,19 +2493,20 @@ function bindCanvasGestures() {
         if (App.settings.tool === 'lasso') { finishLasso(); return; }
     });
     wrapper.addEventListener('touchstart', e => {
-        if (App.settings.tool === 'lasso' && e.touches.length === 1) { startLasso(e.touches[0]); return; }
+        if (App.settings.tool === 'lasso' && e.touches.length === 1 && gesture.mode !== 'two') { startLasso(e.touches[0]); return; }
     }, { passive: true });
     wrapper.addEventListener('touchmove', e => {
-        if (App.settings.tool === 'lasso' && e.touches.length === 1) { updateLasso(e.touches[0]); e.preventDefault(); return; }
+        if (App.settings.tool === 'lasso' && e.touches.length === 1 && gesture.mode !== 'two') { updateLasso(e.touches[0]); e.preventDefault(); return; }
     }, { passive: false });
     wrapper.addEventListener('touchend', e => {
-        if (App.settings.tool === 'lasso') { finishLasso(); return; }
+        if (App.settings.tool === 'lasso' && e.touches.length === 0) finishLasso();
     });
 
     App.canvas.on('mouse:down', opt => {
         const evt = opt.e;
-        if (App.drawingShape) return;
-        if (App.settings.tool === 'lasso') return;
+        if (App.drawingShape || App.settings.tool === 'lasso') return;
+        // Pointer/touch multi-finger suppression is handled above.
+        if (gesture.mode === 'two' || gesture.suppressUntilFreshPointer && evt.pointerType === 'touch') return;
 
         if (App.settings.tool === 'eraser') {
             _eraserActive = true;
@@ -2176,22 +2515,18 @@ function bindCanvasGestures() {
             else eraseAtPointPath(pt.x, pt.y);
             return;
         }
-
         if (App.settings.tool === 'view' || evt.altKey || evt.button === 1) {
             App.isPanning = true; App.canvas.defaultCursor = 'grabbing';
             App.lastPosX = evt.clientX || (evt.touches && evt.touches[0].clientX);
             App.lastPosY = evt.clientY || (evt.touches && evt.touches[0].clientY);
             App.canvas.discardActiveObject(); App.canvas.requestRenderAll(); return;
         }
-
         if (App.settings.tool === 'text' && !opt.target) {
             const ptr = App.canvas.getPointer(opt.e);
             const txt = new fabric.IText('Text...', { left: ptr.x, top: ptr.y, fill: App.settings.color, fontSize: Math.max(24, App.settings.size * 6) });
             App.canvas.add(txt); App.canvas.setActiveObject(txt); txt.enterEditing(); txt.selectAll(); saveHistory(); setTool('select');
         }
-
-        // FIX: Close color picker when starting to draw
-        if (['pen','dashed','magic','brush','highlighter'].includes(App.settings.tool)) {
+        if (drawingTools.includes(App.settings.tool)) {
             const cpanel = document.getElementById('color-picker-panel');
             if (cpanel && cpanel.classList.contains('show')) cpanel.classList.remove('show');
         }
@@ -2206,37 +2541,37 @@ function bindCanvasGestures() {
             vpt[4] += cX - App.lastPosX; vpt[5] += cY - App.lastPosY;
             App.canvas.requestRenderAll(); App.lastPosX = cX; App.lastPosY = cY;
         }
-        if (App.settings.tool === 'laser' && !App.isPanning) {
-            const pt = { x: opt.e.clientX || (opt.e.touches && opt.e.touches[0].clientX), y: opt.e.clientY || (opt.e.touches && opt.e.touches[0].clientY) };
-            createLaserPoint(pt.x, pt.y);
+        if (App.settings.tool === 'laser' && !App.isPanning && gesture.mode !== 'two') {
+            const x = opt.e.clientX || (opt.e.touches && opt.e.touches[0].clientX);
+            const y = opt.e.clientY || (opt.e.touches && opt.e.touches[0].clientY);
+            if (Number.isFinite(x) && Number.isFinite(y)) createLaserPoint(x,y);
         }
-        if (App.settings.tool === 'eraser' && _eraserActive && opt.e.touches) {
-            const touch = opt.e.touches[0];
-            const ec = document.getElementById('eraser-cursor');
-            ec.style.left = touch.clientX + 'px'; ec.style.top = touch.clientY + 'px';
-            const pt = App.canvas.getPointer(opt.e);
-            if (App.eraserType === 'element') eraseAtPointElement(pt.x, pt.y);
-            else eraseAtPointPath(pt.x, pt.y);
+        if (App.settings.tool === 'eraser' && _eraserActive) {
+            const touch = opt.e.touches ? opt.e.touches[0] : opt.e;
+            if (touch && Number.isFinite(touch.clientX) && Number.isFinite(touch.clientY)) {
+                const ec = document.getElementById('eraser-cursor');
+                ec.style.left = touch.clientX + 'px'; ec.style.top = touch.clientY + 'px';
+                const pt = App.canvas.getPointer(opt.e);
+                if (App.eraserType === 'element') eraseAtPointElement(pt.x, pt.y);
+                else eraseAtPointPath(pt.x, pt.y);
+            }
         }
     });
-
     App.canvas.on('mouse:up', () => {
         App.isPanning = false; _eraserActive = false;
         if (App.settings.tool === 'view') App.canvas.defaultCursor = 'grab';
         if (App.settings.tool === 'eraser') saveHistory();
         if (App.slidePanelOpen) { clearTimeout(App._slidePanelRefreshTimer); App._slidePanelRefreshTimer = setTimeout(renderSlidePanelThumbs, 600); }
     });
-
     App.canvas.on('mouse:wheel', opt => {
         wheelZoom(opt.e.deltaY, opt.e.offsetX, opt.e.offsetY);
         opt.e.preventDefault(); opt.e.stopPropagation();
     });
-
     App.canvas.on('path:created', opt => {
+        if (App.settings.tool === 'dashed' && opt.path) { const sw=Math.max(1,App.settings.size); opt.path.set({strokeDashArray:[Math.max(2,sw*.7),Math.max(5,sw*2)],strokeLineCap:'round',strokeLineJoin:'round'}); opt.path.setCoords(); App.canvas.requestRenderAll(); }
         if (App.settings.tool === 'magic') handleMagicPenFlicker(opt.path);
         else if (!App.isHistoryAction) { saveHistory(); triggerAutosave(); }
         if (App.slidePanelOpen) setTimeout(renderSlidePanelThumbs, 600);
-        // FIX: After drawing, close color picker
         const cpanel = document.getElementById('color-picker-panel');
         if (cpanel && cpanel.classList.contains('show')) cpanel.classList.remove('show');
     });
@@ -2248,20 +2583,53 @@ function bindCanvasGestures() {
     App.canvas.on('mouse:dblclick', opt => {
         if (opt.target && opt.target.isLinkObject && opt.target.linkUrl) window.open(opt.target.linkUrl, '_blank');
     });
-
-    // FIX: When object starts moving (select tool), make sure no drawing mode is active
-    App.canvas.on('object:moving', opt => {
-        if (App.boardMode === 'edit' && opt.target) opt.target.set({ opacity: 0.82 });
-        if (App.canvas.isDrawingMode) {
-            App.canvas.isDrawingMode = false;
+    App.canvas.on('mouse:dblclick', opt => {
+        const t=App.settings.tool;
+        if (['dashed','brush','highlighter','magic','laser'].includes(t)) {
+            if(t==='laser') openLaserColorPanel();
+            else { const box=document.getElementById('current-color-box'); if(box){ const r=box.getBoundingClientRect(); const panel=document.getElementById('color-picker-panel'); closeAllPopups(); panel.style.left=Math.max(10,r.left-100)+'px'; panel.classList.add('show'); } }
         }
     });
-
-    // FIX: When selection is created in select mode, ensure drawing mode is off
+    App.canvas.on('object:moving', opt => {
+        if (App.boardMode === 'edit' && opt.target) opt.target.set({ opacity: 0.82 });
+        if (App.canvas.isDrawingMode) App.canvas.isDrawingMode = false;
+    });
     App.canvas.on('selection:created', () => {
-        if (App.settings.tool === 'select') {
-            App.canvas.isDrawingMode = false;
-        }
+        if (App.settings.tool !== 'select') return;
+        App.canvas.isDrawingMode = false;
+        App.canvas.getActiveObjects().forEach(o => {
+            o.set({
+                selectable: true,
+                evented: true,
+                hasControls: true,
+                hasBorders: true,
+                borderColor: '#4f7cff',
+                cornerColor: '#4f7cff',
+                cornerStrokeColor: '#ffffff',
+                cornerSize: 18,
+                transparentCorners: false
+            });
+            o.setCoords();
+        });
+        App.canvas.requestRenderAll();
+    });
+    App.canvas.on('selection:updated', () => {
+        if (App.settings.tool !== 'select') return;
+        App.canvas.getActiveObjects().forEach(o => {
+            o.set({
+                selectable: true,
+                evented: true,
+                hasControls: true,
+                hasBorders: true,
+                borderColor: '#4f7cff',
+                cornerColor: '#4f7cff',
+                cornerStrokeColor: '#ffffff',
+                cornerSize: 18,
+                transparentCorners: false
+            });
+            o.setCoords();
+        });
+        App.canvas.requestRenderAll();
     });
 }
 
@@ -2270,8 +2638,10 @@ function bindObjectContextActions() {
     App.canvas.on('selection:updated', showObjectMenu);
     App.canvas.on('selection:cleared', hideVideoAndObjectMenu);
 
-    document.getElementById('ctx-mirror-x').onclick = () => { const o = App.canvas.getActiveObject(); if (o) { o.set('flipX', !o.flipX); App.canvas.renderAll(); saveHistory(); } };
-    document.getElementById('ctx-mirror-y').onclick = () => { const o = App.canvas.getActiveObject(); if (o) { o.set('flipY', !o.flipY); App.canvas.renderAll(); saveHistory(); } };
+    document.getElementById('ctx-rotate-left').onclick = () => { const o=App.canvas.getActiveObject(); if(o){ o.rotate((o.angle||0)-15); o.setCoords(); App.canvas.renderAll(); saveHistory(); showObjectMenu(); } };
+    document.getElementById('ctx-rotate-right').onclick = () => { const o=App.canvas.getActiveObject(); if(o){ o.rotate((o.angle||0)+15); o.setCoords(); App.canvas.renderAll(); saveHistory(); showObjectMenu(); } };
+    document.getElementById('ctx-mirror-x').onclick = () => { const o = App.canvas.getActiveObject(); if (o) { o.set('flipX', !o.flipX); App.canvas.renderAll(); saveHistory(); showObjectMenu(); } };
+    document.getElementById('ctx-mirror-y').onclick = () => { const o = App.canvas.getActiveObject(); if (o) { o.set('flipY', !o.flipY); App.canvas.renderAll(); saveHistory(); showObjectMenu(); } };
     document.getElementById('ctx-delete').onclick = () => { App.canvas.getActiveObjects().forEach(o => App.canvas.remove(o)); App.canvas.discardActiveObject(); saveHistory(); };
 
     document.getElementById('ctx-copy').onclick = () => {
@@ -2294,7 +2664,7 @@ function bindObjectContextActions() {
 }
 
 function showObjectMenu() {
-    if (App.settings.tool === 'eraser' || App.settings.tool === 'view' || App.settings.tool === 'laser') return;
+    if (App.settings.tool === 'eraser' || App.settings.tool === 'laser') return;
     const act = App.canvas.getActiveObject(); if (!act) return;
 
     // FIX: Ensure no drawing mode when showing object menu (select tool)
@@ -2535,15 +2905,81 @@ function importPPTXMock(e) {
     e.target.value = '';
 }
 
+const LASER_COLORS = ['#ff0040','#2563eb','#22c55e','#facc15','#f97316','#8b5cf6','#ec4899','#06b6d4','#ffffff','#000000'];
+
+function normalizeHex(hex, fallback='#ff0040') {
+    return /^#[0-9a-fA-F]{6}$/.test(hex || '') ? hex.toLowerCase() : fallback;
+}
+function updateLaserColorUI(color) {
+    App.settings.laserColor = normalizeHex(color);
+    document.documentElement.style.setProperty('--laser-color', App.settings.laserColor);
+    const preview = document.getElementById('laser-color-preview');
+    if (preview) { preview.style.background = App.settings.laserColor; preview.style.boxShadow = `0 0 18px ${App.settings.laserColor}`; }
+    const grid = document.getElementById('laser-colors-grid');
+    if (grid) grid.querySelectorAll('.color-swatch').forEach(s => s.classList.toggle('active-swatch', s.dataset.color === App.settings.laserColor));
+}
+function setLaserColor(hex) {
+    App.settings.laserColor = normalizeHex(hex);
+    updateLaserColorUI(App.settings.laserColor);
+    try { localStorage.setItem('tb_laser_color', App.settings.laserColor); } catch (_) {}
+    showToast('Laser color updated');
+}
+function initLaserColorPicker() {
+    const grid = document.getElementById('laser-colors-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    LASER_COLORS.forEach(c => {
+        const d = document.createElement('div');
+        d.className = 'color-swatch'; d.dataset.color = c; d.style.background = c;
+        d.title = c;
+        d.onclick = () => { setLaserColor(c); };
+        grid.appendChild(d);
+    });
+    const native = document.getElementById('laser-native-color');
+    if (native) native.oninput = e => setLaserColor(e.target.value);
+    const custom = document.getElementById('laser-custom-btn');
+    if (custom) custom.onclick = () => native?.click();
+    const box = document.getElementById('current-color-box');
+    if (box) box.addEventListener('dblclick', e => { if (App.settings.tool === 'laser') { e.stopPropagation(); openLaserColorPanel(); } });
+    const help = document.getElementById('btn-gesture-help');
+    const modal = document.getElementById('gesture-help-modal');
+    const close = document.getElementById('gesture-help-close');
+    if (help && modal) help.onclick = e => { e.stopPropagation(); modal.classList.add('show'); };
+    if (close && modal) close.onclick = () => modal.classList.remove('show');
+    if (modal) modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+}
+function openLaserColorPanel() {
+    const panel = document.getElementById('laser-color-panel'), box = document.getElementById('current-color-box');
+    if (!panel || !box) return;
+    const rect = box.getBoundingClientRect();
+    closeAllPopups();
+    panel.style.left = Math.max(10, Math.min(window.innerWidth - 255, rect.left - 100)) + 'px';
+    panel.classList.add('show');
+    updateLaserColorUI(App.settings.laserColor);
+}
+function saveGesturePreferences() {
+    try {
+        localStorage.setItem('tb_laser_color', normalizeHex(App.settings.laserColor));
+        localStorage.setItem('tb_gesture_rotation', '0');
+        localStorage.setItem('tb_gesture_help_seen', App.settings.gestureHelpSeen ? '1' : '0');
+    } catch (_) {}
+}
+function restoreGesturePreferences() {
+    try {
+        App.settings.laserColor = normalizeHex(localStorage.getItem('tb_laser_color'), '#ff0040');
+        App.settings.gestureRotation = false;
+        App.settings.gestureHelpSeen = localStorage.getItem('tb_gesture_help_seen') === '1';
+    } catch (_) {}
+}
 function createLaserPoint(x, y) {
-    const d = document.createElement('div'); d.className = 'laser-point'; d.style.left = x + 'px'; d.style.top = y + 'px';
+    const d = document.createElement('div'); d.className = 'laser-point'; d.style.setProperty('--laser-color', App.settings.laserColor || '#ff0040'); d.style.left = x + 'px'; d.style.top = y + 'px';
     document.body.appendChild(d);
     setTimeout(() => { d.style.opacity = '0'; d.style.transform = 'scale(2.5)'; }, 50);
     setTimeout(() => d.remove(), 450);
 }
 
-function saveState() { try { localStorage.setItem('tb_theme', App.settings.theme); } catch (e) {} }
-function restoreState() { if (localStorage.getItem('tb_theme') === 'dark') toggleTheme(); }
+function saveState() { try { localStorage.setItem('tb_theme', App.settings.theme); localStorage.setItem('tb_pen_color', App.settings.color); saveGesturePreferences(); } catch (e) {} }
+function restoreState() { try { const pc=localStorage.getItem('tb_pen_color'); if(/^#[0-9a-fA-F]{6}$/.test(pc)) App.settings.color=pc; } catch(_){} if (localStorage.getItem('tb_theme') === 'dark') toggleTheme(); }
 function renderLoop() {
     if (App.canvas && App.canvas.getObjects().some(o => o.isVideoElementObject)) App.canvas.requestRenderAll();
     requestAnimationFrame(renderLoop);
@@ -2587,19 +3023,90 @@ function loadCurrentFileIntoCanvas() {
     // Reset zoom to level 0 on file load
     App.zoomLevel = 0; resetZoom();
 }
-
 function createNewFile() {
-    const name = prompt('Board का नाम डालें:', 'Untitled Board'); if (name === null) return;
-    const id = genId();
-    AppData.files[id] = { id, name: name.trim() || 'Untitled Board', folderId: App.home.currentFolderId, favorite: false, pages: [blankPageJSON(App.settings.globalBgColor || null)], pageHidden: [false], globalBgColor: App.settings.globalBgColor || null, createdAt: Date.now(), updatedAt: Date.now(), shareId: genId(), shareEnabled: false };
-    persistAppData(); openFile(id);
-}
+    const inputName = prompt(
+        'Board का नाम डालें:',
+        'Untitled Board'
+    );
 
-function createNewFolder() {
-    const name = prompt('Folder का नाम:', 'New Folder'); if (!name) return;
+    if (inputName === null) return;
+
+    const baseName = inputName.trim() || 'Untitled Board';
+
+    // Check names inside the current folder
+    const siblingNames = Object.values(AppData.files)
+        .filter(file => file.folderId === App.home.currentFolderId)
+        .map(file => file.name.trim().toLowerCase());
+
+    let finalName = baseName;
+    let counter = 1;
+
+    while (siblingNames.includes(finalName.toLowerCase())) {
+        counter++;
+        finalName = `${baseName} (${counter})`;
+    }
+
     const id = genId();
-    AppData.folders[id] = { id, name: name.trim(), parentId: App.home.currentFolderId, createdAt: Date.now() };
-    persistAppData(); renderHome();
+
+    AppData.files[id] = {
+        id,
+        name: finalName,
+        folderId: App.home.currentFolderId,
+        favorite: false,
+        pages: [
+            blankPageJSON(
+                App.settings.globalBgColor || null
+            )
+        ],
+        pageHidden: [false],
+        globalBgColor: App.settings.globalBgColor || null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        shareId: genId(),
+        shareEnabled: false
+    };
+
+    persistAppData();
+    openFile(id);
+}
+function createNewFolder() {
+    const inputName = prompt(
+        'Folder का नाम:',
+        'New Folder'
+    );
+
+    if (!inputName || !inputName.trim()) return;
+
+    const baseName = inputName.trim();
+
+    // Check folders inside the current parent folder
+    const siblingNames = Object.values(AppData.folders)
+        .filter(folder =>
+            folder.parentId === App.home.currentFolderId
+        )
+        .map(folder =>
+            folder.name.trim().toLowerCase()
+        );
+
+    let finalName = baseName;
+    let counter = 1;
+
+    while (siblingNames.includes(finalName.toLowerCase())) {
+        counter++;
+        finalName = `${baseName} (${counter})`;
+    }
+
+    const id = genId();
+
+    AppData.folders[id] = {
+        id,
+        name: finalName,
+        parentId: App.home.currentFolderId,
+        createdAt: Date.now()
+    };
+
+    persistAppData();
+    renderHome();
 }
 
 function openFile(id) {
